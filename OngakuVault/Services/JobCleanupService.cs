@@ -11,9 +11,8 @@
 	{
 		private readonly ILogger<JobCleanupService> _logger;
 		private readonly IJobService _jobService;
-		private Timer _timer;
-		private readonly TimeSpan _dueTime = TimeSpan.Zero;  // Start immediately
-		private readonly TimeSpan _everyTime = TimeSpan.FromMinutes(30); // Run every 30 minutes
+
+		private readonly TimeSpan _runAtEvery = TimeSpan.FromMinutes(30); // Run every 30 minutes
 
 		public JobCleanupService(ILogger<JobCleanupService> logger, IJobService jobService)
 		{
@@ -21,28 +20,17 @@
 			_jobService = jobService;
 		}
 
-		// Override ExecuteAsync to start the timer
-		protected override Task ExecuteAsync(CancellationToken stoppingToken)
+		/// <summary>
+		/// Called when the application start and load this service
+		/// </summary>
+		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
-			_timer = new Timer(StartCleanup, null, _dueTime, _everyTime);
-
-			// Return a completed task, the timer run in another thread
-			return Task.CompletedTask;
-		}
-
-		// This method will be called every 30 minutes
-		private void StartCleanup(object state)
-		{
-			// Remove jobs older than 30 minute (the _everyTime)
-			_jobService.OldJobsCleanup(_everyTime.Minutes);
-		}
-
-		public override Task StopAsync(CancellationToken cancellationToken)
-		{
-			_logger.LogInformation("JobCleanupService is stopping...");
-			// Stop the timer and any pending operations
-			_timer?.Change(Timeout.Infinite, 0); // Stop the timer
-			return base.StopAsync(cancellationToken);
+			using PeriodicTimer periodicTimer = new PeriodicTimer(_runAtEvery);
+			while (!stoppingToken.IsCancellationRequested && await periodicTimer.WaitForNextTickAsync(stoppingToken))
+			{
+				// Clear eligible jobs that are older than _runAtEvery
+				_jobService.OldJobsCleanup(_runAtEvery.TotalMinutes);
+			}
 		}
 	}
 }

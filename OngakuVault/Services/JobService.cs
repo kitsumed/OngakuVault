@@ -67,8 +67,9 @@ namespace OngakuVault.Services
 			// If the Job was added to the list, start a async thread with the JobModel
 			if (result) 
 			{
-				_logger.LogInformation("Job ID: {ID} has been created & added to the queue.", jobModel.ID);
-				StartJobAsync(jobModel);
+				_logger.LogInformation("Job ID: {ID} has been added to the execution queue.", jobModel.ID);
+				Jobs[jobModel.ID].Status = "Queued"; // Update the job status to Queued
+				StartJobAsync(Jobs[jobModel.ID]);
 			} 
 			return result;
 		}
@@ -114,12 +115,12 @@ namespace OngakuVault.Services
 				// Ensure that the job is not currently running or waiting to be ran
 				if (jobModel.Status != "Running" && jobModel.Status != "Queued") 
 				{
-					// If the numbers of minutes between the job creation and NOW is biggan than totalMinutes
+					// If the numbers of minutes between the job creation and NOW is bigger than totalMinutes
 					if (dateTimeNow.Subtract(jobModel.CreationDate).TotalMinutes >= totalMinutes) 
 					{
 						// Free the old job from the list
-						jobModel.Dispose();
 						_ = TryRemoveJob(jobModel.ID);
+						jobModel?.Dispose();
 						cleanedJobs++;
 					};
 				}
@@ -137,18 +138,13 @@ namespace OngakuVault.Services
 			try
 			{
 				await JobsSemaphore.WaitAsync(jobModel.CancellationTokenSource.Token);
-				Jobs[jobModel.ID].Status = "Running";
+				Jobs[jobModel.ID].Status = "Running"; // Update to job status to Running
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobModel.ID);
 				try
 				{
 					for (int i = 0; i < 20; i++)
 					{
-						if (jobModel.CancellationTokenSource.IsCancellationRequested)
-						{
-							_logger.LogInformation("Job ID: {ID} has been cancelled during it's execution.", jobModel.ID);
-							Jobs[jobModel.ID].Status = "Cancelled";
-							break;
-						}
+						if (jobModel.CancellationTokenSource.IsCancellationRequested) break;
 						Console.WriteLine("Inside semaphore " + i.ToString());
 						await Task.Delay(4000);
 					}
@@ -160,20 +156,30 @@ namespace OngakuVault.Services
 				}
 				finally
 				{
-					// Ignore this part if status is Failed or Cancelled
-					if (Jobs[jobModel.ID].Status == "Running")
+					// Handle final status when the jobs exit it's execution
+					if (jobModel.CancellationTokenSource.IsCancellationRequested) // Cancellation token triggered, job cancelled
 					{
-						_logger.LogInformation("Job ID: {ID} finished it's execution.", jobModel.ID);
+						_logger.LogInformation("Job ID: {ID} was cancelled during execution.", jobModel.ID);
+						Jobs[jobModel.ID].Status = "Cancelled";
+					}
+					else if (Jobs[jobModel.ID].Status == "Failed") 
+					{
+						_logger.LogInformation("Job ID: {ID} failed during execution.", jobModel.ID);
+					}
+					else if (Jobs[jobModel.ID].Status == "Running" && !jobModel.CancellationTokenSource.IsCancellationRequested)
+					{
+						_logger.LogInformation("Job ID: {ID} finished execution.", jobModel.ID);
 						Jobs[jobModel.ID].Status = "Finished";
 					}
+					// Release a place inside the semaphore to allow a new job to start
 					JobsSemaphore.Release();
 				}
 			}
 			catch (OperationCanceledException)
 			{
-				// If the CancellationToken is triggered, change the job status to cancelled.
+				// If the CancellationToken is triggered before execution, change the job status to cancelled.
 				Jobs[jobModel.ID].Status = "Cancelled";
-				_logger.LogInformation("Job ID: {ID} has been cancelled before it's execution.", jobModel.ID);
+				_logger.LogInformation("Job ID: {ID} was cancelled before execution.", jobModel.ID);
 			}
 		}
 	}

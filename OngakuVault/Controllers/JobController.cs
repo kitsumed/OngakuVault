@@ -25,8 +25,8 @@ namespace OngakuVault.Controllers
 		[HttpPost("create")]
 		[EndpointDescription("Create a new download job for a song")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
-		[Produces("application/json")]
-		[ProducesResponseType(StatusCodes.Status400BadRequest)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
+		[Produces("application/json", "text/plain")]
 		public ActionResult CreateJob(JobModelCreate jobModelCreate)
 		{
 			// Verify if the url is http/https
@@ -60,8 +60,8 @@ namespace OngakuVault.Controllers
 		[HttpGet("{ID}/info")]
 		[EndpointDescription("Get information about the Job matching the ID")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(JobModel))]
-		[Produces("application/json")]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
+		[Produces("application/json", "text/plain")]
 		public ActionResult GetJobByID(string ID)
 		{
 			// Verify if the Job ID exist
@@ -77,19 +77,22 @@ namespace OngakuVault.Controllers
 		[EndpointDescription("Cancel the job matching this ID")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
+		[ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
+		[Produces("text/plain")]
 		public ActionResult CancelJob(string ID)
 		{
 			// Verify if the Job ID exist
 			JobModel? jobModel = _jobService.TryGetJob(ID);
 			if (jobModel != null)
 			{
+				if (jobModel.CancellationTokenSource.IsCancellationRequested) 
+				{
+					return Conflict("This job cancel signal was already triggered.");
+				}
 				jobModel.CancellationTokenSource.Cancel();
-				return Accepted("Cancel signal has been sent to this job.");
+				return Accepted(string.Empty, "Cancel signal has been sent to this job.");
 			}
 			return NotFound("Failed to find a job with the requested ID.");
 		}
-
-
-		
 	}
 }

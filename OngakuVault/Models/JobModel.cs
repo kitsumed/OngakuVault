@@ -47,7 +47,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The current status of the job
 		/// </summary>
-		public string Status { get; set; } = "Queued";
+		public string Status { get; set; } = "WaitingForAQueue";
 		/// <summary>
 		/// Cancellation token to cancel the job execution
 		/// </summary>
