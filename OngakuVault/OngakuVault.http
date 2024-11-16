@@ -1,0 +1,6 @@
+@OngakuVault_HostAddress = http://localhost:5021
+
+GET {{OngakuVault_HostAddress}}
+Accept: application/json
+
+###
