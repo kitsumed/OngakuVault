@@ -1,6 +1,7 @@
-﻿using OngakuVault.Controllers;
-using OngakuVault.Models;
+﻿using OngakuVault.Models;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
+using YoutubeDLSharp;
 
 namespace OngakuVault.Services
 {
@@ -55,10 +56,34 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly SemaphoreSlim JobsSemaphore = new SemaphoreSlim(4, 4);
 
+		/// <summary>
+		/// YoutubeDownloadSharp (yt-dlp wrapper). Allow 4 parallel download.
+		/// </summary>
+		private readonly YoutubeDL MediaDownloader = new YoutubeDL(4);
 
-        public JobService(ILogger<JobService> logger)
+		/// <summary>
+		/// The directory in which the OngakuVault executable is located
+		/// </summary>
+		private readonly string ExecutableDirectory = AppContext.BaseDirectory;
+
+		public JobService(ILogger<JobService> logger)
         {
             _logger = logger;
+
+			// Set the paths for yt-dlp and FFmpeg executables for linux by default
+			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
+			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
+
+			// If OS is Windows, append ".exe" to the executables
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				MediaDownloader.YoutubeDLPath += ".exe";
+				MediaDownloader.FFmpegPath += ".exe";
+			}
+
+			// Set the download path
+			MediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
+			_logger.LogInformation("JobService configured MediaDownloader external binaries yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
         }
 
 		public bool TryAddJob(JobModel jobModel)
