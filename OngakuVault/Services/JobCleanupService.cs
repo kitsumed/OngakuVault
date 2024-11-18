@@ -6,7 +6,6 @@
 	using Microsoft.Extensions.Hosting;
 	using Microsoft.Extensions.Logging;
 
-
 	public class JobCleanupService : BackgroundService
 	{
 		private readonly ILogger<JobCleanupService> _logger;

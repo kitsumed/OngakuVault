@@ -46,6 +46,12 @@ namespace OngakuVault.Services
 	public class JobService : IJobService
 	{
 		private readonly ILogger<JobService> _logger;
+
+		/// <summary>
+		/// YoutubeDownloadSharp (yt-dlp wrapper). Allow 4 parallel download.
+		/// </summary>
+		private readonly YoutubeDL _mediaDownloader;
+
 		/// <summary>
 		/// List of created Jobs
 		/// </summary>
@@ -57,33 +63,29 @@ namespace OngakuVault.Services
 		private readonly SemaphoreSlim JobsSemaphore = new SemaphoreSlim(4, 4);
 
 		/// <summary>
-		/// YoutubeDownloadSharp (yt-dlp wrapper). Allow 4 parallel download.
-		/// </summary>
-		private readonly YoutubeDL MediaDownloader = new YoutubeDL(4);
-
-		/// <summary>
 		/// The directory in which the OngakuVault executable is located
 		/// </summary>
 		private readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
-		public JobService(ILogger<JobService> logger)
+		public JobService(ILogger<JobService> logger, YoutubeDL mediaDownloader)
         {
             _logger = logger;
+			_mediaDownloader = mediaDownloader;
 
 			// Set the paths for yt-dlp and FFmpeg executables for linux by default
-			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
-			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
+			_mediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
+			_mediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
 
 			// If OS is Windows, append ".exe" to the executables
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				MediaDownloader.YoutubeDLPath += ".exe";
-				MediaDownloader.FFmpegPath += ".exe";
+				_mediaDownloader.YoutubeDLPath += ".exe";
+				_mediaDownloader.FFmpegPath += ".exe";
 			}
 
 			// Set the download path
-			MediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
-			_logger.LogInformation("JobService configured MediaDownloader external binaries yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
+			_mediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
+			_logger.LogInformation("JobService configured MediaDownloader external binaries yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'", _mediaDownloader.YoutubeDLPath, _mediaDownloader.FFmpegPath);
         }
 
 		public bool TryAddJob(JobModel jobModel)

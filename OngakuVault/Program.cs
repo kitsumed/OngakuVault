@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Models;
 using OngakuVault.Services;
+using YoutubeDLSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,8 @@ builder.Services.AddControllers();
 
 /// Add services
 
+// Add the yt-dlp wrapper as a Singleton (with 4 parallel download max)
+builder.Services.AddSingleton(new YoutubeDL(4));
 // Add JobService as a Singleton
 builder.Services.AddSingleton<IJobService, JobService>();
 // Add the JobCleanupService
