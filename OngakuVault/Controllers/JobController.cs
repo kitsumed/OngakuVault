@@ -22,16 +22,16 @@ namespace OngakuVault.Controllers
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
-		public ActionResult CreateJob(JobCreateRequestModel newJobRequestData)
+		public ActionResult CreateJob(MediaInfoModel newJobMediaInfoData)
 		{
 			// Verify if the url is http/https
-			_ = Uri.TryCreate(newJobRequestData.OriginalMediaUrl, UriKind.Absolute, out Uri? originalUrlUri);
+			_ = Uri.TryCreate(newJobMediaInfoData.MediaUrl, UriKind.Absolute, out Uri? originalUrlUri);
 			if (originalUrlUri?.Scheme != Uri.UriSchemeHttp && originalUrlUri?.Scheme != Uri.UriSchemeHttps && originalUrlUri != null)
 			{
 				return BadRequest("originalUrl scheme can only be http or https.");
 			}
 			// Convert the JobModelCreate to a JobModel
-			JobModel jobModel = new JobModel(newJobRequestData);
+			JobModel jobModel = new JobModel(newJobMediaInfoData);
 			// Add the jobModel to the Jobs service queue
 			if (_jobService.TryAddJobToQueue(jobModel))
 			{

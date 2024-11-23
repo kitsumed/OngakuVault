@@ -9,18 +9,9 @@ namespace OngakuVault.Models
 	public class JobModel : IDisposable
 	{
 
-		public JobModel(JobCreateRequestModel jobCreationData)
+		public JobModel(MediaInfoModel jobMediaInfoData)
 		{
-			Data = new MediaInfoModel()
-			{
-				Name = jobCreationData.Name,
-				ArtistName = jobCreationData.Artist,
-				AlbumName = jobCreationData.Album,
-				MediaUrl = jobCreationData.OriginalMediaUrl,
-				Genre = jobCreationData.Genre,
-				ReleaseYear = jobCreationData.ReleaseDate,
-				TrackNumber = jobCreationData.TrackNumber,
-			};
+			Data = jobMediaInfoData;
 		}
 
 		/// <summary>
@@ -67,27 +58,5 @@ namespace OngakuVault.Models
 		Completed,
 		Cancelled,
 		Failed
-	}
-
-	/// <summary>
-	/// The JobCreateRequestModel class are the fields used by RESTAPI to create a new job <see cref="JobModel"/>.
-	/// In this application case, theses informations will be used by <see cref="JobModel"/> constructor
-	/// to create a <see cref="MediaInfoModel"/>.
-	/// </summary>
-	public class JobCreateRequestModel()
-	{
-		// Required Fields
-		public required string Name { get; set; }
-		[Url]
-		public required string OriginalMediaUrl { get; set; }
-
-		// Defaults to Unknown
-		public string Album { get; set; } = string.Empty;
-		public string Artist { get; set; } = string.Empty;
-
-		// Defaults to Null
-		public string? Genre { get; set; }
-		public string? ReleaseDate { get; set; }
-		public int? TrackNumber { get; set; }
 	}
 }
