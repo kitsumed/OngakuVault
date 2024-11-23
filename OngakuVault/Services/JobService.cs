@@ -1,35 +1,37 @@
 ﻿using OngakuVault.Models;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Threading;
 using YoutubeDLSharp;
 
 namespace OngakuVault.Services
 {
-	public interface IJobService
+	public interface IJobService<T>
 	{
 		/// <summary>
 		/// Add a new job inside the list & add it to the execution queue
 		/// </summary>
-		/// <param name="job">The JobModel data</param>
+		/// <param name="job">The current job informations</param>
 		/// <returns>True if the job was added, false if a job with the same ID already exist (should never happen)</returns>
-		bool TryAddJobToQueue(JobModel jobModel);
+		bool TryAddJobToQueue(JobModel<T> jobModel);
 		/// <summary>
 		/// Get a JobModel data from it's ID
 		/// </summary>
 		/// <param name="ID">The Job ID</param>
-		JobModel? TryGetJob(string ID);
+		JobModel<T>? TryGetJob(string ID);
 		/// <summary>
 		/// Get all Jobs in the list
 		/// </summary>
 		/// <returns>A ICollection of all JobModels</returns>
-		ICollection<JobModel> GetJobs();
+		ICollection<JobModel<T>> GetJobs();
 		/// <summary>
-		/// Update a JobModel to a newer JobModel
+		/// This delegate method is called when the Job start running.
+		/// The method called need the same arguments as this delegate.
 		/// </summary>
-		/// <param name="ID">The job ID</param>
-		/// <param name="updatedJobModel">The new JobModel</param>
-		/// <returns>True if updated, false if JobID not found</returns>
-		bool TryUpdateJob(string ID, JobModel updatedJobModel);
+		/// <param name="jobMethodAdditionalInfo">Additional informations stocked inside the job <see cref="JobModel{T}.Data"/></param>
+		/// <param name="cancellationToken">The cancellation token of the job</param>
+		/// <returns></returns>
+		public delegate Task ExecuteJob(T jobMethodAdditionalInfo, CancellationToken? jobCancellationToken);
 		/// <summary>
 		/// Cleanup jobs that have finished, failed or been cancelled. 
 		/// This method removes jobs by verifying the creation date for a specified duration in minutes.
@@ -37,19 +39,20 @@ namespace OngakuVault.Services
 		/// <param name="totalMinutes">The maximum number of minutes before removing a job</param>
 		void OldJobsCleanup(double totalMinutes);
 	}
-	public class JobService : IJobService
-	{
-		private readonly ILogger<JobService> _logger;
 
-		/// <summary>
-		/// YoutubeDownloadSharp (yt-dlp wrapper). Allow 4 parallel download.
-		/// </summary>
-		private readonly YoutubeDL _mediaDownloader;
+	/// <summary>
+	/// This class implements the <see cref="IJobService{T}"/> interface and provides functionality
+	/// to manage jobs. It allows executing up to 4 async methods in parallel as "jobs".
+	/// </summary>
+	/// <typeparam name="T">The value type of the additional data stocked inside <see cref="JobModel{T}.Data"/></typeparam>
+	public class JobService<T> : IJobService<T>
+	{
+		private readonly ILogger<JobService<T>> _logger;
 
 		/// <summary>
 		/// List of created Jobs
 		/// </summary>
-		private readonly ConcurrentDictionary<string, JobModel> Jobs = new ConcurrentDictionary<string, JobModel>();
+		private readonly ConcurrentDictionary<string, JobModel<T>> Jobs = new ConcurrentDictionary<string, JobModel<T>>();
 
 		/// <summary>
 		/// JobsSemaphore to allow 4 async thread (jobs) at the same time
@@ -57,33 +60,27 @@ namespace OngakuVault.Services
 		private readonly SemaphoreSlim JobsSemaphore = new SemaphoreSlim(4, 4);
 
 		/// <summary>
-		/// The directory in which the OngakuVault executable is located
+		/// Run jobs cleanup timer at every 30 minutes
 		/// </summary>
-		private readonly string ExecutableDirectory = AppContext.BaseDirectory;
+		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
-		public JobService(ILogger<JobService> logger, YoutubeDL mediaDownloader)
+		public JobService(ILogger<JobService<T>> logger)
         {
             _logger = logger;
-			_mediaDownloader = mediaDownloader;
-
-			// Set the paths for yt-dlp and FFmpeg executables for linux by default
-			_mediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
-			_mediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
-
-			// If OS is Windows, append ".exe" to the executables
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			// Init jobs cleanup async task
+			Task.Run(async () =>
 			{
-				_mediaDownloader.YoutubeDLPath += ".exe";
-				_mediaDownloader.FFmpegPath += ".exe";
-			}
+				using PeriodicTimer periodicTimer = new PeriodicTimer(_runCleanupAtEvery);
+				while (await periodicTimer.WaitForNextTickAsync())
+				{
+					// Clear eligible jobs that are older than _runCleanupAtEvery
+					OldJobsCleanup(_runCleanupAtEvery.TotalMinutes);
+				}
+			});
 
-			// Set the download path
-			_mediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
-			_logger.LogInformation("JobService configured MediaDownloader external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", _mediaDownloader.YoutubeDLPath, _mediaDownloader.FFmpegPath);
-			_logger.LogInformation("Current yt-dlp version is {version}.", _mediaDownloader.Version);
-        }
+		}
 
-		public bool TryAddJobToQueue(JobModel jobModel)
+		public bool TryAddJobToQueue(JobModel<T> jobModel)
 		{
 			bool result = Jobs.TryAdd(jobModel.ID, jobModel);
 			// If the Job was added to the list, start a async thread with the JobModel
@@ -97,28 +94,16 @@ namespace OngakuVault.Services
 		}
 
 		// Retrieves a job by its ID
-		public JobModel? TryGetJob(string ID)
+		public JobModel<T>? TryGetJob(string ID)
 		{
 			// Try to get the job, return null if not found
-			Jobs.TryGetValue(ID, out JobModel? job);
+			Jobs.TryGetValue(ID, out JobModel<T>? job);
 			return job;
 		}
 
-		public ICollection<JobModel> GetJobs()
+		public ICollection<JobModel<T>> GetJobs()
 		{
 			return Jobs.Values;
-		}
-
-		// Updates a job if it exists; otherwise, returns false
-		public bool TryUpdateJob(string ID, JobModel updatedJob)
-		{
-			if (Jobs.ContainsKey(ID))
-			{
-				// Update the job (this replaces the existing job with the updated one)
-				Jobs[ID] = updatedJob;
-				return true;
-			}
-			return false; // Job not found
 		}
 
 		// Cleans up old jobs
@@ -126,7 +111,7 @@ namespace OngakuVault.Services
 		{
 			DateTime dateTimeNow = DateTime.Now;
 			int cleanedJobs = 0;
-            foreach (JobModel jobModel in Jobs.Values)
+            foreach (JobModel<T> jobModel in Jobs.Values)
             {
 				// Ensure that the job is not currently running or waiting to be ran
 				if (jobModel.Status != JobStatus.Running && jobModel.Status != JobStatus.Queued) 
@@ -150,8 +135,8 @@ namespace OngakuVault.Services
 		/// <summary>
 		/// Start a new Job thread and wait for JobsSemaphore before processing
 		/// </summary>
-		/// <param name="jobModel">The data of the job</param>
-		private async void StartJobAsync(JobModel jobModel)
+		/// <param name="jobModel">The informations of the job</param>
+		private async void StartJobAsync(JobModel<T> jobModel)
 		{
 			try
 			{
@@ -160,12 +145,8 @@ namespace OngakuVault.Services
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobModel.ID);
 				try
 				{
-					for (int i = 0; i < 20; i++)
-					{
-						if (jobModel.CancellationTokenSource.IsCancellationRequested) break;
-						Console.WriteLine("Inside semaphore " + i.ToString());
-						await Task.Delay(4000);
-					}
+					// Execute the method selectionned at the creation of the jobModel & send job additional informations
+					await jobModel.ExecuteJobMethod(Jobs[jobModel.ID].Data, Jobs[jobModel.ID].CancellationTokenSource.Token);
 				}
 				catch (Exception ex)
 				{

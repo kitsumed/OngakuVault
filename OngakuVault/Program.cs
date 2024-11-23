@@ -1,6 +1,6 @@
 using Microsoft.OpenApi.Models;
+using OngakuVault.Models;
 using OngakuVault.Services;
-using YoutubeDLSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,12 +9,13 @@ builder.Services.AddControllers();
 
 /// Add services
 
-// Add the yt-dlp wrapper as a Singleton (with 8 parallel yt-dlp process allowed to run)
-builder.Services.AddSingleton(new YoutubeDL(8));
-// Add JobService as a Singleton
-builder.Services.AddSingleton<IJobService, JobService>();
-// Add the JobCleanupService
-builder.Services.AddHostedService<JobCleanupService>();
+// Add MediaDownloaderService as a Singleton
+builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
+
+// Add a JobService as a Singleton (Parallel Method Execution Queue Service)
+// This JobService is configured to contain MediaInfoModel as it's Additional Data inside every JobModel
+builder.Services.AddSingleton<IJobService<MediaInfoModel>, JobService<MediaInfoModel>>();
+
 // Add Swagger to the service collection. Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

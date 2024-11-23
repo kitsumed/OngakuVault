@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OngakuVault.Models;
+using OngakuVault.Services;
 using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Xml.Linq;
-using YoutubeDLSharp;
-using YoutubeDLSharp.Metadata;
 
 namespace OngakuVault.Controllers
 {
@@ -13,14 +10,13 @@ namespace OngakuVault.Controllers
 	public class MediaController : ControllerBase
 	{
 		readonly ILogger<MediaController> _logger;
-		/// <summary>
-		/// YoutubeDownloadSharp (yt-dlp wrapper)
-		/// </summary>
-		private readonly YoutubeDL _mediaDownloader;
-		public MediaController(ILogger<MediaController> logger, YoutubeDL mediaDownloader)
+
+		private readonly IMediaDownloaderService _mediaDownloaderService;
+
+		public MediaController(ILogger<MediaController> logger, IMediaDownloaderService mediaDownloaderService)
         {
             _logger = logger;
-			_mediaDownloader = mediaDownloader;
+			_mediaDownloaderService = mediaDownloaderService;
         }
 
 		[HttpGet("info")]
@@ -36,27 +32,11 @@ namespace OngakuVault.Controllers
 			{
 				return BadRequest("mediaUrl scheme can only be http or https.");
 			}
-			// Fetch video data (with flat playlist set to true)
-			RunResult<VideoData> mediaData = await _mediaDownloader.RunVideoDataFetch(mediaUrl, default, true, false);
-			if (mediaData.Success) 
-			{
-				MediaInfoModel mediaInfoModel = new MediaInfoModel() 
-				{
-					Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
-					ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
-					AlbumName = mediaData.Data.Album,
-					MediaUrl = mediaData.Data.WebpageUrl,
-					ReleaseYear = mediaData.Data.ReleaseYear ?? mediaData.Data.UploadDate?.Year.ToString(), // Fallback to UploadDate year
-					Genre = mediaData.Data.Genre,
-					TrackNumber = mediaData.Data.TrackNumber,
-				};
-				return Ok(mediaInfoModel);
-			}
-            else
-            {
-				_logger.LogWarning("MediaDownaloder failed to fetch data about a mediaUrl. Errors : {ErrorOutput}", mediaData.ErrorOutput.Append(Environment.NewLine));
-				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch data about your mediaUrl. More information was printed in the server logs.");
-			}
+			// Fetch video data
+			MediaInfoModel? mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl);
+			if (mediaInfoModel != null) return Ok(mediaInfoModel);
+			// Failed to fetch
+			return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch data about your mediaUrl. More information was printed in the server logs.");
 		}
 	}
 }
