@@ -12,29 +12,42 @@
         public required string Name { get; set; }
 
 
-		private string _album = "Unknown";
+		private string _artistName = "Unknown";
 		/// <summary>
 		/// Album name. Defaults to 'Unknown' if null or empty.
 		/// </summary>
-		public string Album
+		public string ArtistName
 		{
-			get => _album;
-			set => _album = string.IsNullOrEmpty(value) ? "Unknown" : value;
+			get => _artistName;
+			set => _artistName = string.IsNullOrEmpty(value) ? "Unknown" : value;
 		}
 
 
-		private string _artist = "Unknown";
+		private string _albumName = "Unknown";
 		/// <summary>
 		/// Album name. Defaults to 'Unknown' if null or empty.
 		/// </summary>
-		public string Artist
+		public string AlbumName
 		{
-			get => _artist;
-			set => _artist = string.IsNullOrEmpty(value) ? "Unknown" : value;
+			get => _albumName;
+			set => _albumName = string.IsNullOrEmpty(value) ? "Unknown" : value;
 		}
+
 		/// <summary>
 		/// The webpage url of the song
 		/// </summary>
 		public required string MediaUrl { get; set; }
+		/// <summary>
+		/// The year of release of the song
+		/// </summary>
+		public string? ReleaseYear { get; set; }
+		/// <summary>
+		/// The main genre of the song
+		/// </summary>
+		public string? Genre { get; set; }
+		/// <summary>
+		/// The number (position) of the song in a Album
+		/// </summary>
+		public int? TrackNumber { get; set; }
 	}
 }

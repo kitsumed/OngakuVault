@@ -14,9 +14,12 @@ namespace OngakuVault.Models
 			Data = new MediaInfoModel()
 			{
 				Name = jobCreationData.Name,
-				Album = jobCreationData.Album,
-				Artist = jobCreationData.Artist,
+				ArtistName = jobCreationData.Artist,
+				AlbumName = jobCreationData.Album,
 				MediaUrl = jobCreationData.OriginalMediaUrl,
+				Genre = jobCreationData.Genre,
+				ReleaseYear = jobCreationData.ReleaseDate,
+				TrackNumber = jobCreationData.TrackNumber,
 			};
 		}
 
@@ -73,10 +76,18 @@ namespace OngakuVault.Models
 	/// </summary>
 	public class JobCreateRequestModel()
 	{
+		// Required Fields
 		public required string Name { get; set; }
-		public string Album { get; set; } = string.Empty;
-		public string Artist { get; set; } = string.Empty;
 		[Url]
 		public required string OriginalMediaUrl { get; set; }
+
+		// Defaults to Unknown
+		public string Album { get; set; } = string.Empty;
+		public string Artist { get; set; } = string.Empty;
+
+		// Defaults to Null
+		public string? Genre { get; set; }
+		public string? ReleaseDate { get; set; }
+		public int? TrackNumber { get; set; }
 	}
 }

@@ -42,10 +42,13 @@ namespace OngakuVault.Controllers
 			{
 				MediaInfoModel mediaInfoModel = new MediaInfoModel() 
 				{
-					Name = mediaData.Data.Title,
-					Artist = mediaData.Data.Artist,
-					Album = mediaData.Data.Album,
-					MediaUrl = mediaData.Data.WebpageUrl
+					Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
+					ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
+					AlbumName = mediaData.Data.Album,
+					MediaUrl = mediaData.Data.WebpageUrl,
+					ReleaseYear = mediaData.Data.ReleaseYear ?? mediaData.Data.UploadDate?.Year.ToString(), // Fallback to UploadDate year
+					Genre = mediaData.Data.Genre,
+					TrackNumber = mediaData.Data.TrackNumber,
 				};
 				return Ok(mediaInfoModel);
 			}
