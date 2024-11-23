@@ -11,8 +11,8 @@ namespace OngakuVault.Services
 		/// Add a new job inside the list & add it to the execution queue
 		/// </summary>
 		/// <param name="job">The JobModel data</param>
-		/// <returns>True if the job was added, false if a job with the same ID already exist</returns>
-		bool TryAddJob(JobModel jobModel);
+		/// <returns>True if the job was added, false if a job with the same ID already exist (should never happen)</returns>
+		bool TryAddJobToQueue(JobModel jobModel);
 		/// <summary>
 		/// Get a JobModel data from it's ID
 		/// </summary>
@@ -30,12 +30,6 @@ namespace OngakuVault.Services
 		/// <param name="updatedJobModel">The new JobModel</param>
 		/// <returns>True if updated, false if JobID not found</returns>
 		bool TryUpdateJob(string ID, JobModel updatedJobModel);
-		/// <summary>
-		/// Remove a Job from the list
-		/// </summary>
-		/// <param name="ID">The Job ID</param>
-		/// <returns>True if it was removed, else false</returns>
-		bool TryRemoveJob(string ID);
 		/// <summary>
 		/// Cleanup jobs that have finished, failed or been cancelled. 
 		/// This method removes jobs by verifying the creation date for a specified duration in minutes.
@@ -85,17 +79,18 @@ namespace OngakuVault.Services
 
 			// Set the download path
 			_mediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
-			_logger.LogInformation("JobService configured MediaDownloader external binaries yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'", _mediaDownloader.YoutubeDLPath, _mediaDownloader.FFmpegPath);
+			_logger.LogInformation("JobService configured MediaDownloader external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", _mediaDownloader.YoutubeDLPath, _mediaDownloader.FFmpegPath);
+			_logger.LogInformation("Current yt-dlp version is {version}.", _mediaDownloader.Version);
         }
 
-		public bool TryAddJob(JobModel jobModel)
+		public bool TryAddJobToQueue(JobModel jobModel)
 		{
 			bool result = Jobs.TryAdd(jobModel.ID, jobModel);
 			// If the Job was added to the list, start a async thread with the JobModel
 			if (result) 
 			{
 				_logger.LogInformation("Job ID: {ID} has been added to the execution queue.", jobModel.ID);
-				Jobs[jobModel.ID].Status = "Queued"; // Update the job status to Queued
+				Jobs[jobModel.ID].Status = JobStatus.Queued; // Update the job status to Queued
 				StartJobAsync(Jobs[jobModel.ID]);
 			} 
 			return result;
@@ -126,12 +121,6 @@ namespace OngakuVault.Services
 			return false; // Job not found
 		}
 
-		// Removes a job by its ID
-		public bool TryRemoveJob(string ID)
-		{
-			return Jobs.TryRemove(ID, out _);
-		}
-
 		// Cleans up old jobs
 		public void OldJobsCleanup(double totalMinutes)
 		{
@@ -140,15 +129,17 @@ namespace OngakuVault.Services
             foreach (JobModel jobModel in Jobs.Values)
             {
 				// Ensure that the job is not currently running or waiting to be ran
-				if (jobModel.Status != "Running" && jobModel.Status != "Queued") 
+				if (jobModel.Status != JobStatus.Running && jobModel.Status != JobStatus.Queued) 
 				{
 					// If the numbers of minutes between the job creation and NOW is bigger than totalMinutes
 					if (dateTimeNow.Subtract(jobModel.CreationDate).TotalMinutes >= totalMinutes) 
 					{
 						// Free the old job from the list
-						_ = TryRemoveJob(jobModel.ID);
-						jobModel?.Dispose();
-						cleanedJobs++;
+						if (Jobs.TryRemove(jobModel.ID, out _))
+						{
+							jobModel?.Dispose();
+							cleanedJobs++;
+						}
 					};
 				}
 
@@ -165,7 +156,7 @@ namespace OngakuVault.Services
 			try
 			{
 				await JobsSemaphore.WaitAsync(jobModel.CancellationTokenSource.Token);
-				Jobs[jobModel.ID].Status = "Running"; // Update to job status to Running
+				Jobs[jobModel.ID].Status = JobStatus.Running; // Update to job status to Running
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobModel.ID);
 				try
 				{
@@ -179,7 +170,7 @@ namespace OngakuVault.Services
 				catch (Exception ex)
 				{
 					_logger.LogError(ex, ex.Message);
-					Jobs[jobModel.ID].Status = "Failed";
+					Jobs[jobModel.ID].Status = JobStatus.Failed;
 				}
 				finally
 				{
@@ -187,16 +178,16 @@ namespace OngakuVault.Services
 					if (jobModel.CancellationTokenSource.IsCancellationRequested) // Cancellation token triggered, job cancelled
 					{
 						_logger.LogInformation("Job ID: {ID} was cancelled during execution.", jobModel.ID);
-						Jobs[jobModel.ID].Status = "Cancelled";
+						Jobs[jobModel.ID].Status = JobStatus.Cancelled;
 					}
-					else if (Jobs[jobModel.ID].Status == "Failed") 
+					else if (Jobs[jobModel.ID].Status == JobStatus.Failed) 
 					{
 						_logger.LogInformation("Job ID: {ID} failed during execution.", jobModel.ID);
 					}
-					else if (Jobs[jobModel.ID].Status == "Running" && !jobModel.CancellationTokenSource.IsCancellationRequested)
+					else if (Jobs[jobModel.ID].Status == JobStatus.Running && !jobModel.CancellationTokenSource.IsCancellationRequested)
 					{
 						_logger.LogInformation("Job ID: {ID} finished execution.", jobModel.ID);
-						Jobs[jobModel.ID].Status = "Finished";
+						Jobs[jobModel.ID].Status = JobStatus.Completed;
 					}
 					// Release a place inside the semaphore to allow a new job to start
 					JobsSemaphore.Release();
@@ -205,7 +196,7 @@ namespace OngakuVault.Services
 			catch (OperationCanceledException)
 			{
 				// If the CancellationToken is triggered before execution, change the job status to cancelled.
-				Jobs[jobModel.ID].Status = "Cancelled";
+				Jobs[jobModel.ID].Status = JobStatus.Cancelled;
 				_logger.LogInformation("Job ID: {ID} was cancelled before execution.", jobModel.ID);
 			}
 		}

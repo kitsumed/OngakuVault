@@ -1,45 +1,38 @@
-﻿using Swashbuckle.AspNetCore.Annotations;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace OngakuVault.Models
 {
+	/// <summary>
+	/// The JobModel class contains informations about a Job
+	/// </summary>
 	public class JobModel : IDisposable
 	{
 
-		public JobModel(JobModelCreate jobModelDTO)
+		public JobModel(JobCreateRequestModel jobCreationData)
 		{
-			Name = jobModelDTO.Name;
-			Album = jobModelDTO.Album;
-			Artist = jobModelDTO.Artist;
-			originalUrl = jobModelDTO.originalUrl;
+			Data = new MediaInfoModel()
+			{
+				Name = jobCreationData.Name,
+				Album = jobCreationData.Album,
+				Artist = jobCreationData.Artist,
+				MediaUrl = jobCreationData.OriginalMediaUrl,
+			};
 		}
 
 		/// <summary>
 		/// Unique Job ID
 		/// </summary>
 		public string ID { get; } = Guid.NewGuid().ToString();
-		/// <summary>
-		/// Song name
-		/// </summary>
-		public string Name { get; set; }
 
 		/// <summary>
-		/// Album name
+		/// Media informations for the current job
 		/// </summary>
-		public string Album { get; set; }
-		/// <summary>
-		/// Artist name
-		/// </summary>
-		public string Artist { get; set; }
+		public MediaInfoModel Data { get; set; }
 		/// <summary>
 		/// Job creation date
 		/// </summary>
 		public DateTime CreationDate { get; } = DateTime.Now;
-		/// <summary>
-		/// The song url send by the user
-		/// </summary>
-		public string originalUrl { get; set; }
 		/// <summary>
 		/// The current progress of the job
 		/// </summary>
@@ -47,11 +40,11 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The current status of the job
 		/// </summary>
-		public string Status { get; set; } = "WaitingForQueue";
+		public JobStatus Status { get; set; } = JobStatus.WaitingForQueue;
 		/// <summary>
 		/// Cancellation token to cancel the job execution
 		/// </summary>
-		[JsonIgnore] // Ignore Json since we don't want to return the cencellationtoken to users
+		[JsonIgnore] // Ignore Json since we don't want to return the cencellationtoken to users (API response)
 		public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
 		public void Dispose()
@@ -61,14 +54,29 @@ namespace OngakuVault.Models
 	}
 
 	/// <summary>
-	/// This class is used by RESTAPI to allow the creation of a JobModel later by calling <see cref="JobModel"/>
+	/// A list of all possible states of a Job
 	/// </summary>
-	public class JobModelCreate()
+	public enum JobStatus 
+	{
+		WaitingForQueue,
+		Queued,
+		Running,
+		Completed,
+		Cancelled,
+		Failed
+	}
+
+	/// <summary>
+	/// The JobCreateRequestModel class are the fields used by RESTAPI to create a new job <see cref="JobModel"/>.
+	/// In this application case, theses informations will be used by <see cref="JobModel"/> constructor
+	/// to create a <see cref="MediaInfoModel"/>.
+	/// </summary>
+	public class JobCreateRequestModel()
 	{
 		public required string Name { get; set; }
-		public string Album { get; set; } = "Unknown";
-		public string Artist { get; set; } = "Unknown";
+		public string Album { get; set; } = string.Empty;
+		public string Artist { get; set; } = string.Empty;
 		[Url]
-		public required string originalUrl { get; set; }
+		public required string OriginalMediaUrl { get; set; }
 	}
 }

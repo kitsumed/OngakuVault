@@ -9,8 +9,8 @@ builder.Services.AddControllers();
 
 /// Add services
 
-// Add the yt-dlp wrapper as a Singleton (with 4 parallel download max)
-builder.Services.AddSingleton(new YoutubeDL(4));
+// Add the yt-dlp wrapper as a Singleton (with 8 parallel yt-dlp process allowed to run)
+builder.Services.AddSingleton(new YoutubeDL(8));
 // Add JobService as a Singleton
 builder.Services.AddSingleton<IJobService, JobService>();
 // Add the JobCleanupService
