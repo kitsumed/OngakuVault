@@ -18,7 +18,7 @@ namespace OngakuVault.Models
 		public JobModel(T jobData, IJobService<T>.ExecuteJob executeJob)
 		{
 			Data = jobData;
-			ExecuteJobMethod = executeJob;
+			ExecuteJob = executeJob;
 		}
 
 		/// <summary>
@@ -53,7 +53,7 @@ namespace OngakuVault.Models
 		/// called when the Job will change to it's running state.
 		/// </summary>
 		[JsonIgnore]
-		public IJobService<T>.ExecuteJob ExecuteJobMethod { get; }
+		public IJobService<T>.ExecuteJob ExecuteJob { get; }
 
 		public void Dispose()
 		{
