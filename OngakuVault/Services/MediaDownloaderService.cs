@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
+using YoutubeDLSharp.Options;
 
 namespace OngakuVault.Services
 {
@@ -30,7 +31,16 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
-        public MediaDownloaderService(ILogger<MediaDownloaderService> logger)
+		/// <summary>
+		/// Hard-coded settings that are used for every Audio download request
+		/// </summary>
+		private readonly OptionSet AudioDownloaderOverrideOptions = new OptionSet()
+		{
+			// Keep the best file quality possible
+			AudioQuality = 0,
+		};
+
+		public MediaDownloaderService(ILogger<MediaDownloaderService> logger)
         {
 			_logger = logger;
 
@@ -47,6 +57,8 @@ namespace OngakuVault.Services
 
 			// Set the download path
 			MediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
+			Directory.CreateDirectory(MediaDownloader.OutputFolder); // Ensure the tmp download directory exist
+			MediaDownloader.RestrictFilenames = true; // Only allow ASCII
 			_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
 		}
@@ -54,6 +66,12 @@ namespace OngakuVault.Services
 		{
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
+			// Download the media audio
+			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaInfo.MediaUrl, AudioConversionFormat.Flac, cancellationToken.Value, default, default, AudioDownloaderOverrideOptions);
+			// If succes is false, throw exception with all error output
+			audioDownloadResult.EnsureSuccess();
+			FileInfo downloadedAudioPath = new FileInfo(audioDownloadResult.Data);
+			
 			for (int i = 0; i < 20; i++)
 			{
 				if (cancellationToken.Value.IsCancellationRequested) break;
@@ -75,7 +93,7 @@ namespace OngakuVault.Services
 			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, default, flatPlaylist, fetchComments);
 			if (mediaData.Success)
 			{
-				return new MediaInfoModel()
+				MediaInfoModel mediaInformations = new MediaInfoModel()
 				{
 					Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
 					ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
@@ -85,6 +103,32 @@ namespace OngakuVault.Services
 					Genre = mediaData.Data.Genre,
 					TrackNumber = mediaData.Data.TrackNumber,
 				};
+
+				// Loop trought format to verify if one of them is using a lossless encoding
+				foreach (FormatData item in mediaData.Data.Formats)
+                {
+					if (item.AudioCodec != null)
+					{
+						// FLAC - Free Lossless Audio Codec
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("flac") ? true : mediaInformations.IsLosslessAvailable;
+						// ALAC - Apple Lossless Audio Codec
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("alac") ? true : mediaInformations.IsLosslessAvailable;
+						// WAV pcm_s16le (16-bit little-endian PCM) and pcm_s24le (24-bit little-endian PCM)
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s16le") ? true : mediaInformations.IsLosslessAvailable;
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s24le") ? true : mediaInformations.IsLosslessAvailable;
+						// AIFF pcm_s16be (16-bit big-endian PCM) and pcm_s24be (24-bit big-endian PCM)
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s16be") ? true : mediaInformations.IsLosslessAvailable;
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s24be") ? true : mediaInformations.IsLosslessAvailable;
+						// Wavpack
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("wavpack") ? true : mediaInformations.IsLosslessAvailable;
+						// TTA - True Audio
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("tta") ? true : mediaInformations.IsLosslessAvailable;
+						// MPEG-4 ALS - MPEG-4 Audio Lossless Coding
+						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("als") ? true : mediaInformations.IsLosslessAvailable;
+						if (mediaInformations.IsLosslessAvailable) break;
+					}
+				}
+				return mediaInformations;
 			}
 			// Failed to fetch
 			_logger.LogWarning("MediaDownaloderService failed to fetch data about mediaUrl : {url}. Errors : {ErrorOutput}", url , mediaData.ErrorOutput.Append(Environment.NewLine));

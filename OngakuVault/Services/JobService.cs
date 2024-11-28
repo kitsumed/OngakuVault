@@ -142,7 +142,7 @@ namespace OngakuVault.Services
 				}
 				catch (Exception ex)
 				{
-					_logger.LogError(ex, ex.Message);
+					_logger.LogError(ex, ex.Message, Jobs[jobID]);
 					Jobs[jobID].Status = JobStatus.Failed;
 				}
 				finally

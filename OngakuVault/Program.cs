@@ -36,6 +36,7 @@ builder.Services.AddSwaggerGen(options =>
 			Url = new Uri("https://github.com/kitsumed/OngakuVault")
 		},
 	});
+	options.EnableAnnotations();
 });
 
 var app = builder.Build();
