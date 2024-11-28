@@ -8,7 +8,14 @@ namespace OngakuVault.Services
 {
 	public interface IMediaDownloaderService 
 	{
-		public Task DownloadAudio(MediaInfoModel mediaInfo, CancellationToken? cancellationToken = null);
+		/// <summary>
+		/// This method download a audio in the best possible quality before converting it to the choose format is selected.
+		/// </summary>
+		/// <param name="mediaUrl">The url of the page with the audio to download</param>
+		/// <param name="audioConversionFormat">If changed from best, will convert the best audio to the selected format</param>
+		/// <param name="cancellationToken">Token for cancellation</param>
+		/// <returns>The <see cref="FileInfo"/> of the downloaded audio.</returns>
+		public Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null);
 
 		/// <summary>
 		/// Get informations about a media
@@ -38,6 +45,10 @@ namespace OngakuVault.Services
 		{
 			// Keep the best file quality possible
 			AudioQuality = 0,
+			// Prefer best found audio, fallback to best video if no audio found
+			Format = "bestaudio/best",
+			// If media is a video, convert it to a audio only
+			ExtractAudio = true,
 		};
 
 		public MediaDownloaderService(ILogger<MediaDownloaderService> logger)
@@ -62,22 +73,16 @@ namespace OngakuVault.Services
 			_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
 		}
-        public async Task DownloadAudio(MediaInfoModel mediaInfo, CancellationToken? cancellationToken = null) 
+
+		public async Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null)
 		{
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Download the media audio
-			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaInfo.MediaUrl, AudioConversionFormat.Flac, cancellationToken.Value, default, default, AudioDownloaderOverrideOptions);
+			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, default, default, AudioDownloaderOverrideOptions);
 			// If succes is false, throw exception with all error output
 			audioDownloadResult.EnsureSuccess();
-			FileInfo downloadedAudioPath = new FileInfo(audioDownloadResult.Data);
-			
-			for (int i = 0; i < 20; i++)
-			{
-				if (cancellationToken.Value.IsCancellationRequested) break;
-				Console.WriteLine("Inside semaphore " + i.ToString());
-				await Task.Delay(4000);
-			}
+			return new FileInfo(audioDownloadResult.Data);
 		}
 
 		/// <summary>

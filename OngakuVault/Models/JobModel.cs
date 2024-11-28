@@ -4,21 +4,17 @@ using System.Text.Json.Serialization;
 namespace OngakuVault.Models
 {
 	/// <summary>
-	/// The JobModel class used by <see cref="JobService{T}"/> to contains informations about a Job.
+	/// The JobModel class used by <see cref="JobService"/> to contains informations about a Job.
 	/// </summary>
-	/// <typeparam name="T">The value type of the additional data stocked inside <see cref="JobModel{T}.Data"/></typeparam>
-	public class JobModel<T> : IDisposable
+	public class JobModel : IDisposable
 	{
-
 		/// <summary>
-		/// The constructor is executed during the initialization of a <see cref="JobModel{T}"/>.
+		/// The constructor is executed during the initialization of a <see cref="JobModel"/>.
 		/// </summary>
-		/// <param name="jobData">The additional data stocked inside the <see cref="JobModel{T}.Data"/>. Data type was defined by T</param>
-		/// <param name="executeJob">The method called when the job start running.</param>
-		public JobModel(T jobData, IJobService<T>.ExecuteJob executeJob)
+		/// <param name="jobData">The additional data stocked inside the <see cref="JobModel.Data"/>.</param>
+		public JobModel(MediaInfoModel jobData)
 		{
 			Data = jobData;
-			ExecuteJob = executeJob;
 		}
 
 		/// <summary>
@@ -27,10 +23,9 @@ namespace OngakuVault.Models
 		public string ID { get; } = Guid.NewGuid().ToString();
 
 		/// <summary>
-		/// Additional Data for the current job. The type of the data is 
-		/// defined by the T on <see cref="JobModel{T}"/>
+		/// Additional Data for the current job.
 		/// </summary>
-		public T Data { get; set; }
+		public MediaInfoModel Data { get; set; }
 		/// <summary>
 		/// Job creation date
 		/// </summary>
@@ -48,12 +43,6 @@ namespace OngakuVault.Models
 		/// </summary>
 		[JsonIgnore] // Ignore Json since we don't want to return the cencellationtoken to users (API response)
 		public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
-		/// <summary>
-		/// Store a async method matching <see cref="IJobService{T}.ExecuteJob"/> inside a delegate that will be
-		/// called when the Job will change to it's running state.
-		/// </summary>
-		[JsonIgnore]
-		public IJobService<T>.ExecuteJob ExecuteJob { get; }
 
 		public void Dispose()
 		{

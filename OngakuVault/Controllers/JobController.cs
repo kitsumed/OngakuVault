@@ -9,19 +9,16 @@ namespace OngakuVault.Controllers
 	public class JobController : ControllerBase
 	{
 		readonly ILogger<JobController> _logger;
-		readonly IJobService<MediaInfoModel> _jobService;
-		readonly IMediaDownloaderService _mediaDownloaderService;
-
-		public JobController(ILogger<JobController> logger, IJobService<MediaInfoModel> jobService, IMediaDownloaderService mediaDownloaderService)
+		readonly IJobService _jobService;
+		public JobController(ILogger<JobController> logger, IJobService jobService)
         {
 			_logger = logger;
 			_jobService = jobService;
-			_mediaDownloaderService = mediaDownloaderService;
         }
 
 		[HttpPost("create")]
 		[EndpointDescription("Create a new download job for a song")]
-		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel<MediaInfoModel>))]
+		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
 		public ActionResult CreateJob(MediaInfoModel newJobMediaInfoData)
@@ -32,9 +29,9 @@ namespace OngakuVault.Controllers
 			{
 				return BadRequest("originalUrl scheme can only be http or https.");
 			}
-			// Convert the JobModelCreate to a JobModel
-			JobModel<MediaInfoModel> jobModel = new JobModel<MediaInfoModel>(newJobMediaInfoData, _mediaDownloaderService.DownloadAudio);
-			// Add the jobModel to the Jobs service queue
+			// Create a new JobModel
+			JobModel jobModel = new JobModel(newJobMediaInfoData);
+			// Add the jobModel to the Jobs service execution queue
 			if (_jobService.TryAddJobToQueue(jobModel))
 			{
 				return Accepted(jobModel);
@@ -47,7 +44,7 @@ namespace OngakuVault.Controllers
 
 		[HttpGet("all")]
 		[EndpointDescription("Return a list of all JobModel")]
-		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ICollection<JobModel<MediaInfoModel>>))]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ICollection<JobModel>))]
 		[Produces("application/json")]
 		public ActionResult GetJobs()
 		{
@@ -56,13 +53,13 @@ namespace OngakuVault.Controllers
 
 		[HttpGet("{ID}/info")]
 		[EndpointDescription("Get information about the Job matching the ID")]
-		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(JobModel<MediaInfoModel>))]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
 		public ActionResult GetJobByID(string ID)
 		{
 			// Verify if the Job ID exist
-			JobModel<MediaInfoModel>? jobModel = _jobService.TryGetJob(ID);
+			JobModel? jobModel = _jobService.TryGetJob(ID);
 			if (jobModel != null) 
 			{
 				return Ok(jobModel);
@@ -79,7 +76,7 @@ namespace OngakuVault.Controllers
 		public ActionResult CancelJob(string ID)
 		{
 			// Verify if the Job ID exist
-			JobModel<MediaInfoModel>? jobModel = _jobService.TryGetJob(ID);
+			JobModel? jobModel = _jobService.TryGetJob(ID);
 			if (jobModel != null)
 			{
 				if (jobModel.CancellationTokenSource.IsCancellationRequested) 

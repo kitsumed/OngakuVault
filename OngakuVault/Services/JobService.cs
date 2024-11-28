@@ -6,47 +6,39 @@ using YoutubeDLSharp;
 
 namespace OngakuVault.Services
 {
-	public interface IJobService<T>
+	public interface IJobService
 	{
 		/// <summary>
 		/// Add a new job inside the list and add it to the execution queue
 		/// </summary>
 		/// <param name="job">The current job informations</param>
 		/// <returns>True if the job was added, false if a job with the same ID already exist (should never happen)</returns>
-		bool TryAddJobToQueue(JobModel<T> jobModel);
+		bool TryAddJobToQueue(JobModel jobModel);
 		/// <summary>
 		/// Get a JobModel data from it's ID
 		/// </summary>
 		/// <param name="ID">The Job ID</param>
-		JobModel<T>? TryGetJob(string ID);
+		JobModel? TryGetJob(string ID);
 		/// <summary>
 		/// Get all Jobs in the list
 		/// </summary>
 		/// <returns>A ICollection of all JobModels</returns>
-		ICollection<JobModel<T>> GetJobs();
-		/// <summary>
-		/// This delegate method is the format of supported methods that can be called when the Job start running.
-		/// The method called need to accept the same arguments as this delegate.
-		/// </summary>
-		/// <param name="jobMethodAdditionalInfo">Additional informations stocked inside the job <see cref="JobModel{T}.Data"/></param>
-		/// <param name="cancellationToken">The cancellation token of the job</param>
-		/// <returns></returns>
-		public delegate Task ExecuteJob(T jobMethodAdditionalInfo, CancellationToken? jobCancellationToken);
+		ICollection<JobModel> GetJobs();
 	}
 
 	/// <summary>
-	/// This class implements the <see cref="IJobService{T}"/> interface and provides functionality
+	/// This class implements the <see cref="IJobService"/> interface and provides functionality
 	/// to manage jobs. It allows executing up to 4 async methods in parallel as "jobs".
 	/// </summary>
-	/// <typeparam name="T">The value type of the additional data stocked inside <see cref="JobModel{T}.Data"/></typeparam>
-	public class JobService<T> : IJobService<T>
+	public class JobService : IJobService
 	{
-		private readonly ILogger<JobService<T>> _logger;
+		private readonly ILogger<JobService> _logger;
+		private readonly IMediaDownloaderService _mediaDownloaderService;
 
 		/// <summary>
 		/// List of created Jobs
 		/// </summary>
-		private readonly ConcurrentDictionary<string, JobModel<T>> Jobs = new ConcurrentDictionary<string, JobModel<T>>();
+		private readonly ConcurrentDictionary<string, JobModel> Jobs = new ConcurrentDictionary<string, JobModel>();
 
 		/// <summary>
 		/// JobsSemaphore to allow 4 async thread (jobs) at the same time
@@ -58,9 +50,10 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
-		public JobService(ILogger<JobService<T>> logger)
+		public JobService(ILogger<JobService> logger, IMediaDownloaderService mediaDownloaderService)
         {
             _logger = logger;
+			_mediaDownloaderService = mediaDownloaderService;
 			// Init jobs cleanup async task
 			Task.Run(async () =>
 			{
@@ -73,7 +66,7 @@ namespace OngakuVault.Services
 			});
 		}
 
-		public bool TryAddJobToQueue(JobModel<T> jobModel)
+		public bool TryAddJobToQueue(JobModel jobModel)
 		{
 			bool result = Jobs.TryAdd(jobModel.ID, jobModel);
 			// If the Job was added to the list, start a async thread with the JobModel
@@ -86,14 +79,14 @@ namespace OngakuVault.Services
 			return result;
 		}
 
-		public JobModel<T>? TryGetJob(string ID)
+		public JobModel? TryGetJob(string ID)
 		{
 			// Try to get the job, return null if not found
-			Jobs.TryGetValue(ID, out JobModel<T>? job);
+			Jobs.TryGetValue(ID, out JobModel? job);
 			return job;
 		}
 
-		public ICollection<JobModel<T>> GetJobs()
+		public ICollection<JobModel> GetJobs()
 		{
 			return Jobs.Values;
 		}
@@ -106,7 +99,7 @@ namespace OngakuVault.Services
 		private void OldJobsCleanup(double totalMinutes)
 		{
 			DateTime dateTimeNow = DateTime.Now;
-            foreach (JobModel<T> jobModel in Jobs.Values)
+            foreach (JobModel jobModel in Jobs.Values)
             {
 				// Ensure that the job is not currently running or waiting to be ran
 				if (jobModel.Status != JobStatus.Running && jobModel.Status != JobStatus.Queued) 
@@ -137,8 +130,7 @@ namespace OngakuVault.Services
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobID);
 				try
 				{
-					// Execute the method selectionned at the creation of the jobModel & send job additional informations
-					await Jobs[jobID].ExecuteJob(Jobs[jobID].Data, Jobs[jobID].CancellationTokenSource.Token);
+					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, default, Jobs[jobID].CancellationTokenSource.Token);
 				}
 				catch (Exception ex)
 				{

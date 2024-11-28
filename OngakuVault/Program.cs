@@ -13,8 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
 
 // Add a JobService as a Singleton (Parallel Method Execution Queue Service)
-// This JobService is configured to contain MediaInfoModel as it's Additional Data inside every JobModel
-builder.Services.AddSingleton<IJobService<MediaInfoModel>, JobService<MediaInfoModel>>();
+builder.Services.AddSingleton<IJobService, JobService>();
 
 // Add Swagger to the service collection. Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
