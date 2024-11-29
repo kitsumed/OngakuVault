@@ -135,7 +135,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true  # Push the image to the registry
-          tags: ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME//v/}-${{ matrix.platform }}  # Tag format
-          platform: ${{ matrix.platform }}  # Platform for multi-architecture build
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name | sed('s/^v//') }}-${{ matrix.platform }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
+          platforms: ${{ matrix.platform }}  # Platform for multi-architecture build
           build-args: |
             BUILD_PATH="./build/${{ matrix.platform }}"
