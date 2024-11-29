@@ -137,7 +137,7 @@ jobs:
           echo "DOCKER_RELEASE_VERSION_NUMBER=${DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
           # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
-          CURRENT_DOCKER_PLATFORM="${{ matrix.platform/-/\//}}"
+          CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/-/\//')
           echo "CURRENT_DOCKER_PLATFORM=${CURRENT_DOCKER_PLATFORM}" >> $GITHUB_ENV  # # Set the variable as a environment variable
 
       - name: Build and push Docker image for ${{ matrix.platform }}
