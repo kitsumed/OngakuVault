@@ -110,11 +110,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          version: latest
-
       # Download the build binary artifact
       - name: Download ${{ matrix.platform }}-build Artifact
         uses: actions/download-artifact@v4
@@ -134,7 +129,7 @@ jobs:
         run: |
           # Get the tag name v*.*.* and remove the "v"
           CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
-          echo "DOCKER_RELEASE_VERSION_NUMBER=${DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
+          echo "CURRENT_DOCKER_RELEASE_VERSION_NUMBER=${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
           # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
           CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/-/\//')
