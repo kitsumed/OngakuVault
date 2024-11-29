@@ -138,8 +138,7 @@ jobs:
 
           docker buildx build \
             --platform ${PLATFORM_DOCKER} \
-            --file Dockerfile \
             --tag ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${VERSION_NUMBER}-${PLATFORM_DOCKER} \
             --push \
             --build-arg BUILD_PATH="./builds/${{ matrix.platform }}" \
-            .
+            --file Dockerfile ${{ github.workspace }}
