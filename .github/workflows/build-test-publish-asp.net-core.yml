@@ -33,7 +33,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        run: dotnet restore
+        run: dotnet restore --runtime ${{ matrix.platform }}
 
       - name: Run code tests
         run: dotnet test --configuration Release --no-build --verbosity normal
@@ -75,7 +75,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Install dependencies
-        run: dotnet restore
+        run: dotnet restore --runtime ${{ matrix.platform }}
 
       - name: Run code tests
         run: dotnet test --configuration Release --no-build --verbosity normal

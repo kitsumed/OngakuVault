@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Copyright>Copyright 2024 kitsumed (Med) Apache License Version 2.0</Copyright>
+
+    <!-- RuntimeIdentifiers for cross-platform builds -->
+    <RuntimeIdentifiers>linux-arm64;linux-x64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
