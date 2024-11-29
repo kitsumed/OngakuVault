@@ -129,13 +129,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Remove the leading 'v' from the version string
+          VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+          echo "VERSION_NUMBER=${VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
+
       - name: Build and push Docker image for ${{ matrix.platform }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: true  # Push the image to the registry
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name | sed('s/^v//') }}-${{ matrix.platform }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
+          tags: ghcr.io/${{ github.repository }}:${{ env.VERSION_NUMBER }}-${{ matrix.platform }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
           platforms: ${{ matrix.platform }}  # Platform for multi-architecture build
           build-args: |
             BUILD_PATH="./build/${{ matrix.platform }}"
