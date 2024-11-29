@@ -130,15 +130,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image for ${{ matrix.platform }}
-        run: |
-          # Get the tag name v*.*.* and remove the "v"
-          VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
-          # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
-          PLATFORM_DOCKER="${platform/-/\//}"
-
-          docker buildx build \
-            --platform $PLATFORM_DOCKER \
-            --tag ghcr.io/${{ github.repository }}:$VERSION_NUMBER-$PLATFORM_DOCKER \
-            --push \
-            --build-arg BUILD_PATH="./build/${{ matrix.platform }}" \
-            --file Dockerfile .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true  # Push the image to the registry
+          tags: ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME//v/}-${{ matrix.platform }}  # Tag format
+          platform: ${{ matrix.platform }}  # Platform for multi-architecture build
+          build-args: |
+            BUILD_PATH="./build/${{ matrix.platform }}"
