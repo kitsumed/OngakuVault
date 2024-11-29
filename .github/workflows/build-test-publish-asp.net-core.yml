@@ -45,7 +45,7 @@ jobs:
           VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
           dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
 
-      - name: Upload Linux Build as a artifact
+      - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
@@ -63,7 +63,7 @@ jobs:
         contents: read # Allow checkout action to get the repo code
     strategy:
       matrix:
-        platform: [win-anycpu] #X64 and X32 support
+        platform: [win-x64]
         
     steps:
       - name: Checkout code
@@ -87,7 +87,7 @@ jobs:
           $VERSION_NUMBER = $env:GITHUB_REF_NAME -replace '^v', ''
           dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
 
-      - name: Upload Windows Build as a artifact
+      - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
