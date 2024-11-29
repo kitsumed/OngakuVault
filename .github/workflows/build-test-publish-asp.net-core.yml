@@ -136,17 +136,21 @@ jobs:
           CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
           echo "CURRENT_DOCKER_RELEASE_VERSION_NUMBER=${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
-          # Replace the part after the '/' in the platform name (ex, "linux/arm64" -> "arm64")
-          CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/.*\///')
-          echo "CURRENT_DOCKER_PLATFORM=${CURRENT_DOCKER_PLATFORM}" >> $GITHUB_ENV  # # Set the variable as a environment variable
+          # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
+          CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/-/\//')
+          echo "CURRENT_DOCKER_PLATFORM=${CURRENT_DOCKER_PLATFORM}" >> $GITHUB_ENV  # Set the variable as an environment variable
 
+          # Remove all non-alphanumeric characters (keep only a-z, A-Z, 0-9)
+          CURRENT_DOCKER_PLATFORM_CLEAN=$(echo "${CURRENT_DOCKER_PLATFORM}" | sed 's/[^a-zA-Z0-9]//g')
+          echo "CURRENT_DOCKER_PLATFORM_CLEAN=${CURRENT_DOCKER_PLATFORM_CLEAN}" >> $GITHUB_ENV
+          
       - name: Build and push Docker image for ${{ matrix.platform }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: true  # Push the image to the registry
-          tags: ghcr.io/${{ github.repository }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
+          tags: ghcr.io/${{ github.repository }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM_CLEAN }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
           platforms: ${{ env.CURRENT_DOCKER_PLATFORM }}  # Platform for multi-architecture build
           build-args: |
             BUILD_PATH="./build/${{ matrix.platform }}"
