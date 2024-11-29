@@ -106,9 +106,14 @@ jobs:
     permissions:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
+    env:
+      DOCKER_BUILD_RECORD_RETENTION_DAYS: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       # Download the build binary artifact
       - name: Download ${{ matrix.platform }}-build Artifact
@@ -131,8 +136,8 @@ jobs:
           CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
           echo "CURRENT_DOCKER_RELEASE_VERSION_NUMBER=${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
-          # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
-          CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/-/\//')
+          # Replace the part after the '/' in the platform name (ex, "linux/arm64" -> "arm64")
+          CURRENT_DOCKER_PLATFORM=$(echo "${{ matrix.platform }}" | sed 's/.*\///')
           echo "CURRENT_DOCKER_PLATFORM=${CURRENT_DOCKER_PLATFORM}" >> $GITHUB_ENV  # # Set the variable as a environment variable
 
       - name: Build and push Docker image for ${{ matrix.platform }}
