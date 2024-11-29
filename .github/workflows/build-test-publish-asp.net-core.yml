@@ -1,0 +1,165 @@
+name: Build, Test, and Publish ASP.NET Core Application
+
+# Trigger when a tag following the "v*.*.*" format is created (semantic versioning)
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+env: 
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  # Linux based builds
+  linux-build:
+    runs-on: ubuntu-latest
+    # Scopes not defined are set to None as long as one scope is manually set here
+    permissions:
+        contents: read # Allow checkout action to get the repo code
+    strategy:
+      matrix:
+        platform: [linux-arm, linux-arm64]  # Building for ARM32 and ARM64
+
+    steps:
+        # Copy the repo code from the tag that triggered this action.
+      - name: Checkout tag
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Run code tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish project as ${{ matrix.platform }}
+        shell: bash
+        run: |
+          # Get the tag name v*.*.* and remove the "v"
+          VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+          dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./builds/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
+
+      - name: Upload Linux Builds as a artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-builds
+          path: ./builds/ # Upload all subdirectories
+          # Only keep the artifact up on github for 1 day
+          retention-days: 1
+
+  # Windows based builds
+  windows-build:
+    runs-on: windows-latest 
+    needs: linux-build
+    if: success() # Ensure that there was no error during any of the needed jobs
+    # Scopes not defined are set to None as long as one scope is manually set here
+    permissions:
+        contents: read # Allow checkout action to get the repo code
+    strategy:
+      matrix:
+        platform: [win-anycpu] #X64 and X32 support
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Run code tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish project as ${{ matrix.platform }}
+        shell: pwsh
+        run: |
+          # Get the tag name v*.*.* and remove the "v"
+          $VERSION_NUMBER = $env:GITHUB_REF_NAME -replace '^v', ''
+          dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./builds/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
+
+      - name: Upload Windows Builds as a artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: ./builds/ # Upload all subdirectories
+          # Only keep the artifact up on github for 1 day
+          retention-days: 1
+
+  # Build Docker images and Push to GitHub Packages
+  docker-build-and-push:
+    runs-on: ubuntu-latest
+    needs: [linux-build,windows-build]
+    if: success()
+    permissions:
+      contents: read  # Allow checkout action to get the repo code
+      packages: write  # Allow pushing to GitHub Packages
+    strategy:
+      matrix:
+        platform: [linux-arm, linux-arm64, win-x64]  # Platforms to build for
+    env:   
+      ARCHITECTURE_TO_BUILD: "linux/amd64,linux/arm64,linux/arm,windows/amd64"  # ARCHITECTURE to build seperated by comma
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+
+      # Download the artifacts from previous jobs
+      - name: Download Linux Builds Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-builds
+          path: ./builds/linux
+
+      - name: Download Windows Builds Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-builds
+          path: ./builds/windows
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images for selected platforms
+        shell: bash
+        run: |
+          # Get the tag name v*.*.* and remove the "v"
+          VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+
+          # Split the comma-separated list of platforms into an array
+          IFS=',' read -r -a architectures <<< "$ARCHITECTURE_TO_BUILD"
+          
+          # Loop over each architectures
+          for architecture in "${architectures[@]}"; do
+            # Set the BUILD_PATH based on architecture platform
+            if [[ "$architecture" == linux* ]]; then
+              BUILD_PATH="./builds/linux/${architecture}"
+            elif [[ "$architecture" == windows* ]]; then
+              BUILD_PATH="./builds/windows/${architecture}"
+            fi
+
+            # Build and push Docker images for each selected architecture
+            docker buildx build \
+              --platform $architecture \
+              --file Dockerfile \
+              --tag ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${VERSION_NUMBER} \
+              --push \
+              --build-arg BUILD_PATH=${BUILD_PATH} .
+          done
