@@ -135,7 +135,7 @@ jobs:
           VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
           # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
           PLATFORM_DOCKER="${platform/-/\//}"
-          ls .
+
           docker buildx build \
             --platform $PLATFORM_DOCKER \
             --tag ghcr.io/${{ github.repository }}:$VERSION_NUMBER-$PLATFORM_DOCKER \
