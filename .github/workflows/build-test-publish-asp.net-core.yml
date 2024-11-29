@@ -137,8 +137,8 @@ jobs:
           PLATFORM_DOCKER="${platform/-/\//}"
           ls .
           docker buildx build \
-            --platform ${PLATFORM_DOCKER} \
-            --tag ghcr.io/${{ github.repository }}:${VERSION_NUMBER}-${PLATFORM_DOCKER} \
+            --platform $PLATFORM_DOCKER \
+            --tag ghcr.io/${{ github.repository }}:$VERSION_NUMBER-$PLATFORM_DOCKER \
             --push \
             --build-arg BUILD_PATH="./build/${{ matrix.platform }}" \
             --file Dockerfile .
