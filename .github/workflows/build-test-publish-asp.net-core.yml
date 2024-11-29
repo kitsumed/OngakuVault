@@ -133,9 +133,12 @@ jobs:
         run: |
           # Get the tag name v*.*.* and remove the "v"
           VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+          # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
+          PLATFORM_DOCKER="${platform/-/\//}"
+
           docker buildx build \
-            --platform ${{ matrix.platform }} \
+            --platform ${PLATFORM_DOCKER} \
             --file Dockerfile \
-            --tag ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${VERSION_NUMBER}-${{ matrix.platform }} \
+            --tag ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:${VERSION_NUMBER}-${PLATFORM_DOCKER} \
             --push \
             --build-arg BUILD_PATH="./builds/${{ matrix.platform }}" .
