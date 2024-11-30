@@ -133,7 +133,7 @@ jobs:
         run: |
           # Get the tag name v*.*.* and remove the "v"
           CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
-          CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo "${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" | tr '[:upper:]' '[:lower:]')
           echo "CURRENT_DOCKER_RELEASE_VERSION_NUMBER=${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
           # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
