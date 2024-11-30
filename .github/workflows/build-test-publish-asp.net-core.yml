@@ -154,7 +154,7 @@ jobs:
           tags: ghcr.io/${{ env.GITHUB_REPOSITORY_LOWERCASE }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM_CLEAN }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
           build-args: |
             BUILD_PATH=./build/${{ matrix.platform }}
-   # Download the "build" job artifact and prepare them for release
+  # Download the "build" job artifact and prepare them for release
   publish-to-release:
       runs-on: ubuntu-latest
       needs: [linux-build,windows-build]
