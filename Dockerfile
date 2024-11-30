@@ -1,4 +1,5 @@
-# .NET 8.0 ASP.NET image. This is a linux-based image that cannot build windows image
+# .NET 8.0 ASP.NET image. This is a linux-based image that cannot build windows image.
+# This Dockerfile was made to be used by Github Actions.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
@@ -17,7 +18,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE ${ASPNETCORE_PORT}
 
 # Copy the build binary for the appropriate platform. Hard-coded for linux based binary.
-COPY ${BUILD_PATH}/linux-${TARGETARCH}/. ./ 
+COPY ${BUILD_PATH}/linux-${TARGETARCH}-build/. ./ 
 
 # Execute OngakuVault
 ENTRYPOINT ["dotnet", "OngakuVault.dll"]
