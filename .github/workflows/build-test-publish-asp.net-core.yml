@@ -62,8 +62,6 @@ jobs:
             URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
           elif [[ "${{ matrix.platform }}" == "linux-arm64" ]]; then
             URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
-          elif [[ "${{ matrix.platform }}" == "linux-arm" ]]; then
-            # There is no build for arm/armhf on yt-dlp/FFmpeg-Builds
           fi
           
           # Ensure Url is not empty
