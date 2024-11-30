@@ -67,8 +67,9 @@ jobs:
           # Ensure Url is not empty
           if [[ -n $URL ]]; then
             wget -q --show-progress "${URL}" -O "./FFmpeg.tar.xz"
-            # Extract only the 'ffmpeg' and 'ffprop' files from the 'bin' directory to the custom directory
-            tar -xf FFmpeg.tar.xz --wildcards --no-anchored -C "./build/${{ matrix.platform }}" 'bin/ffmpeg' 'bin/ffprobe'
+            # Extract only the 'ffmpeg' and 'ffprop' files from the 'bin' directory to the custom directory.
+            # Ignore the 2 first directory inside the tar file with strip-components.
+            tar -xf FFmpeg.tar.xz --wildcards --no-anchored --strip-components=2 -C "./build/${{ matrix.platform }}" 'bin/ffmpeg' 'bin/ffprobe'
           else
               echo "No FFmpeg binary build url was given for ${{ matrix.platform }}."
           fi
