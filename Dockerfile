@@ -7,7 +7,8 @@ ARG BUILD_PATH
 
 # Set the default environment variables for ASP.NET Core
 ENV ASPNETCORE_PORT=8080
-ENV ASPNETCORE_URLS=http://+:${ASPNETCORE_PORT} # Listen on all interfaces
+# Listen on all interfaces
+ENV ASPNETCORE_URLS=http://+:${ASPNETCORE_PORT}
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Expose port
