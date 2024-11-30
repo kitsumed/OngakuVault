@@ -158,4 +158,4 @@ jobs:
           tags: ghcr.io/${{ env.GITHUB_REPOSITORY_LOWERCASE }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM_CLEAN }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
           platforms: ${{ env.CURRENT_DOCKER_PLATFORM }}  # Platform for multi-architecture build
           build-args: |
-            BUILD_PATH="./build/${{ matrix.platform }}"
+            BUILD_PATH=./build/${{ matrix.platform }}
