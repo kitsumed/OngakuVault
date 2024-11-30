@@ -15,8 +15,8 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 # Expose port
 EXPOSE ${ASPNETCORE_PORT}
 
-# Copy the build binary for the appropriate platform. Hard-coded for linux based binary.
-COPY ./build/linux-${TARGETARCH}-build/. ./ 
+# Copy the build binary for the appropriate platform. Hard-coded for linux based binary. Find build directory from the CONTEXT
+COPY build/linux-${TARGETARCH}-build/. ./ 
 
 # Execute OngakuVault
 ENTRYPOINT ["dotnet", "OngakuVault.dll"]
