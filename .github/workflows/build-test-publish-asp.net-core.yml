@@ -107,7 +107,7 @@ jobs:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
     env:
-      DOCKER_BUILD_RECORD_RETENTION_DAYS: 10
+      DOCKER_BUILD_RECORD_UPLOAD: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -172,25 +172,40 @@ jobs:
       # Fetch all artifacts and download those that end with '-build'
       - name: Download all build artifacts ending with '-build'
         run: |
-          echo "Fetching artifact list for the current workflow..."
+        echo "Fetching artifact list for the current workflow..."
 
-          # Fetch the list of all artifacts for the current workflow using the GitHub API and make a list of
-          # archive download urls. Only keep thoses ending with -build.
-          artifacts=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            | jq -r '.artifacts[] | select(.name | endswith("-build")) | .archive_download_url')
+        # Fetch the list of all artifacts for the current workflow using the GitHub API
+        # Only keep those ending with -build.
+        artifacts=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+          | jq -r '.artifacts[] | select(.name | endswith("-build")) | .archive_download_url')
 
-          # Download the builds artifacts
-          echo "Downloading build artifacts..."
-          for artifactUrl in $artifacts; do
-            # Extract the artifact name from the URL
-            artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
-            artifactFilePath="./build/$artifactName.zip"
-            
-            # Download the artifact
-            echo "Downloading $artifactName..."
-            curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
-          done
+        # Ensure build directory exists
+        mkdir -p ./build
+
+        # Create a checksum file
+        echo "Creating SHA256 checksum table..."
+        echo "## SHA256 Checksum Table" > release-checksum.md
+        echo "This table contains the SHA256 hashes for each binary compiled using GitHub Actions." >> release-checksum.md
+        echo "| File Name  | SHA256 |" >> release-checksum.md
+        echo "|------------|--------|" >> release-checksum.md
+
+        # Download the build artifacts and generate SHA256 hashes
+        echo "Downloading build artifacts..."
+        for artifactUrl in $artifacts; do
+          # Extract the artifact name from the URL (remove the .zip extension)
+          artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
+          artifactFilePath="./build/$artifactName.zip"
+
+          # Download the artifact
+          echo "Downloading $artifactName..."
+          curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
+
+          # Generate the SHA256 hash for the artifact
+          artifactSHA256=$(shasum -a 256 "$artifactFilePath" | awk '{ print $1 }')
+          # Add the artifact name and checksum to the markdown table
+          echo "| \`$artifactName.zip\` | \`$artifactSHA256\` |" >> release-checksum.md
+        done
 
       # Upload zip to the github release
       - name: Publish build to github release
@@ -199,3 +214,5 @@ jobs:
         with:
           prerelease: false
           files: ./build/*.zip  # Publish all the generated zip files
+          append_body: true
+          body_path: release-checksum.md
