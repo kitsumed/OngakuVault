@@ -178,7 +178,7 @@ jobs:
           # Only keep those ending with -build.
           artifacts=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            | jq -r '.artifacts[] | select(.name | endswith("-build")) | .archive_download_url')
+            | jq -r '.artifacts[] | select(.name | endswith("-build")) | .name + "|" + .archive_download_url')
 
           # Ensure build directory exists
           mkdir -p ./build
@@ -192,7 +192,7 @@ jobs:
 
           # Download the build artifacts and generate SHA256 hashes
           echo "Downloading build artifacts..."
-          for artifactUrl in $artifacts; do
+          echo "$artifacts" | while IFS='|' read -r artifactName artifactUrl; do
             # Extract the artifact name from the URL (remove the .zip extension)
             artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
             artifactFilePath="./build/$artifactName.zip"
