@@ -20,7 +20,7 @@ jobs:
         contents: read # Allow checkout action to get the repo code
     strategy:
       matrix:
-        platform: [linux-arm, linux-arm64, linux-x86, linux-x64]  # Building for ARM32 and ARM64, x86(32) and x64
+        platform: [linux-arm, linux-arm64, linux-x64]  # Building for ARM32, ARM64, and x64
 
     steps:
         # Copy the repo code from the tag that triggered this action.
@@ -98,11 +98,11 @@ jobs:
   # Build Docker images and Push to GitHub Packages
   docker-build-and-push:
     runs-on: ubuntu-latest
-    needs: [linux-build,windows-build]
+    needs: [linux-build, windows-build]
     if: success()
     strategy:
       matrix:
-        platform: [linux-arm, linux-arm64, linux-x86, linux-x64] # Builds to release to Github Packages
+        platform: [linux-arm, linux-arm64, linux-x64] # Builds to release to Github Packages
     permissions:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
