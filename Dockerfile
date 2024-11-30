@@ -1,4 +1,4 @@
-# .NET 8.0 ASP.NET image
+# .NET 8.0 ASP.NET image. This is a linux-based image that cannot build windows image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
