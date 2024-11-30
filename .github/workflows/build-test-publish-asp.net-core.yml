@@ -194,7 +194,6 @@ jobs:
           echo "Downloading build artifacts..."
           echo "$artifacts" | while IFS='|' read -r artifactName artifactUrl; do
             # Extract the artifact name from the URL (remove the .zip extension)
-            artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
             artifactFilePath="./build/$artifactName.zip"
 
             # Download the artifact
