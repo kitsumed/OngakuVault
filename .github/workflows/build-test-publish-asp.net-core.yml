@@ -49,12 +49,15 @@ jobs:
           if [ "$BUILD_NAME" == "linux-x64" ]; then
             BUILD_NAME="linux-amd64"
           fi
-          dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/$BUILD_NAME /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
+          echo "BUILD_NAME=${BUILD_NAME}" >> $GITHUB_ENV  # Set the variable as a environment variable to use inside others steps
+
+          dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-build
+          # Change the Name to the custom build name
+          name: ${{ env.BUILD_NAME }}-build
           path: ./build/${{ matrix.platform }}
           # Only keep the artifact up on github for 1 day
           retention-days: 1
@@ -109,6 +112,7 @@ jobs:
     permissions:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
+      actions: read # Allow to fetch the actions API
     env:
       DOCKER_BUILD_RECORD_UPLOAD: false
       DOCKER_PLATFORMS: "linux/amd64,linux/arm64,linux/arm" # Builds to release to Github Packages. Separated by commas
