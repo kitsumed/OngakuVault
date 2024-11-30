@@ -156,42 +156,42 @@ jobs:
             BUILD_PATH=./build/${{ matrix.platform }}
   # Download the "build" job artifact and prepare them for release
   publish-to-release:
-      runs-on: ubuntu-latest
-      needs: [linux-build,windows-build]
-      if: success() # Ensure that there was no error during the "build" job
-      # This grant the write permission to the job since gh-release need the permission to edit a release to upload the build files
-      # Scopes not defined are set to None as long as one scope is manually set here
-      permissions:
-        contents: write
-      steps:
-        # Install jq to parse JSON responses from GitHub API
-        - name: Install jq
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y jq
+    runs-on: ubuntu-latest
+    needs: [linux-build,windows-build]
+    if: success() # Ensure that there was no error during the "build" job
+    # This grant the write permission to the job since gh-release need the permission to edit a release to upload the build files
+    # Scopes not defined are set to None as long as one scope is manually set here
+    permissions:
+      contents: write
+    steps:
+      # Install jq to parse JSON responses from GitHub API
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
-        # Fetch all artifacts and download those that end with '-build'
-        - name: Download all build artifacts ending with '-build'
-          run: |
-            echo "Fetching artifact list for the current workflow..."
+      # Fetch all artifacts and download those that end with '-build'
+      - name: Download all build artifacts ending with '-build'
+        run: |
+          echo "Fetching artifact list for the current workflow..."
 
-            # Fetch the list of all artifacts for the current workflow using the GitHub API and make a list of
-            # archive download urls. Only keep thoses ending with -build.
-            artifacts=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-              | jq -r '.artifacts[] | select(.name | endswith("-build")) | .archive_download_url')
+          # Fetch the list of all artifacts for the current workflow using the GitHub API and make a list of
+          # archive download urls. Only keep thoses ending with -build.
+          artifacts=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            | jq -r '.artifacts[] | select(.name | endswith("-build")) | .archive_download_url')
 
-            # Download the builds artifacts
-            echo "Downloading build artifacts..."
-            for artifactUrl in $artifacts; do
-              # Extract the artifact name from the URL
-              artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
-              artifactFilePath="./build/$artifactName.zip"
+          # Download the builds artifacts
+          echo "Downloading build artifacts..."
+          for artifactUrl in $artifacts; do
+            # Extract the artifact name from the URL
+            artifactName=$(basename "$artifactUrl" | sed 's/.zip$//')
+            artifactFilePath="./build/$artifactName.zip"
             
-              # Download the artifact
-              echo "Downloading $artifactName..."
-              curl -L -o "$artifactFilePath" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
-            done
+            # Download the artifact
+            echo "Downloading $artifactName..."
+            curl -L -o "$artifactFilePath" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
+          done
 
       # Upload zip to the github release
       - name: Publish build to github release
