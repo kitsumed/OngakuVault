@@ -178,8 +178,6 @@ jobs:
           push: true  # Push the image to the registry
           tags: ghcr.io/${{ env.GITHUB_REPOSITORY_LOWERCASE }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }} # ghcr.io/repo-owner/repo-name:v?.?.?
           platforms: ${{ env.DOCKER_PLATFORMS }}
-          build-args: |
-            BUILD_PATH=./build
   # Download the "build" job artifact and prepare them for release
   publish-to-release:
     runs-on: ubuntu-latest

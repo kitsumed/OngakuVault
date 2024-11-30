@@ -3,9 +3,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 
-# Define the path of build binary directory for a platform-specific build
-ARG BUILD_PATH
-# Define a build argument for the target architecture
+# Define a build argument for the target platform-specific architecture
 ARG TARGETARCH
 
 # Set the default environment variables for ASP.NET Core
@@ -18,7 +16,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE ${ASPNETCORE_PORT}
 
 # Copy the build binary for the appropriate platform. Hard-coded for linux based binary.
-COPY ${BUILD_PATH}/linux-${TARGETARCH}-build/. ./ 
+COPY ./build/linux-${TARGETARCH}-build/. ./ 
 
 # Execute OngakuVault
 ENTRYPOINT ["dotnet", "OngakuVault.dll"]
