@@ -147,6 +147,8 @@ jobs:
             # Download the artifact
             echo "Downloading $artifactName..."
             curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
+            echo "Extracting $artifactName..."
+            unzip "$artifactFilePath" -d "./build/$artifactName/"
           done
 
       - name: Set up Docker Buildx
