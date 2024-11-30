@@ -129,11 +129,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag and convert platform to docker format
-        id: version
+      - name: Defines global environment variable for docker build
         run: |
           # Get the tag name v*.*.* and remove the "v"
           CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
+          CURRENT_DOCKER_RELEASE_VERSION_NUMBER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "CURRENT_DOCKER_RELEASE_VERSION_NUMBER=${CURRENT_DOCKER_RELEASE_VERSION_NUMBER}" >> $GITHUB_ENV  # Set the variable as a environment variable
 
           # Replace the first "-" with "/" in the platform name to convert it to Docker platform format
@@ -142,15 +142,20 @@ jobs:
 
           # Remove all non-alphanumeric characters (keep only a-z, A-Z, 0-9)
           CURRENT_DOCKER_PLATFORM_CLEAN=$(echo "${CURRENT_DOCKER_PLATFORM}" | sed 's/[^a-zA-Z0-9]//g')
+          CURRENT_DOCKER_PLATFORM_CLEAN=$(echo "${CURRENT_DOCKER_PLATFORM_CLEAN}" | tr '[:upper:]' '[:lower:]')
           echo "CURRENT_DOCKER_PLATFORM_CLEAN=${CURRENT_DOCKER_PLATFORM_CLEAN}" >> $GITHUB_ENV
-          
+
+          # Convert repository path to lowercase
+          GITHUB_REPOSITORY_LOWERCASE=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "GITHUB_REPOSITORY_LOWERCASE=${GITHUB_REPOSITORY_LOWERCASE}" >> $GITHUB_ENV
+
       - name: Build and push Docker image for ${{ matrix.platform }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
           push: true  # Push the image to the registry
-          tags: ghcr.io/${{ github.repository }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM_CLEAN }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
+          tags: ghcr.io/${{ env.GITHUB_REPOSITORY_LOWERCASE }}:${{ env.CURRENT_DOCKER_RELEASE_VERSION_NUMBER }}-${{ env.CURRENT_DOCKER_PLATFORM_CLEAN }} # ghcr.io/repo-owner/repo-name:v?.?.?-PLATFORM
           platforms: ${{ env.CURRENT_DOCKER_PLATFORM }}  # Platform for multi-architecture build
           build-args: |
             BUILD_PATH="./build/${{ matrix.platform }}"
