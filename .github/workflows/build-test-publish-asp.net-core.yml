@@ -158,7 +158,7 @@ jobs:
             Expand-Archive -Path "./FFmpeg.zip" -DestinationPath "./FFmpeg"
 
             # Get the directory name that contains the 'bin' folder inside ./FFmpeg
-            $FFmpegFolder = Get-ChildItem -Path "./FFmpeg.zip" | Where-Object { $_.PSIsContainer -and (Test-Path "$($_.FullName)\bin") } | Select-Object -First 1
+            $FFmpegFolder = Get-ChildItem -Path "./FFmpeg" | Where-Object { $_.PSIsContainer -and (Test-Path "$($_.FullName)\bin") } | Select-Object -First 1
             # Move ffmpeg.exe and ffprobe.exe to the final directory
             Move-Item -Path "$FFmpegFolder/bin/ffmpeg.exe" -Destination "./build/${{ matrix.platform }}/ffmpeg.exe"
             Move-Item -Path "$FFmpegFolder/bin/ffprobe.exe" -Destination "./build/${{ matrix.platform }}/ffprobe.exe"
