@@ -103,6 +103,7 @@ jobs:
           path: ./build/${{ matrix.platform }}
           # Only keep the artifact up on github for 1 day
           retention-days: 1
+          compression-level: 9
 
   # Windows based builds
   windows-build:
@@ -152,7 +153,7 @@ jobs:
 
           # Ensure Url is not empty
           if ($URL -ne "") {
-            wget -q --show-progress "${URL}" -O "./FFmpeg.zip"
+            Invoke-WebRequest -Uri $URL -OutFile "./FFmpeg.zip"
             # Extract only the 'ffmpeg' and 'ffprop' files from the 'bin' directory to the custom directory.
             # Ignore the 2 first directory inside the tar file using strip-components argument.
             tar -xf FFmpeg.zip --wildcards --no-anchored --strip-components=2 -C "./build/${{ matrix.platform }}" 'bin/ffmpeg.exe' 'bin/ffprobe.exe'
@@ -186,6 +187,7 @@ jobs:
           path: ./build/${{ matrix.platform }}
           # Only keep the artifact up on github for 1 day
           retention-days: 1
+          compression-level: 9
 
   # Build Docker images and Push to GitHub Packages
   docker-build-and-push:
