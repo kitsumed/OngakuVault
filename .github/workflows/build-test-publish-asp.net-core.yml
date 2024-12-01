@@ -237,8 +237,17 @@ jobs:
             echo "Extracting $artifactName..."
             unzip "$artifactFilePath" -d "./build/$artifactName/"
             echo "Adding execution tag to $artifactName third-party binaries..."
+            
             # Ensure all third-party executables have the read and execution tag
-            chmod a+rx "./build/$artifactName/yt-dlp" "./build/$artifactName/ffmpeg" "./build/$artifactName/ffprobe"
+            for binaryName in yt-dlp ffmpeg ffprobe; do
+              binaryPath="./build/$artifactName/$binaryName"
+              if [[ -f "$binaryPath" ]]; then
+                echo "Adding read and execution permissions to $binaryName..."
+                chmod a+rx "$binaryPath"
+              else
+                echo "WARNING: $binaryName not found, skipping chmod."
+              fi
+            done
           done
 
       - name: Set up Docker Buildx
