@@ -321,12 +321,13 @@ jobs:
           FFmpeg_latestReleaseInfo=$(curl -s https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest)
 
           yt_dlp_version=$(echo $yt_dlp_latestReleaseInfo | jq -r .tag_name)
-          FFmpeg_version=$(echo $FFmpeg_latestReleaseInfo | jq -r .tag_name)
+          # Since FFmpeg release tag name is always "latest" use "name" insead to get the date of the build
+          FFmpeg_version=$(echo $FFmpeg_latestReleaseInfo | jq -r .name	)
           yt_dlp_releaseUrl=$(echo $yt_dlp_latestReleaseInfo | jq -r .html_url)
           FFmpeg_releaseUrl=$(echo $FFmpeg_latestReleaseInfo | jq -r .html_url)
 
           echo "" >> release-checksum.md
-          echo "Most builds include [yt-dlp version]($yt_dlp_releaseUrl) \`$yt_dlp_version\` and [FFmpeg version]($FFmpeg_releaseUrl) \`$FFmpeg_version\`." >> release-checksum.md
+          echo "Theses builds include [yt-dlp version]($yt_dlp_releaseUrl) \`$yt_dlp_version\` and [FFmpeg version]($FFmpeg_releaseUrl) \`$FFmpeg_version\`.*" >> release-checksum.md
 
       # Upload zip to the github release
       - name: Publish build to github release
