@@ -1,6 +1,6 @@
-# .NET 8.0 ASP.NET image. This is a linux-based image that cannot build windows image.
+# .NET 8.0 ASP.NET CHISELED image. No shell, rootless by default, https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md
 # This Dockerfile was made to be used by Github Actions.
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble-chiseled
 WORKDIR /app
 
 # Define a build argument for the target platform-specific architecture
