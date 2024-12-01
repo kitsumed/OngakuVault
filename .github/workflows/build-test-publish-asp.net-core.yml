@@ -143,9 +143,10 @@ jobs:
         run: |
           # Change the binary download url depending of the architecture/platform we are currently building
           $URL = ""
-          if (${{ matrix.platform }} -eq "win-x64") {
+          $MATRIX_PLATFORM = "${{ matrix.platform }}" # Powershell condition require a env variable to work
+          if ($MATRIX_PLATFORM -eq "win-x64") {
             $URL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-          } elseif (${{ matrix.platform }} -eq "win-x86") {
+          } elseif ($MATRIX_PLATFORM -eq "win-x86") {
             $URL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win32-gpl.zip"
           }
 
@@ -164,9 +165,10 @@ jobs:
         run: |
           # Change the binary download url depending of the architecture/platform we are currently building
           $URL = ""
-          if (${{ matrix.platform }} -eq "win-x64") {
+          $MATRIX_PLATFORM = "${{ matrix.platform }}"
+          if ($MATRIX_PLATFORM -eq "win-x64") {
             $URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
-          } elseif (${{ matrix.platform }} -eq "win-x86") {
+          } elseif ($MATRIX_PLATFORM -eq "win-x86") {
             $URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe"
           }
 
