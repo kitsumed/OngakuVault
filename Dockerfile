@@ -1,4 +1,4 @@
-# .NET 8.0 ASP.NET CHISELED image. https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md & https://github.com/dotnet/dotnet-docker/tree/main/src/aspnet/8.0
+# .NET 8.0 ASP.NET CHISELED image. No shell, https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md & https://github.com/dotnet/dotnet-docker/tree/main/src/aspnet/8.0
 # This Dockerfile was made to be used by Github Actions.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled
 WORKDIR /app
@@ -16,7 +16,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE ${ASPNETCORE_PORT}
 
 # Copy the build binary for the appropriate platform. Hard-coded for linux based binary.
-COPY ./build/linux-${TARGETARCH}-build/. ./ 
+COPY ./build/linux-${TARGETARCH}-build/. ./
 
 # Enable non-root user as default user
 USER $APP_UID

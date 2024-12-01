@@ -236,6 +236,9 @@ jobs:
             curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
             echo "Extracting $artifactName..."
             unzip "$artifactFilePath" -d "./build/$artifactName/"
+            echo "Adding execution tag to $artifactName third-party binaries..."
+            # Ensure all third-party executables have the read and execution tag
+            chmod a+rx "./build/$artifactName/yt-dlp" "./build/$artifactName/ffmpeg" "./build/$artifactName/ffprobe"
           done
 
       - name: Set up Docker Buildx
