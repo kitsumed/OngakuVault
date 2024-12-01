@@ -39,6 +39,11 @@ namespace OngakuVault.Services
 		private readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
 		/// <summary>
+		/// The path of the directory where yt-dlp files will first be saved.
+		/// </summary>
+		private readonly string TMPOutputPath = Environment.GetEnvironmentVariable("TMP_OUTPUT_DIRECTORY") ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
+
+		/// <summary>
 		/// Hard-coded settings that are used for every Audio download request
 		/// </summary>
 		private readonly OptionSet AudioDownloaderOverrideOptions = new OptionSet()
@@ -59,16 +64,15 @@ namespace OngakuVault.Services
 			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
 			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
 
-			// If OS is Windows, append ".exe" to the executables
+			// If OS is Windows, append ".exe" to the executables name
 			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
 				MediaDownloader.YoutubeDLPath += ".exe";
 				MediaDownloader.FFmpegPath += ".exe";
 			}
-
 			// Set the download path
-			MediaDownloader.OutputFolder = Path.Combine(ExecutableDirectory, "tmp_downloads");
-			Directory.CreateDirectory(MediaDownloader.OutputFolder); // Ensure the tmp download directory exist
+			Directory.CreateDirectory(TMPOutputPath); // Ensure the given output path exist
+			MediaDownloader.OutputFolder = TMPOutputPath;
 			MediaDownloader.RestrictFilenames = true; // Only allow ASCII
 			_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
