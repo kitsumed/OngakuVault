@@ -103,7 +103,7 @@ jobs:
           path: ./build/${{ matrix.platform }}
           # Only keep the artifact up on github for 1 day
           retention-days: 1
-          compression-level: 9
+          compression-level: 6
 
   # Windows based builds
   windows-build:
@@ -154,9 +154,14 @@ jobs:
           # Ensure Url is not empty
           if ($URL -ne "") {
             Invoke-WebRequest -Uri $URL -OutFile "./FFmpeg.zip"
-            # Extract only the 'ffmpeg' and 'ffprop' files from the 'bin' directory to the custom directory.
-            # Ignore the 2 first directory inside the tar file using strip-components argument.
-            tar -xf FFmpeg.zip --wildcards --no-anchored --strip-components=2 -C "./build/${{ matrix.platform }}" 'bin/ffmpeg.exe' 'bin/ffprobe.exe'
+            # Expand the zip file into the ./FFmpeg directory
+            Expand-Archive -Path "./FFmpeg.zip" -DestinationPath "./FFmpeg"
+
+            # Get the directory name that contains the 'bin' folder inside ./FFmpeg
+            $FFmpegFolder = Get-ChildItem -Path "./FFmpeg.zip" | Where-Object { $_.PSIsContainer -and (Test-Path "$($_.FullName)\bin") } | Select-Object -First 1
+            # Move ffmpeg.exe and ffprobe.exe to the final directory
+            Move-Item -Path "$FFmpegFolder/bin/ffmpeg.exe" -Destination "./build/${{ matrix.platform }}/ffmpeg.exe"
+            Move-Item -Path "$FFmpegFolder/bin/ffprobe.exe" -Destination "./build/${{ matrix.platform }}/ffprobe.exe"
           } else {
             Write-Host "No FFmpeg binary url was given for ${{ matrix.platform }}."
           }
@@ -187,7 +192,7 @@ jobs:
           path: ./build/${{ matrix.platform }}
           # Only keep the artifact up on github for 1 day
           retention-days: 1
-          compression-level: 9
+          compression-level: 6
 
   # Build Docker images and Push to GitHub Packages
   docker-build-and-push:
