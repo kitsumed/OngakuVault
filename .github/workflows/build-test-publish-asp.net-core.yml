@@ -158,10 +158,10 @@ jobs:
             Expand-Archive -Path "./FFmpeg.zip" -DestinationPath "./FFmpeg"
 
             # Get the directory name that contains the 'bin' folder inside ./FFmpeg
-            $FFmpegFolder = Get-ChildItem -Path "./FFmpeg" | Where-Object { $_.PSIsContainer -and (Test-Path "$($_.FullName)\bin") } | Select-Object -First 1
+            $FFmpegBinFolderPath =  (Get-ChildItem -Path ".\FFmpeg" -Recurse -Filter "bin" -Directory).fullname
             # Move ffmpeg.exe and ffprobe.exe to the final directory
-            Move-Item -Path "$FFmpegFolder/bin/ffmpeg.exe" -Destination "./build/${{ matrix.platform }}/ffmpeg.exe"
-            Move-Item -Path "$FFmpegFolder/bin/ffprobe.exe" -Destination "./build/${{ matrix.platform }}/ffprobe.exe"
+            Move-Item -Path "$FFmpegBinFolderPath/ffmpeg.exe" -Destination "./build/${{ matrix.platform }}/ffmpeg.exe"
+            Move-Item -Path "$FFmpegBinFolderPath/ffprobe.exe" -Destination "./build/${{ matrix.platform }}/ffprobe.exe"
           } else {
             Write-Host "No FFmpeg binary url was given for ${{ matrix.platform }}."
           }
@@ -171,7 +171,7 @@ jobs:
         run: |
           # Change the binary download url depending of the architecture/platform we are currently building
           $URL = ""
-          $MATRIX_PLATFORM = "${{ matrix.platform }}"
+          $MATRIX_PLATFORM = "${{ matrix.platform }}" # Powershell condition require a env variable to work
           if ($MATRIX_PLATFORM -eq "win-x64") {
             $URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
           } elseif ($MATRIX_PLATFORM -eq "win-x86") {
@@ -204,7 +204,7 @@ jobs:
       packages: write  # Allow pushing to GitHub Packages
       actions: read # Allow to fetch the actions API
     env:
-      DOCKER_BUILD_RECORD_UPLOAD: false
+      DOCKER_BUILD_RECORD_UPLOAD: false # Do not upload docker/build-push-action logs as artifacts
       DOCKER_PLATFORMS: "linux/amd64,linux/arm64,linux/arm" # Builds to release to Github Packages. Separated by commas
     steps:
       - name: Checkout code
