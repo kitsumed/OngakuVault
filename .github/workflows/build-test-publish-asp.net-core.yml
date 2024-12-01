@@ -325,6 +325,7 @@ jobs:
           yt_dlp_releaseUrl=$(echo $yt_dlp_latestReleaseInfo | jq -r .html_url)
           FFmpeg_releaseUrl=$(echo $FFmpeg_latestReleaseInfo | jq -r .tag_name)
 
+          echo "" >> release-checksum.md
           echo "Most builds include [yt-dlp version]($yt_dlp_releaseUrl) \`$yt_dlp_version\` and [FFmpeg version]($FFmpeg_releaseUrl) \`$FFmpeg_version\`." >> release-checksum.md
 
       # Upload zip to the github release
