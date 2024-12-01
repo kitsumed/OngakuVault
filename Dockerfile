@@ -7,10 +7,10 @@ WORKDIR /app
 ARG TARGETARCH
 
 # Set the default environment variables for ASP.NET Core
-ENV ASPNETCORE_PORT=5000
-# Listen on all interfaces
-ENV ASPNETCORE_URLS=http://+:${ASPNETCORE_PORT}
+ENV ASPNETCORE_HTTP_PORTS=8080
+#ENV ASPNETCORE_HTTPS_PORT=8443
 ENV ASPNETCORE_ENVIRONMENT=Production
+# Other env variable name can be found on https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host?view=aspnetcore-8.0#host-configuration-values
 
 # Expose port
 EXPOSE ${ASPNETCORE_PORT}
