@@ -380,7 +380,7 @@ jobs:
         with:
           prerelease: false
           files: | # Publish all zip and tar builds archives to github release
-          ./build/*.zip  
-          ./build/*.tar.gz
+            ./build/*.zip  
+            ./build/*.tar.gz
           append_body: true
           body_path: release-checksum.md
