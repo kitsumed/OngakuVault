@@ -317,15 +317,47 @@ jobs:
           echo "Downloading build artifacts..."
           echo "$artifacts" | while IFS='|' read -r artifactName artifactUrl; do
             artifactFilePath="./build/$artifactName.zip"
+            # Default value for windows builds
+            artifactArchiveExtension=".zip"
 
             # Download the artifact
             echo "Downloading $artifactName..."
             curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
 
+            # Check if the artifactName start with "linux-" (the build artifact is for Linux)
+            if [[ "$artifactName" == linux-* ]]; then
+              echo "Detected $artifactName as a Linux build."
+              artifactArchiveExtension=".tar.gz"
+              echo "Extracting $artifactName..."
+              unzip "$artifactFilePath" -d "./build/$artifactName/"
+
+              echo "Adding execution tag to $artifactName third-party binaries..."
+              # Ensure all third-party executables have the read and execution tag
+              for binaryName in yt-dlp ffmpeg ffprobe; do
+                binaryPath="./build/$artifactName/$binaryName"
+                if [[ -f "$binaryPath" ]]; then
+                  echo "Adding read and execution permissions to $binaryName..."
+                  chmod a+rx "$binaryPath"
+                else
+                  echo "WARNING: $binaryName not found, skipping chmod."
+                fi
+              done
+
+              echo "Removing zip archive of $artifactName..."
+              rm "$artifactFilePath"
+              # Compress the linux build folder into a .tar.gz archive to keep the chmod configuration
+              echo "Creating .tar.gz archive of $artifactName..."
+              # Tar to Gzip with compression level of 6
+              tar -cf - "./build/$artifactName/" | gzip -6 > "./build/$artifactName.tar.gz"
+              # Change the artifact file path to the new archive
+              artifactFilePath="./build/$artifactName.tar.gz"
+            fi
+            
+
             # Generate the SHA256 hash for the artifact
             artifactSHA256=$(shasum -a 256 "$artifactFilePath" | awk '{ print $1 }')
             # Add the artifact name and checksum to the markdown table
-            echo "| \`$artifactName.zip\` | \`$artifactSHA256\` |" >> release-checksum.md
+            echo "| \`$artifactName.$artifactArchiveExtension\` | \`$artifactSHA256\` |" >> release-checksum.md
           done
 
           # Fetch yt-dlp and FFmpeg latest version name on github
@@ -347,6 +379,8 @@ jobs:
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 #v2.1.0 pinned hash
         with:
           prerelease: false
-          files: ./build/*.zip  # Publish all the generated zip files
+          files: | # Publish all zip and tar builds archives to github release
+          ./build/*.zip  
+          ./build/*.tar.gz
           append_body: true
           body_path: release-checksum.md
