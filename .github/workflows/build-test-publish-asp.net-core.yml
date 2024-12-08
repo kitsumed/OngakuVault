@@ -348,7 +348,7 @@ jobs:
               # Compress the linux build folder into a .tar.gz archive to keep the chmod configuration
               echo "Creating .tar.gz archive of $artifactName..."
               # Tar to Gzip with compression level of 6
-              tar -cf - "./build/$artifactName/" | gzip -6 > "./build/$artifactName.tar.gz"
+              tar -cf - -C "./build/$artifactName" . | gzip -6 > "./build/$artifactName.tar.gz"
               # Change the artifact file path to the new archive
               artifactFilePath="./build/$artifactName.tar.gz"
             fi
@@ -357,7 +357,7 @@ jobs:
             # Generate the SHA256 hash for the artifact
             artifactSHA256=$(shasum -a 256 "$artifactFilePath" | awk '{ print $1 }')
             # Add the artifact name and checksum to the markdown table
-            echo "| \`$artifactName.$artifactArchiveExtension\` | \`$artifactSHA256\` |" >> release-checksum.md
+            echo "| \`$artifactName$artifactArchiveExtension\` | \`$artifactSHA256\` |" >> release-checksum.md
           done
 
           # Fetch yt-dlp and FFmpeg latest version name on github
