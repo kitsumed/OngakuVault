@@ -17,20 +17,19 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpPost("create")]
-		[EndpointDescription("Create a new download job for a song")]
+		[EndpointDescription("Create a new download job for a audio on a webpage")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
-		public ActionResult CreateJob(MediaInfoModel newJobMediaInfoData)
+		public ActionResult CreateJob(JobRESTCreationModel newJobRESTCreationData)
 		{
-			// Verify if the url is http/https
-			_ = Uri.TryCreate(newJobMediaInfoData.MediaUrl, UriKind.Absolute, out Uri? originalUrlUri);
-			if (originalUrlUri?.Scheme != Uri.UriSchemeHttp && originalUrlUri?.Scheme != Uri.UriSchemeHttps && originalUrlUri != null)
+			// Verify if the url is not http/https
+			if (!Helpers.UrlHelper.IsUrlValid(newJobRESTCreationData.mediaInfo.MediaUrl))
 			{
-				return BadRequest("originalUrl scheme can only be http or https.");
+				return BadRequest("The mediaUrl inside mediaInfo can only be a scheme of type http or https.");
 			}
 			// Create a new JobModel
-			JobModel jobModel = new JobModel(newJobMediaInfoData);
+			JobModel jobModel = new JobModel(newJobRESTCreationData);
 			// Add the jobModel to the Jobs service execution queue
 			if (_jobService.TryAddJobToQueue(jobModel))
 			{
@@ -43,7 +42,7 @@ namespace OngakuVault.Controllers
 		}
 
 		[HttpGet("all")]
-		[EndpointDescription("Return a list of all JobModel")]
+		[EndpointDescription("Return a list of all jobs that have been queued as JobModel")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ICollection<JobModel>))]
 		[Produces("application/json")]
 		public ActionResult GetJobs()
@@ -68,7 +67,7 @@ namespace OngakuVault.Controllers
 		}
 
 		[HttpDelete("{ID}/cancel")]
-		[EndpointDescription("Cancel the job matching this ID")]
+		[EndpointDescription("Send a cancel signal to the job matching a ID")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]

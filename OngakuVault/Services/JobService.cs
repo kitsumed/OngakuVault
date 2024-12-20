@@ -1,8 +1,5 @@
 ﻿using OngakuVault.Models;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
-using System.Threading;
-using YoutubeDLSharp;
 
 namespace OngakuVault.Services
 {
@@ -130,7 +127,7 @@ namespace OngakuVault.Services
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobID);
 				try
 				{
-					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, default, Jobs[jobID].CancellationTokenSource.Token);
+					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token);
 				}
 				catch (Exception ex)
 				{

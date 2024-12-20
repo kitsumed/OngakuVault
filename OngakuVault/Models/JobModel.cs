@@ -11,10 +11,11 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The constructor is executed during the initialization of a <see cref="JobModel"/>.
 		/// </summary>
-		/// <param name="jobData">The additional data stocked inside the <see cref="JobModel.Data"/>.</param>
-		public JobModel(MediaInfoModel jobData)
+		/// <param name="jobRestCreationData">A <see cref="JobRESTCreationModel"/> containing the job additional info and execution configuration./>.</param>
+		public JobModel(JobRESTCreationModel jobRestCreationData)
 		{
-			Data = jobData;
+			Data = jobRestCreationData.mediaInfo;
+			Configuration = jobRestCreationData.jobConfiguration;
 		}
 
 		/// <summary>
@@ -23,9 +24,13 @@ namespace OngakuVault.Models
 		public string ID { get; } = Guid.NewGuid().ToString();
 
 		/// <summary>
-		/// Additional Data for the current job.
+		/// Additional Data for the current job
 		/// </summary>
 		public MediaInfoModel Data { get; set; }
+		/// <summary>
+		/// Configuration for the current job
+		/// </summary>
+		public JobConfigurationModel Configuration { get; set; }
 		/// <summary>
 		/// Job creation date
 		/// </summary>
@@ -37,6 +42,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The current status of the job
 		/// </summary>
+		[JsonConverter(typeof(JsonStringEnumConverter))]
 		public JobStatus Status { get; set; } = JobStatus.WaitingForQueue;
 		/// <summary>
 		/// Cancellation token to cancel the job execution

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OngakuVault.Models;
 using OngakuVault.Services;
-using System.ComponentModel.DataAnnotations;
 
 namespace OngakuVault.Controllers
 {
@@ -21,21 +20,35 @@ namespace OngakuVault.Controllers
 
 		[HttpGet("info")]
 		[EndpointDescription("Get basic informations about a media from a url")]
-		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MediaInfoModel))]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MediaInfoAdvancedModel))]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
+		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
-		public async Task<ActionResult> GetMediaInfo([Url]string mediaUrl)
+		public async Task<ActionResult> GetMediaInfo(string mediaUrl)
 		{
-			_ = Uri.TryCreate(mediaUrl, UriKind.Absolute, out Uri? mediaUrlUri);
-			if (mediaUrlUri?.Scheme != Uri.UriSchemeHttp && mediaUrlUri?.Scheme != Uri.UriSchemeHttps && mediaUrlUri != null)
+			if (!Helpers.UrlHelper.IsUrlValid(mediaUrl))
 			{
 				return BadRequest("mediaUrl scheme can only be http or https.");
 			}
 			// Fetch video data
-			MediaInfoModel? mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl);
-			if (mediaInfoModel != null) return Ok(mediaInfoModel);
-			// Failed to fetch
+			try
+			{
+				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl);
+				if (mediaInfoModel != null) return Ok(mediaInfoModel);
+			}
+			catch (Exception ex)
+			{
+				// If it's a NotSupportedException, the error is related to the media information and can be send to client
+				if (ex is NotSupportedException)
+				{
+					_logger.LogWarning("Error happened while processing fetched information about mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl ,ex.Message);
+					return StatusCode(StatusCodes.Status415UnsupportedMediaType, ex.Message);
+				}
+				// We print other error as Error since they are not planned
+				_logger.LogError(ex.Message);
+			}
+			// If request failed, return a vague error message to client
 			return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch data about your mediaUrl. More information was printed in the server logs.");
 		}
 	}

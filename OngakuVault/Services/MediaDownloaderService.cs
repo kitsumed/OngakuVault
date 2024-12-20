@@ -1,4 +1,5 @@
 ﻿using OngakuVault.Models;
+using System.Linq;
 using System.Runtime.InteropServices;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
@@ -23,11 +24,14 @@ namespace OngakuVault.Services
 		/// <param name="url">The url of the media</param>
 		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
-		/// <returns><see cref="MediaInfoModel"/> if success, else null</returns>
-		public Task<MediaInfoModel?> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false);
+		/// <returns><see cref="MediaInfoAdvancedModel"/>Return advanced info about the media</returns>
+		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
+		/// <exception cref="Exception">Exception happened with yt-dlp</exception>
+		public Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false);
 	}
-	public class MediaDownloaderService : IMediaDownloaderService
+	public class MediaDownloaderService : IMediaDownloaderService, IDisposable
 	{
+		private bool _isDisposed = false;
 		private readonly ILogger<MediaDownloaderService> _logger;
 		/// <summary>
 		/// YoutubeDownloadSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
@@ -40,6 +44,7 @@ namespace OngakuVault.Services
 
 		/// <summary>
 		/// The path of the directory where yt-dlp files will first be saved.
+		/// NOTE: This directory is deleted at the closure of the app.
 		/// </summary>
 		private readonly string TMPOutputPath = Environment.GetEnvironmentVariable("TMP_OUTPUT_DIRECTORY") ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
 
@@ -50,16 +55,37 @@ namespace OngakuVault.Services
 		{
 			// Keep the best file quality possible
 			AudioQuality = 0,
-			// Prefer best found audio, fallback to best video if no audio found
-			Format = "bestaudio/best",
+			// Prefer bestaudio, fallback to best (may be video, but include audio)
+			Format = "bestaudio/best[acodec!=none]",
 			// If media is a video, convert it to a audio only
 			ExtractAudio = true,
 		};
 
+		/// <summary>
+		/// List of lossless codecs
+		/// </summary>
+		private readonly string[] LosslessCodecs = new string[]
+		{
+			// FLAC - Free Lossless Audio Codec
+			"flac",
+			// ALAC - Apple Lossless Audio Codec
+			"alac",
+			// WAV pcm_s16le (16-bit little-endian PCM) and pcm_s24le (24-bit little-endian PCM)
+			"pcm_s16le",
+			"pcm_s24le",
+			// AIFF pcm_s16be (16-bit big-endian PCM) and pcm_s24be (24-bit big-endian PCM)
+			"pcm_s16be",
+			"pcm_s24be",
+			// Wavpack
+			"wavpack",
+			// TTA - True Audio
+			"tta",
+			// MPEG-4 ALS - MPEG-4 Audio Lossless Coding
+			"als",
+		};
 		public MediaDownloaderService(ILogger<MediaDownloaderService> logger)
-        {
+		{
 			_logger = logger;
-
 			// Set the paths for yt-dlp and FFmpeg executables for linux by default
 			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
 			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
@@ -73,9 +99,38 @@ namespace OngakuVault.Services
 			// Set the download path
 			Directory.CreateDirectory(TMPOutputPath); // Ensure the given output path exist
 			MediaDownloader.OutputFolder = TMPOutputPath;
+			_logger.LogInformation("Current temporary download output path is set to : {TMPOutputPath}", TMPOutputPath);
 			MediaDownloader.RestrictFilenames = true; // Only allow ASCII
-			_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
-			_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
+
+			// Ensure that yt-dlp and ffmpeg binary are existing when initialising
+			if (File.Exists(MediaDownloader.YoutubeDLPath) && File.Exists(MediaDownloader.FFmpegPath))
+			{
+				_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				{
+					// MediaDownloader.Version seems to only work on Windows due to the way it get executable version (FileVersionInfo.GetVersionInfo)
+					// work around could be using starting our own cmd with --version argument and getting the output.
+					_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
+				}
+			}
+			else 
+			{
+				_logger.LogWarning("MediaDownloaderService could not locate some external binaries. yt-dlp should be in '{YoutubeDLPath}' and FFmpeg in '{FFmpegPath}'.\r\nEnsure both binaries are under their respective paths.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
+			}
+		}
+		/// <summary>
+		/// Called when Disposing of MediaDownaloderService (should only happen at application closure)
+		/// </summary>
+		public void Dispose()
+		{
+			if (_isDisposed) return; // Prevent redundant calls
+			_logger.LogInformation("Removing temporary download directory before process closure...");
+			if (Directory.Exists(TMPOutputPath))
+			{
+				Directory.Delete(TMPOutputPath, true);
+			}
+			GC.SuppressFinalize(this);
+			_isDisposed = true;
 		}
 
 		public async Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null)
@@ -95,53 +150,77 @@ namespace OngakuVault.Services
 		/// <param name="url">The url of the media</param>
 		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
-		/// <returns><see cref="MediaInfoModel"/> if success, else null</returns>
-		public async Task<MediaInfoModel?> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false)
+		/// <returns><see cref="MediaInfoAdvancedModel"/>Return advanced info about the media</returns>
+		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
+		/// <exception cref="Exception">Exceptions received from yt-dlp separated by <see cref="Environment.NewLine"/></exception>
+		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false)
 		{
 			// Fetch media information
 			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, default, flatPlaylist, fetchComments);
 			if (mediaData.Success)
 			{
-				MediaInfoModel mediaInformations = new MediaInfoModel()
+				if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("Playlist media are not currently supported.");
+				MediaInfoAdvancedModel mediaInformations = new MediaInfoAdvancedModel()
 				{
 					Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
 					ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
 					AlbumName = mediaData.Data.Album,
 					MediaUrl = mediaData.Data.WebpageUrl,
-					ReleaseYear = mediaData.Data.ReleaseYear ?? mediaData.Data.UploadDate?.Year.ToString(), // Fallback to UploadDate year
+					ReleaseYear = int.TryParse(mediaData.Data.ReleaseYear, out int releaseYearParsed) ? releaseYearParsed : mediaData.Data.UploadDate?.Year, // Fallback to UploadDate year
 					Genre = mediaData.Data.Genre,
 					TrackNumber = mediaData.Data.TrackNumber,
+					Description = mediaData.Data.Description,
 				};
 
-				// Loop trought format to verify if one of them is using a lossless encoding
-				foreach (FormatData item in mediaData.Data.Formats)
-                {
-					if (item.AudioCodec != null)
+				// Ensure formats where found for the current media
+				if (mediaData.Data.Formats.Length >= 1)
+				{
+					// Get the best format that has a audio codec by ordering bitrate and sampling rate
+					FormatData? bestFormatData = mediaData.Data.Formats.Where(item => item.AudioCodec != null)
+						.OrderByDescending(item => item.Bitrate ?? 0)
+						.ThenByDescending(item => item.AudioSamplingRate ?? 0)
+						.FirstOrDefault();
+
+					// Loop trought format to verify if one of them is using a lossless encoding
+					foreach (FormatData item in mediaData.Data.Formats)
 					{
-						// FLAC - Free Lossless Audio Codec
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("flac") ? true : mediaInformations.IsLosslessAvailable;
-						// ALAC - Apple Lossless Audio Codec
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("alac") ? true : mediaInformations.IsLosslessAvailable;
-						// WAV pcm_s16le (16-bit little-endian PCM) and pcm_s24le (24-bit little-endian PCM)
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s16le") ? true : mediaInformations.IsLosslessAvailable;
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s24le") ? true : mediaInformations.IsLosslessAvailable;
-						// AIFF pcm_s16be (16-bit big-endian PCM) and pcm_s24be (24-bit big-endian PCM)
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s16be") ? true : mediaInformations.IsLosslessAvailable;
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("pcm_s24be") ? true : mediaInformations.IsLosslessAvailable;
-						// Wavpack
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("wavpack") ? true : mediaInformations.IsLosslessAvailable;
-						// TTA - True Audio
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("tta") ? true : mediaInformations.IsLosslessAvailable;
-						// MPEG-4 ALS - MPEG-4 Audio Lossless Coding
-						mediaInformations.IsLosslessAvailable = item.AudioCodec.Contains("als") ? true : mediaInformations.IsLosslessAvailable;
-						if (mediaInformations.IsLosslessAvailable) break;
+						// Ensure the format has a audio codec
+						if (item.AudioCodec != null)
+						{
+							// Verify if a codec in our list matches the item codec
+							bool isAudioLossless = LosslessCodecs.Any(codec => item.AudioCodec.Contains(codec));
+							if (isAudioLossless)
+							{
+								if (bestFormatData != null) 
+								{
+									// If some values from the item are missing, we force the best value possible (normally impossible values)
+									// Since a lossless file was found on the webpage, we assume it is better quality as somes webpage don't
+									// return lossless files bitrate / sampling.
+									double itemBitrate = item?.Bitrate ?? double.MaxValue;
+									double itemSamplingRate = item?.AudioSamplingRate ?? double.MaxValue;
+
+									// Ensure the lossless audio is better or the same quality as the best format found.
+									// This prevent recommending lossless when the best audio quality is in a lossy audio.
+									if (itemBitrate >= (bestFormatData?.AudioBitrate ?? 0.0) && itemSamplingRate >= (bestFormatData?.AudioSamplingRate ?? 0.0)) 
+									{
+										mediaInformations.IsLosslessRecommended = true;
+										break;
+									}
+								}
+							}
+						}
 					}
 				}
+				else throw new NotSupportedException("Current media does not have any video or audio formats available.");
+
 				return mediaInformations;
 			}
 			// Failed to fetch
-			_logger.LogWarning("MediaDownaloderService failed to fetch data about mediaUrl : {url}. Errors : {ErrorOutput}", url , mediaData.ErrorOutput.Append(Environment.NewLine));
-			return null;
+			_logger.LogWarning("MediaDownaloderService failed to fetch data about mediaUrl : {url}. Errors : {ErrorOutput}", url, string.Join(Environment.NewLine, mediaData.ErrorOutput));
+			if (mediaData.ErrorOutput.Length >= 1) 
+			{
+				throw new Exception(string.Join(Environment.NewLine, mediaData.ErrorOutput));
+			} else throw new Exception($"yt-dlp failed to fetch data about mediaUrl : '{url}' and did not return any error message in its output.");
 		}
 	}
 }
