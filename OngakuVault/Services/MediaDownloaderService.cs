@@ -1,6 +1,6 @@
 ﻿using OngakuVault.Models;
-using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
@@ -152,7 +152,10 @@ namespace OngakuVault.Services
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
 		/// <returns><see cref="MediaInfoAdvancedModel"/>Return advanced info about the media</returns>
 		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
-		/// <exception cref="Exception">Exceptions received from yt-dlp separated by <see cref="Environment.NewLine"/></exception>
+		/// <exception cref="Exception">
+		/// If the message start with "[ONGAKU-SAFE]" a custom message was reported, else all
+		/// exceptions received from yt-dlp will be separated by <see cref="Environment.NewLine"/>
+		/// </exception>
 		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false)
 		{
 			// Fetch media information
@@ -173,7 +176,8 @@ namespace OngakuVault.Services
 				};
 
 				// Ensure formats where found for the current media
-				if (mediaData.Data.Formats.Length >= 1)
+				// NOTE: While formats was set as not nullable, it can be null when no formats are found
+				if (mediaData.Data?.Formats?.Length >= 1)
 				{
 					// Get the best format that has a audio codec by ordering bitrate and sampling rate
 					FormatData? bestFormatData = mediaData.Data.Formats.Where(item => item.AudioCodec != null)
@@ -211,16 +215,37 @@ namespace OngakuVault.Services
 						}
 					}
 				}
-				else throw new NotSupportedException("Current media does not have any video or audio formats available.");
+				else throw new NotSupportedException("Scrapper did not find any video or audio formats available on the webpage.");
 
 				return mediaInformations;
 			}
-			// Failed to fetch
-			_logger.LogWarning("MediaDownaloderService failed to fetch data about mediaUrl : {url}. Errors : {ErrorOutput}", url, string.Join(Environment.NewLine, mediaData.ErrorOutput));
+			// Failed to fetch / get media info from a webpage
+			///TODO: Handle the scrapper error processing in a helper method to allow re-use in multiples cases, like on download jobs failing.
 			if (mediaData.ErrorOutput.Length >= 1) 
 			{
+				/// We first verify if it's a "known" error
+				// Verify for HTTP error code returned by the webpage
+				if (mediaData.ErrorOutput[0].Contains("[generic] Unable to download webpage: HTTP Error")) 
+				{
+					// Search for the HTTP code in the error message
+					Match httpErrorCode = Regex.Match(mediaData.ErrorOutput[0], @"HTTP Error (\d{3})");
+					if (httpErrorCode.Success)
+					{
+						throw new Exception($"[ONGAKU-SAFE] Scrapper failed and got the HTTP response {httpErrorCode.Groups[1]} from the webpage.");
+					}
+				}
+				// Verify if the the error is related to the scrapper not finding any media on the webpage
+				if (mediaData.ErrorOutput.Length >= 2)
+				{
+					if (mediaData.ErrorOutput[0].Contains("[generic] Falling back on generic information extractor") && mediaData.ErrorOutput[1].Contains("Unsupported URL: "))
+					{
+						throw new Exception("[ONGAKU-SAFE] No specific extractor was found for this URL. The scraper fell back to the generic extractor but did not find any media on the webpage.");
+					}
+				}
+				/// The error is a unknown one
+				// Send all of the scrappers error messages in the exception
 				throw new Exception(string.Join(Environment.NewLine, mediaData.ErrorOutput));
-			} else throw new Exception($"yt-dlp failed to fetch data about mediaUrl : '{url}' and did not return any error message in its output.");
+			} else throw new Exception($"yt-dlp failed for mediaUrl : '{url}' and did not return any error message in its output.");
 		}
 	}
 }

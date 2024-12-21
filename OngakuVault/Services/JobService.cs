@@ -131,7 +131,7 @@ namespace OngakuVault.Services
 				}
 				catch (Exception ex)
 				{
-					_logger.LogError(ex, ex.Message, Jobs[jobID]);
+					_logger.LogError(ex, "A error happened while running Job ID : '{ID}'. Error: {message}'", jobID, ex.Message);
 					Jobs[jobID].Status = JobStatus.Failed;
 				}
 				finally

@@ -37,16 +37,22 @@ namespace OngakuVault.Controllers
 				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl);
 				if (mediaInfoModel != null) return Ok(mediaInfoModel);
 			}
-			catch (Exception ex)
+			// If it's a NotSupportedException, the error is related to the media information and can be send to client
+			catch (NotSupportedException ex)
 			{
-				// If it's a NotSupportedException, the error is related to the media information and can be send to client
-				if (ex is NotSupportedException)
-				{
-					_logger.LogWarning("Error happened while processing fetched information about mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl ,ex.Message);
-					return StatusCode(StatusCodes.Status415UnsupportedMediaType, ex.Message);
-				}
+				_logger.LogWarning("Error happened while processing fetched information about mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
+				return StatusCode(StatusCodes.Status415UnsupportedMediaType, ex.Message);
+			}
+			// If it's a know error (a "normal" error) returned often by the scrapper, can be send to the client
+			catch (Exception ex) when (ex.Message.StartsWith("[ONGAKU-SAFE]"))
+			{
+				_logger.LogWarning("Known error was returned by the scrapper when using mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
+				return StatusCode(StatusCodes.Status500InternalServerError, ex.Message.Replace("[ONGAKU-SAFE]", string.Empty));
+			}
+			catch(Exception ex) 
+			{
 				// We print other error as Error since they are not planned
-				_logger.LogError(ex.Message);
+				_logger.LogError(ex, "An unexpected error occurred while fetching media information. Error: {message}", ex.Message);
 			}
 			// If request failed, return a vague error message to client
 			return StatusCode(StatusCodes.Status500InternalServerError, "Failed to fetch data about your mediaUrl. More information was printed in the server logs.");
