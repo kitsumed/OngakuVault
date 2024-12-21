@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OngakuVault.Models;
 using OngakuVault.Services;
+using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
 namespace OngakuVault.Controllers
 {
@@ -43,13 +44,17 @@ namespace OngakuVault.Controllers
 				_logger.LogWarning("Error happened while processing fetched information about mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
 				return StatusCode(StatusCodes.Status415UnsupportedMediaType, ex.Message);
 			}
-			// If it's a know error (a "normal" error) returned often by the scrapper, can be send to the client
-			catch (Exception ex) when (ex.Message.StartsWith("[ONGAKU-SAFE]"))
+			catch (ProcessedScraperErrorOutputException ex)
 			{
-				_logger.LogWarning("Known error was returned by the scrapper when using mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
-				return StatusCode(StatusCodes.Status500InternalServerError, ex.Message.Replace("[ONGAKU-SAFE]", string.Empty));
+				// If it's a know error (a "normal" error) returned often by the scraper, can be send to the client
+				if (ex.IsKnownError)
+				{
+					_logger.LogWarning("Known scraper error was returned by the scraper when using mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
+					return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+				}
+				else _logger.LogError("An unexpected scraper error occurred while fetching media information on : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
 			}
-			catch(Exception ex) 
+			catch(Exception ex) // Handle every other errors
 			{
 				// We print other error as Error since they are not planned
 				_logger.LogError(ex, "An unexpected error occurred while fetching media information. Error: {message}", ex.Message);

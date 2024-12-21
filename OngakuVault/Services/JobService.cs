@@ -1,5 +1,6 @@
 ﻿using OngakuVault.Models;
 using System.Collections.Concurrent;
+using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
 namespace OngakuVault.Services
 {
@@ -128,10 +129,24 @@ namespace OngakuVault.Services
 				try
 				{
 					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token);
+					
 				}
 				catch (Exception ex)
 				{
-					_logger.LogError(ex, "A error happened while running Job ID : '{ID}'. Error: {message}'", jobID, ex.Message);
+					// If it's a error related to the scraper (yt-dlp)
+					if (ex is ProcessedScraperErrorOutputException) 
+					{
+						ProcessedScraperErrorOutputException processedEx = (ProcessedScraperErrorOutputException)ex;
+						if (processedEx.IsKnownError)
+						{
+							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+						}
+						else _logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+					}
+                    else
+                    {
+						_logger.LogError(ex, "An unexpected error occurred during the execution of Job ID : '{ID}'. Error: {message}'", jobID, ex.Message);
+					}
 					Jobs[jobID].Status = JobStatus.Failed;
 				}
 				finally

@@ -1,6 +1,6 @@
-﻿using OngakuVault.Models;
+﻿using OngakuVault.Helpers;
+using OngakuVault.Models;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
@@ -139,8 +139,8 @@ namespace OngakuVault.Services
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Download the media audio
 			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, default, default, AudioDownloaderOverrideOptions);
-			// If succes is false, throw exception with all error output
-			audioDownloadResult.EnsureSuccess();
+			// If succes is false, throw exception using ProcessedScraperErrorOutputException
+			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
 			return new FileInfo(audioDownloadResult.Data);
 		}
 
@@ -150,102 +150,76 @@ namespace OngakuVault.Services
 		/// <param name="url">The url of the media</param>
 		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
-		/// <returns><see cref="MediaInfoAdvancedModel"/>Return advanced info about the media</returns>
+		/// <returns>Return <see cref="MediaInfoAdvancedModel"/>, containing advanced info about the media</returns>
 		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
-		/// <exception cref="Exception">
-		/// If the message start with "[ONGAKU-SAFE]" a custom message was reported, else all
-		/// exceptions received from yt-dlp will be separated by <see cref="Environment.NewLine"/>
-		/// </exception>
+		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
 		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false)
 		{
 			// Fetch media information
 			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, default, flatPlaylist, fetchComments);
-			if (mediaData.Success)
+			if (!mediaData.Success)
 			{
-				if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("Playlist media are not currently supported.");
-				MediaInfoAdvancedModel mediaInformations = new MediaInfoAdvancedModel()
-				{
-					Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
-					ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
-					AlbumName = mediaData.Data.Album,
-					MediaUrl = mediaData.Data.WebpageUrl,
-					ReleaseYear = int.TryParse(mediaData.Data.ReleaseYear, out int releaseYearParsed) ? releaseYearParsed : mediaData.Data.UploadDate?.Year, // Fallback to UploadDate year
-					Genre = mediaData.Data.Genre,
-					TrackNumber = mediaData.Data.TrackNumber,
-					Description = mediaData.Data.Description,
-				};
+				// Failed to fetch / get media info from a webpage
+				// Throw a error message related to the scraper issue
+				ScraperErrorOutputHelper.ProcessScraperErrorOutput(mediaData.ErrorOutput);
+			}
 
-				// Ensure formats where found for the current media
-				// NOTE: While formats was set as not nullable, it can be null when no formats are found
-				if (mediaData.Data?.Formats?.Length >= 1)
-				{
-					// Get the best format that has a audio codec by ordering bitrate and sampling rate
-					FormatData? bestFormatData = mediaData.Data.Formats.Where(item => item.AudioCodec != null)
-						.OrderByDescending(item => item.Bitrate ?? 0)
-						.ThenByDescending(item => item.AudioSamplingRate ?? 0)
-						.FirstOrDefault();
+			if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("Playlist media are not currently supported.");
+			MediaInfoAdvancedModel mediaInformations = new MediaInfoAdvancedModel()
+			{
+				Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
+				ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
+				AlbumName = mediaData.Data.Album,
+				MediaUrl = mediaData.Data.WebpageUrl,
+				ReleaseYear = int.TryParse(mediaData.Data.ReleaseYear, out int releaseYearParsed) ? releaseYearParsed : mediaData.Data.UploadDate?.Year, // Fallback to UploadDate year
+				Genre = mediaData.Data.Genre,
+				TrackNumber = mediaData.Data.TrackNumber,
+				Description = mediaData.Data.Description,
+			};
 
-					// Loop trought format to verify if one of them is using a lossless encoding
-					foreach (FormatData item in mediaData.Data.Formats)
+			// Ensure formats where found for the current media
+			// NOTE: While formats was set as not nullable, it can be null when no formats are found
+			if (mediaData.Data?.Formats?.Length >= 1)
+			{
+				// Get the best format that has a audio codec by ordering bitrate and sampling rate
+				FormatData? bestFormatData = mediaData.Data.Formats.Where(item => item.AudioCodec != null)
+					.OrderByDescending(item => item.Bitrate ?? 0)
+					.ThenByDescending(item => item.AudioSamplingRate ?? 0)
+					.FirstOrDefault();
+
+				// Loop trought format to verify if one of them is using a lossless encoding
+				foreach (FormatData item in mediaData.Data.Formats)
+				{
+					// Ensure the format has a audio codec
+					if (item.AudioCodec != null)
 					{
-						// Ensure the format has a audio codec
-						if (item.AudioCodec != null)
+						// Verify if a codec in our list matches the item codec
+						bool isAudioLossless = LosslessCodecs.Any(codec => item.AudioCodec.Contains(codec));
+						if (isAudioLossless)
 						{
-							// Verify if a codec in our list matches the item codec
-							bool isAudioLossless = LosslessCodecs.Any(codec => item.AudioCodec.Contains(codec));
-							if (isAudioLossless)
+							if (bestFormatData != null)
 							{
-								if (bestFormatData != null) 
-								{
-									// If some values from the item are missing, we force the best value possible (normally impossible values)
-									// Since a lossless file was found on the webpage, we assume it is better quality as somes webpage don't
-									// return lossless files bitrate / sampling.
-									double itemBitrate = item?.Bitrate ?? double.MaxValue;
-									double itemSamplingRate = item?.AudioSamplingRate ?? double.MaxValue;
+								// If some values from the item are missing, we force the best value possible (normally impossible values)
+								// Since a lossless file was found on the webpage, we assume it is better quality as somes webpage don't
+								// return lossless files bitrate / sampling.
+								double itemBitrate = item?.Bitrate ?? double.MaxValue;
+								double itemSamplingRate = item?.AudioSamplingRate ?? double.MaxValue;
 
-									// Ensure the lossless audio is better or the same quality as the best format found.
-									// This prevent recommending lossless when the best audio quality is in a lossy audio.
-									if (itemBitrate >= (bestFormatData?.AudioBitrate ?? 0.0) && itemSamplingRate >= (bestFormatData?.AudioSamplingRate ?? 0.0)) 
-									{
-										mediaInformations.IsLosslessRecommended = true;
-										break;
-									}
+								// Ensure the lossless audio is better or the same quality as the best format found.
+								// This prevent recommending lossless when the best audio quality is in a lossy audio.
+								if (itemBitrate >= (bestFormatData?.AudioBitrate ?? 0.0) && itemSamplingRate >= (bestFormatData?.AudioSamplingRate ?? 0.0))
+								{
+									mediaInformations.IsLosslessRecommended = true;
+									break;
 								}
 							}
 						}
 					}
 				}
-				else throw new NotSupportedException("Scrapper did not find any video or audio formats available on the webpage.");
-
-				return mediaInformations;
 			}
-			// Failed to fetch / get media info from a webpage
-			///TODO: Handle the scrapper error processing in a helper method to allow re-use in multiples cases, like on download jobs failing.
-			if (mediaData.ErrorOutput.Length >= 1) 
-			{
-				/// We first verify if it's a "known" error
-				// Verify for HTTP error code returned by the webpage
-				if (mediaData.ErrorOutput[0].Contains("[generic] Unable to download webpage: HTTP Error")) 
-				{
-					// Search for the HTTP code in the error message
-					Match httpErrorCode = Regex.Match(mediaData.ErrorOutput[0], @"HTTP Error (\d{3})");
-					if (httpErrorCode.Success)
-					{
-						throw new Exception($"[ONGAKU-SAFE] Scrapper failed and got the HTTP response {httpErrorCode.Groups[1]} from the webpage.");
-					}
-				}
-				// Verify if the the error is related to the scrapper not finding any media on the webpage
-				if (mediaData.ErrorOutput.Length >= 2)
-				{
-					if (mediaData.ErrorOutput[0].Contains("[generic] Falling back on generic information extractor") && mediaData.ErrorOutput[1].Contains("Unsupported URL: "))
-					{
-						throw new Exception("[ONGAKU-SAFE] No specific extractor was found for this URL. The scraper fell back to the generic extractor but did not find any media on the webpage.");
-					}
-				}
-				/// The error is a unknown one
-				// Send all of the scrappers error messages in the exception
-				throw new Exception(string.Join(Environment.NewLine, mediaData.ErrorOutput));
-			} else throw new Exception($"yt-dlp failed for mediaUrl : '{url}' and did not return any error message in its output.");
+			else throw new NotSupportedException("Scraper did not find any video or audio formats available on the webpage.");
+
+			return mediaInformations;
 		}
 	}
 }
