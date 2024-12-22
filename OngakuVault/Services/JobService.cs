@@ -1,5 +1,6 @@
 ﻿using OngakuVault.Models;
 using System.Collections.Concurrent;
+using YoutubeDLSharp;
 using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
 namespace OngakuVault.Services
@@ -128,7 +129,43 @@ namespace OngakuVault.Services
 				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobID);
 				try
 				{
-					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token);
+					// Create a progress update for the yt-dlp scraper. Represent 80% of the Job progress
+					IProgress<DownloadProgress> downloadProgress = new Progress<DownloadProgress>(progress =>
+					{
+						// Progress % contributions in total (0-80)
+						const int preProcessingPercentage = 5; // Pre-processing is 5%
+						const int downloadingPercentage = 70; // Downloading is 70%
+						const int postProcessingPercentage = 5; // Post-processing is 5%
+						int newProgress = 0;
+
+						if (progress.State == DownloadState.PreProcessing)
+						{
+							Jobs[jobID].ProgressTaskName = $"Scraper is preprocessing...";
+							// 0 to 5 when scraper return pre-processing at 100%.
+							newProgress = (int)(preProcessingPercentage * progress.Progress);
+						}
+						else if (progress.State == DownloadState.Downloading)
+						{
+							Jobs[jobID].ProgressTaskName = $"Scraper is downloading media... ETA: {progress.ETA ?? "Unknown"}";
+							// 5 to 70 when scraper return downloading at 100%.
+							newProgress = preProcessingPercentage + (int)(downloadingPercentage * progress.Progress);
+						}
+						else if (progress.State == DownloadState.PostProcessing)
+						{
+							Jobs[jobID].ProgressTaskName = $"Scraper is postprocessing...";
+							newProgress = preProcessingPercentage + downloadingPercentage + (int)(postProcessingPercentage * progress.Progress);
+						}
+
+						// Ensure newProgress is bigger than current job progress before updating
+						if (newProgress > Jobs[jobID].Progress)
+						{
+							Jobs[jobID].Progress = newProgress;
+							
+							_logger.LogInformation("Current progress is {progress}. Taskname: {taskName}", Jobs[jobID].Progress.ToString(), Jobs[jobID].ProgressTaskName);
+						}
+					});
+
+					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
 					
 				}
 				catch (Exception ex)

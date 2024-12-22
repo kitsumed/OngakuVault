@@ -15,8 +15,10 @@ namespace OngakuVault.Services
 		/// <param name="mediaUrl">The url of the page with the audio to download</param>
 		/// <param name="audioConversionFormat">If changed from best, will convert the best audio to the selected format</param>
 		/// <param name="cancellationToken">Token for cancellation</param>
+		/// <param name="progressReport">A IProgress to get updates on the download progress</param>
 		/// <returns>The <see cref="FileInfo"/> of the downloaded audio.</returns>
-		public Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null);
+		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
+		public Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
 
 		/// <summary>
 		/// Get informations about a media
@@ -24,10 +26,10 @@ namespace OngakuVault.Services
 		/// <param name="url">The url of the media</param>
 		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
-		/// <returns><see cref="MediaInfoAdvancedModel"/>Return advanced info about the media</returns>
+		/// <returns>Return a <see cref="MediaInfoAdvancedModel"/>. Contains advanced info about the media</returns>
 		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
-		/// <exception cref="Exception">Exception happened with yt-dlp</exception>
-		public Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false);
+		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
+		public Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null);
 	}
 	public class MediaDownloaderService : IMediaDownloaderService, IDisposable
 	{
@@ -133,30 +135,25 @@ namespace OngakuVault.Services
 			_isDisposed = true;
 		}
 
-		public async Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null)
+
+		public async Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null)
 		{
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Download the media audio
-			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, default, default, AudioDownloaderOverrideOptions);
-			// If succes is false, throw exception using ProcessedScraperErrorOutputException
+			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, AudioDownloaderOverrideOptions);
+			// If succes is false, throw a ScraperErrorOutputException using ProcessScraperErrorOutput
 			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
 			return new FileInfo(audioDownloadResult.Data);
 		}
 
-		/// <summary>
-		/// Get informations about a media
-		/// </summary>
-		/// <param name="url">The url of the media</param>
-		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
-		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
-		/// <returns>Return <see cref="MediaInfoAdvancedModel"/>, containing advanced info about the media</returns>
-		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
-		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
-		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false)
+
+		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null)
 		{
+			// If no cancellation token was given, generate a "None" token
+			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Fetch media information
-			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, default, flatPlaylist, fetchComments);
+			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, cancellationToken.Value, flatPlaylist, fetchComments);
 			if (!mediaData.Success)
 			{
 				// Failed to fetch / get media info from a webpage

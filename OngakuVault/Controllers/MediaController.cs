@@ -26,7 +26,7 @@ namespace OngakuVault.Controllers
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
-		public async Task<ActionResult> GetMediaInfo(string mediaUrl)
+		public async Task<ActionResult> GetMediaInfo(string mediaUrl, CancellationToken cancellationToken)
 		{
 			if (!Helpers.UrlHelper.IsUrlValid(mediaUrl))
 			{
@@ -35,9 +35,11 @@ namespace OngakuVault.Controllers
 			// Fetch video data
 			try
 			{
-				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl);
+				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl, default, default, cancellationToken);
 				if (mediaInfoModel != null) return Ok(mediaInfoModel);
 			}
+			// Ignore canceledException when it was thrown due to the cancel signal on our cancellationToken
+			catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {}
 			// If it's a NotSupportedException, the error is related to the media information and can be send to client
 			catch (NotSupportedException ex)
 			{
@@ -54,7 +56,7 @@ namespace OngakuVault.Controllers
 				}
 				else _logger.LogError("An unexpected scraper error occurred while fetching media information on : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
 			}
-			catch(Exception ex) // Handle every other errors
+			catch (Exception ex) // Handle every other errors
 			{
 				// We print other error as Error since they are not planned
 				_logger.LogError(ex, "An unexpected error occurred while fetching media information. Error: {message}", ex.Message);

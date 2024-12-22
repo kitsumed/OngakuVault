@@ -36,9 +36,15 @@ namespace OngakuVault.Models
 		/// </summary>
 		public DateTime CreationDate { get; } = DateTime.Now;
 		/// <summary>
-		/// The current progress of the job
+		/// The current progress of the whole job execution. 0 to 100
 		/// </summary>
 		public int Progress { get; set; } = 0;
+
+		/// <summary>
+		/// The name or description of the task currently being done during the job execution
+		/// </summary>
+		public string? ProgressTaskName { get; set; }
+
 		/// <summary>
 		/// The current status of the job
 		/// </summary>
