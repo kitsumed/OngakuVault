@@ -40,14 +40,20 @@ namespace OngakuVault.Helpers
 			if (errorOutputs.Length >= 1)
 			{
 				/// We first verify if it's a "known" error
-				// Verify for HTTP error code returned by the webpage
-				if (errorOutputs[0].Contains("[generic] Unable to download webpage: HTTP Error"))
+				// Handle some webpage generic error
+				if (errorOutputs[0].Contains("[generic] Unable to download webpage: "))
 				{
-					// Search for the HTTP code in the error message
+					// Search for error related to webpage HTTP code response
 					Match httpErrorCode = Regex.Match(errorOutputs[0], @"HTTP Error (\d{3})");
 					if (httpErrorCode.Success)
 					{
 						throw new ProcessedScraperErrorOutputException($"Scraper request failed and got the HTTP response code '{httpErrorCode.Groups[1]}' from the webpage.", true);
+					}
+					// Search for error related to DNS not resolving
+					Match domainName = Regex.Match(errorOutputs[0], @"Failed to resolve '([^']+)'");
+					if (domainName.Success)
+					{
+						throw new ProcessedScraperErrorOutputException($"Scraper could not resolve the domain '{domainName.Groups[1].Value}'. Are you using a valid url?", true);
 					}
 				}
 				// Verify if the the error is related to the scraper not finding any media on the webpage

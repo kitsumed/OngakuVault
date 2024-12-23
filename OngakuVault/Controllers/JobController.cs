@@ -28,9 +28,9 @@ namespace OngakuVault.Controllers
 			{
 				return BadRequest("The mediaUrl inside mediaInfo can only be a scheme of type http or https.");
 			}
-			// Create a new JobModel
-			JobModel jobModel = new JobModel(newJobRESTCreationData);
-			// Add the jobModel to the Jobs service execution queue
+			// Create a new job JobModel
+			JobModel jobModel = _jobService.CreateJob(newJobRESTCreationData);
+			// Add the job to the Jobs service execution queue
 			if (_jobService.TryAddJobToQueue(jobModel))
 			{
 				return Accepted(jobModel);
@@ -58,8 +58,7 @@ namespace OngakuVault.Controllers
 		public ActionResult GetJobByID(string ID)
 		{
 			// Verify if the Job ID exist
-			JobModel? jobModel = _jobService.TryGetJob(ID);
-			if (jobModel != null) 
+			if (_jobService.TryGetJobByID(ID, out JobModel? jobModel)) 
 			{
 				return Ok(jobModel);
 			}
@@ -75,15 +74,14 @@ namespace OngakuVault.Controllers
 		public ActionResult CancelJob(string ID)
 		{
 			// Verify if the Job ID exist
-			JobModel? jobModel = _jobService.TryGetJob(ID);
-			if (jobModel != null)
+			if (_jobService.TryGetJobByID(ID, out JobModel? jobModel) && jobModel != null)
 			{
 				if (jobModel.CancellationTokenSource.IsCancellationRequested) 
 				{
 					return Conflict("This job cancel signal was already triggered.");
 				}
 				jobModel.CancellationTokenSource.Cancel();
-				return Accepted(string.Empty, "A cancel signal has been sent to this job.");
+				return Accepted(string.Empty, "A cancel signal has been sent to the job.");
 			}
 			return NotFound("Failed to find a job with the requested ID.");
 		}

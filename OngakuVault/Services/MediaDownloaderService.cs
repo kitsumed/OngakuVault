@@ -16,9 +16,9 @@ namespace OngakuVault.Services
 		/// <param name="audioConversionFormat">If changed from best, will convert the best audio to the selected format</param>
 		/// <param name="cancellationToken">Token for cancellation</param>
 		/// <param name="progressReport">A IProgress to get updates on the download progress</param>
-		/// <returns>The <see cref="FileInfo"/> of the downloaded audio.</returns>
+		/// <returns>The <see cref="FileInfo"/> of the downloaded audio, or null if the audio file was not created.</returns>
 		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
-		public Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
+		public Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
 
 		/// <summary>
 		/// Get informations about a media
@@ -136,7 +136,7 @@ namespace OngakuVault.Services
 		}
 
 
-		public async Task<FileInfo> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null)
+		public async Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null)
 		{
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
@@ -144,7 +144,10 @@ namespace OngakuVault.Services
 			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, AudioDownloaderOverrideOptions);
 			// If succes is false, throw a ScraperErrorOutputException using ProcessScraperErrorOutput
 			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
-			return new FileInfo(audioDownloadResult.Data);
+			// Ensure file exists, else return null
+			// Some website/url can cause a success result, but without information / formats available, thus, no file are created.
+			if (File.Exists(audioDownloadResult.Data)) return new FileInfo(audioDownloadResult.Data);
+			return null;
 		}
 
 

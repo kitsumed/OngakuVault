@@ -8,16 +8,27 @@ namespace OngakuVault.Services
 	public interface IJobService
 	{
 		/// <summary>
+		/// Create and configure a job that can then be added to the execution queue
+		/// </summary>
+		/// <param name="jobRESTCreationDataModel">A <see cref="JobRESTCreationModel"/> containing the job additional info used during execution</param>
+		/// <returns>A JobModel</returns>
+		JobModel CreateJob(JobRESTCreationModel jobRESTCreationDataModel);
+
+		/// <summary>
 		/// Add a new job inside the list and add it to the execution queue
 		/// </summary>
 		/// <param name="job">The current job informations</param>
-		/// <returns>True if the job was added, false if a job with the same ID already exist (should never happen)</returns>
+		/// <returns>True if the job was added, false if a job with the same ID is already in the list (probably the same job)</returns>
 		bool TryAddJobToQueue(JobModel jobModel);
+
 		/// <summary>
-		/// Get a JobModel data from it's ID
+		/// Get a job (JobModel) from it's ID
 		/// </summary>
 		/// <param name="ID">The Job ID</param>
-		JobModel? TryGetJob(string ID);
+		/// <param name="job">The job data</param>
+		/// <returns>True if found, else false</returns>
+		bool TryGetJobByID(string ID, out JobModel? job);
+
 		/// <summary>
 		/// Get all Jobs in the list
 		/// </summary>
@@ -33,9 +44,10 @@ namespace OngakuVault.Services
 	{
 		private readonly ILogger<JobService> _logger;
 		private readonly IMediaDownloaderService _mediaDownloaderService;
+		private readonly IWebSocketManagerService _websocketManagerService;
 
 		/// <summary>
-		/// List of created Jobs
+		/// List of Jobs managed by the JobService (waiting for execution, running, completed, etc)
 		/// </summary>
 		private readonly ConcurrentDictionary<string, JobModel> Jobs = new ConcurrentDictionary<string, JobModel>();
 
@@ -49,10 +61,11 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
-		public JobService(ILogger<JobService> logger, IMediaDownloaderService mediaDownloaderService)
+		public JobService(ILogger<JobService> logger, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService)
         {
             _logger = logger;
 			_mediaDownloaderService = mediaDownloaderService;
+			_websocketManagerService = webSocketManagerService;
 			// Init jobs cleanup async task
 			Task.Run(async () =>
 			{
@@ -65,24 +78,28 @@ namespace OngakuVault.Services
 			});
 		}
 
+		public JobModel CreateJob(JobRESTCreationModel jobRESTCreationDataModel)
+		{
+			return new JobModel(_websocketManagerService, jobRESTCreationDataModel);
+		}
+
 		public bool TryAddJobToQueue(JobModel jobModel)
 		{
 			bool result = Jobs.TryAdd(jobModel.ID, jobModel);
 			// If the Job was added to the list, start a async thread with the JobModel
 			if (result) 
 			{
-				_logger.LogInformation("Job ID: {ID} has been added to the execution queue.", jobModel.ID);
+				_logger.LogInformation("Job ID: '{ID}' has been added to the execution queue. (Queued)", jobModel.ID);
 				Jobs[jobModel.ID].Status = JobStatus.Queued; // Update the job status to Queued
 				AddJobToExecutionQueue(jobModel.ID);
 			} 
 			return result;
 		}
 
-		public JobModel? TryGetJob(string ID)
+		public bool TryGetJobByID(string ID, out JobModel? job)
 		{
-			// Try to get the job, return null if not found
-			Jobs.TryGetValue(ID, out JobModel? job);
-			return job;
+			// Try to get the job, return success boolean, & out JobModel
+			return Jobs.TryGetValue(ID, out job);
 		}
 
 		public ICollection<JobModel> GetJobs()
@@ -90,9 +107,10 @@ namespace OngakuVault.Services
 			return Jobs.Values;
 		}
 
+		// [PRIVATE METHODS]
 
 		/// <summary>
-		/// Dispose and remove from the jobs list ended jobs older than a specific duration.
+		/// Dispose and remove jobs in the jobs list if they completed/failed execution and are older than a specific duration.
 		/// </summary>
 		/// <param name="totalMinutes">The minimum number of minutes</param>
 		private void OldJobsCleanup(double totalMinutes)
@@ -117,16 +135,19 @@ namespace OngakuVault.Services
         }
 
 		/// <summary>
-		/// Start a new Job thread and wait for JobsSemaphore before processing
+		/// Start a new thread for a Job and wait for JobsSemaphore before processing
 		/// </summary>
 		/// <param name="jobID">The job ID in the <see cref="Jobs"/> list.</param>
 		private async void AddJobToExecutionQueue(string jobID)
 		{
+			// Allow job failed checks to detect if a the job was set to failed state manually or because of a thrown exception.
+			bool didJobFailedDueToThrownException = false;
 			try
 			{
+				// Wait for a new place in the execution queue
 				await JobsSemaphore.WaitAsync(Jobs[jobID].CancellationTokenSource.Token);
-				Jobs[jobID].Status = JobStatus.Running; // Update to job status to Running
-				_logger.LogDebug("Job ID: {ID} changed status from 'Queuing' to 'Running'.", jobID);
+				Jobs[jobID].ReportStatus(JobStatus.Running, "Starting job...", 0); // Update job status to Running
+				_logger.LogInformation("Job ID: '{ID}' is now running.", jobID);
 				try
 				{
 					// Create a progress update for the yt-dlp scraper. Represent 80% of the Job progress
@@ -136,72 +157,95 @@ namespace OngakuVault.Services
 						const int preProcessingPercentage = 5; // Pre-processing is 5%
 						const int downloadingPercentage = 70; // Downloading is 70%
 						const int postProcessingPercentage = 5; // Post-processing is 5%
-						int newProgress = 0;
+						int? newProgress = null;
+						string? newProgressTaskName = null;
 
 						if (progress.State == DownloadState.PreProcessing)
 						{
-							Jobs[jobID].ProgressTaskName = $"Scraper is preprocessing...";
+							newProgressTaskName = $"Scraper is preprocessing...";
 							// 0 to 5 when scraper return pre-processing at 100%.
 							newProgress = (int)(preProcessingPercentage * progress.Progress);
 						}
 						else if (progress.State == DownloadState.Downloading)
 						{
-							Jobs[jobID].ProgressTaskName = $"Scraper is downloading media... ETA: {progress.ETA ?? "Unknown"}";
-							// 5 to 70 when scraper return downloading at 100%.
+							newProgressTaskName = $"Scraper is downloading media... ETA: {progress.ETA ?? "Unknown"}";
+							// 5 to 75 when scraper return downloading at 100%.
 							newProgress = preProcessingPercentage + (int)(downloadingPercentage * progress.Progress);
 						}
 						else if (progress.State == DownloadState.PostProcessing)
 						{
-							Jobs[jobID].ProgressTaskName = $"Scraper is postprocessing...";
+							newProgressTaskName = $"Scraper is postprocessing...";
 							newProgress = preProcessingPercentage + downloadingPercentage + (int)(postProcessingPercentage * progress.Progress);
 						}
 
-						// Ensure newProgress is bigger than current job progress before updating
-						if (newProgress > Jobs[jobID].Progress)
+						if (newProgress != null)
 						{
-							Jobs[jobID].Progress = newProgress;
-							
-							_logger.LogInformation("Current progress is {progress}. Taskname: {taskName}", Jobs[jobID].Progress.ToString(), Jobs[jobID].ProgressTaskName);
+							// Ensure newProgress is bigger than current job progress before updating
+							if (newProgress > Jobs[jobID].Progress)
+							{
+								Jobs[jobID].ReportStatus(JobStatus.Running, newProgressTaskName, newProgress);
+							}
 						}
 					});
 
-					FileInfo downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
-					
+					FileInfo? downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
+					if (downloadedAudioInfo != null)
+					{
+
+					}
+					else 
+					{
+						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due to the scraper not finding formats on the target webpage.", jobID);
+						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloded file. Did the scraper found any formats? Is webpage supported?", 100);
+					}
 				}
+				// Ignore canceledException when it's thrown due to the cancel signal on our cancellationToken
+				catch (OperationCanceledException) when (Jobs[jobID].CancellationTokenSource.IsCancellationRequested) { }
 				catch (Exception ex)
 				{
+					didJobFailedDueToThrownException = true;
 					// If it's a error related to the scraper (yt-dlp)
-					if (ex is ProcessedScraperErrorOutputException) 
+					if (ex is ProcessedScraperErrorOutputException)
 					{
 						ProcessedScraperErrorOutputException processedEx = (ProcessedScraperErrorOutputException)ex;
 						if (processedEx.IsKnownError)
 						{
 							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+							Jobs[jobID].ReportStatus(JobStatus.Failed, $"Known scraper error occurred: {ex.Message}", 100);
 						}
-						else _logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+						else 
+						{
+							_logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+							Jobs[jobID].ReportStatus(JobStatus.Failed, "An unexpected scraper error occurred", 100);
+						}
 					}
-                    else
-                    {
+					else
+					{
 						_logger.LogError(ex, "An unexpected error occurred during the execution of Job ID : '{ID}'. Error: {message}'", jobID, ex.Message);
+						Jobs[jobID].ReportStatus(JobStatus.Failed, "An unexpected error occurred", 100);
 					}
-					Jobs[jobID].Status = JobStatus.Failed;
 				}
 				finally
 				{
 					// Handle final status when the jobs exit it's execution
 					if (Jobs[jobID].CancellationTokenSource.IsCancellationRequested) // Cancellation token triggered, job cancelled
 					{
-						_logger.LogInformation("Job ID: {ID} was cancelled during execution.", jobID);
-						Jobs[jobID].Status = JobStatus.Cancelled;
+						_logger.LogInformation("Job ID: '{ID}' was cancelled during execution.", jobID);
+						Jobs[jobID].ReportStatus(JobStatus.Cancelled, "Cancellation was requested", 100);
 					}
 					else if (Jobs[jobID].Status == JobStatus.Failed) 
 					{
-						_logger.LogInformation("Job ID: {ID} failed during execution.", jobID);
+						if (didJobFailedDueToThrownException) 
+						{
+							_logger.LogInformation("Job ID: '{ID}' failed during execution due to a exception.", jobID);
+						} else _logger.LogInformation("Job ID: '{ID}' was manually set to failed state during execution.", jobID);
+
 					}
 					else if (Jobs[jobID].Status == JobStatus.Running && !Jobs[jobID].CancellationTokenSource.IsCancellationRequested)
 					{
-						_logger.LogInformation("Job ID: {ID} finished execution.", Jobs[jobID].ID);
-						Jobs[jobID].Status = JobStatus.Completed;
+						_logger.LogInformation("Job ID: '{ID}' finished execution.", Jobs[jobID].ID);
+						TimeSpan jobDuration = DateTime.Now - Jobs[jobID].CreationDate;
+						Jobs[jobID].ReportStatus(JobStatus.Completed, $"Completed in {jobDuration.Hours}h:{jobDuration.Minutes}m:{jobDuration.Seconds}s", 100);
 					}
 					// Release a place inside the semaphore to allow a new job to start
 					JobsSemaphore.Release();
@@ -210,8 +254,8 @@ namespace OngakuVault.Services
 			catch (OperationCanceledException)
 			{
 				// If the CancellationToken is triggered before execution, change the job status to cancelled.
-				Jobs[jobID].Status = JobStatus.Cancelled;
-				_logger.LogInformation("Job ID: {ID} was cancelled before execution.", jobID);
+				Jobs[jobID].ReportStatus(JobStatus.Cancelled, "Cancellation was requested", 100);
+				_logger.LogInformation("Job ID: '{ID}' was cancelled before execution.", jobID);
 			}
 		}
 	}

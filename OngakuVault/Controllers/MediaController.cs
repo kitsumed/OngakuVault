@@ -38,8 +38,8 @@ namespace OngakuVault.Controllers
 				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl, default, default, cancellationToken);
 				if (mediaInfoModel != null) return Ok(mediaInfoModel);
 			}
-			// Ignore canceledException when it was thrown due to the cancel signal on our cancellationToken
-			catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {}
+			// Ignore canceledException when it's thrown due to the cancel signal on our cancellationToken
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {}
 			// If it's a NotSupportedException, the error is related to the media information and can be send to client
 			catch (NotSupportedException ex)
 			{
