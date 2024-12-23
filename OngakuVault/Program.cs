@@ -81,7 +81,7 @@ if (app.Environment.IsDevelopment())
 // Create websocket configuration, default allow all origins
 WebSocketOptions webSocketOptions = new WebSocketOptions
 {
-	// Ensure websocket connection is kept alive with a heartbeat every 2 minutes
+	// Ensure websocket connection are kept alive with a heartbeat every 2 minutes
 	KeepAliveInterval = TimeSpan.FromMinutes(2),
 };
 

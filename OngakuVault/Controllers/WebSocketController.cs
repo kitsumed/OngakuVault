@@ -25,7 +25,7 @@ namespace OngakuVault.Controllers
 		[Produces("application/json")]
 		public ActionResult test()
 		{
-			_webSocketManagerService.BroadcastAsync("test message!");
+			_webSocketManagerService.BroadcastAsync<string>("update", "test");
 			return Ok();
 		}
 

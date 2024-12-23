@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace OngakuVault.Services
 {
@@ -22,12 +23,20 @@ namespace OngakuVault.Services
 		/// <returns>True if it was removed and disposed, else false</returns>
 		public bool TryRemoveClient(Guid clientId);
 
-		public Task BroadcastAsync(string message);
+		/// <summary>
+		/// Send a <see cref="WebSocketBroadcastDataModel{T}"/> to every clients (websocket connection) in json
+		/// format
+		/// </summary>
+		/// <typeparam name="T">The type of the data</typeparam>
+		/// <param name="key">A custom name to allow the client to differentiate how they should handle the DATA value</param>
+		/// <param name="data">The data send to the client</param>
+		/// <returns></returns>
+		public Task BroadcastAsync<T>(string key, T data);
 	}
 
 	/// <summary>
 	/// This class implement the <see cref="IWebSocketManagerService"></see> interface,
-	/// allowing to manages websocket connections
+	/// allowing to manage websocket connections
 	/// </summary>
 	public class WebSocketManagerService : IWebSocketManagerService
 	{
@@ -52,10 +61,17 @@ namespace OngakuVault.Services
 			return sucess;
 		}
 
-		public async Task BroadcastAsync(string message)
+		public async Task BroadcastAsync<T>(string key, T data)
 		{
-			// Convert the message to UTF8 bytes
-			byte[] buffer = Encoding.UTF8.GetBytes(message);
+			// Create a broadcastDataModel of the same type of the data we want to send to all clients
+			WebSocketBroadcastDataModel<T> broadcastData = new WebSocketBroadcastDataModel<T>
+			{
+				Key = key,
+				Data = data
+			};
+			string broadcastDataJson = JsonSerializer.Serialize<WebSocketBroadcastDataModel<T>>(broadcastData);
+			// Convert the json string to UTF8 bytes
+			byte[] buffer = Encoding.UTF8.GetBytes(broadcastDataJson);
 			// Run multiple async thread for every client connection
 			IEnumerable<Task> allWebSocketTaks = ClientsConnection.Values.Select(async webSocket =>
 			{
@@ -66,5 +82,24 @@ namespace OngakuVault.Services
 			});
 			await Task.WhenAll(allWebSocketTaks);
 		}
+	}
+
+	/// <summary>
+	/// This class is a model used specifically by <see cref="WebSocketManagerService"/> to
+	/// communicate with clients (websocket connections)
+	/// </summary>
+	/// <typeparam name="T">The type of the data value</typeparam>
+	public class WebSocketBroadcastDataModel<T> 
+	{
+		/// <summary>
+		/// This is the name of the update. Allowing the client to
+		/// differentiate how they should handle the DATA value
+		/// </summary>
+		public required string Key { get; set; }
+
+		/// <summary>
+		/// Contains the data you want to send to the client
+		/// </summary>
+		public required T Data { get; set; }
 	}
 }
