@@ -1,5 +1,6 @@
 ﻿using OngakuVault.Helpers;
 using OngakuVault.Models;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
@@ -36,7 +37,7 @@ namespace OngakuVault.Services
 		private bool _isDisposed = false;
 		private readonly ILogger<MediaDownloaderService> _logger;
 		/// <summary>
-		/// YoutubeDownloadSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
+		/// The scrapper, YoutubeDownloadSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
 		/// </summary>
 		private readonly YoutubeDL MediaDownloader = new YoutubeDL(8);
 		/// <summary>
@@ -57,7 +58,7 @@ namespace OngakuVault.Services
 		{
 			// Keep the best file quality possible
 			AudioQuality = 0,
-			// Prefer bestaudio, fallback to best (may be video, but include audio)
+			// Prefer bestaudio, fallback to best (may be video, but must include audio)
 			Format = "bestaudio/best[acodec!=none]",
 			// If media is a video, convert it to a audio only
 			ExtractAudio = true,
@@ -117,12 +118,27 @@ namespace OngakuVault.Services
 			if (File.Exists(MediaDownloader.YoutubeDLPath) && File.Exists(MediaDownloader.FFmpegPath))
 			{
 				_logger.LogInformation("MediaDownloaderService configured yt-dlp wrapper external binaries. yt-dlp to '{YoutubeDLPath}' and FFmpeg to '{FFmpegPath}'.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
-				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				/* MediaDownloader.Version seems to only work on Windows due to the way it get executable version (FileVersionInfo.GetVersionInfo)
+				 * work around is starting our own process with --version argument and getting the output.
+				*/
+				// Create a temporary yt-dlp proc
+				YoutubeDLProcess temporaryYTDLPProc = new YoutubeDLProcess(MediaDownloader.YoutubeDLPath);
+				// Create a event handler to listen to the proc outputs
+				EventHandler<DataReceivedEventArgs> outputHandler = (o, e) =>
 				{
-					// MediaDownloader.Version seems to only work on Windows due to the way it get executable version (FileVersionInfo.GetVersionInfo)
-					// work around could be using starting our own cmd with --version argument and getting the output.
-					_logger.LogInformation("Current yt-dlp version is {version}.", MediaDownloader.Version);
-				}
+					// e.Data is a proc output, when running --version arg, the first and only output should be in yyyy.MM.dd format.
+					bool isDateValid = DateTime.TryParseExact(e.Data, "yyyy.MM.dd", null, System.Globalization.DateTimeStyles.None, out _);
+					if (isDateValid) 
+					{
+						_logger.LogInformation("Current yt-dlp version is : {date}", e.Data);
+					} else _logger.LogWarning("Could not detect yt-dlp version. Output is : {output}", e.Data);
+				};
+				// Attach the event handler to the proc
+				temporaryYTDLPProc.OutputReceived += outputHandler;
+				// Run the proc with the --version argument and wait for proc exit
+				temporaryYTDLPProc.RunAsync(null, new OptionSet { Version = true, Simulate = true }).Wait();
+				// Detach the event handler to allow the GC to free memory
+				temporaryYTDLPProc.OutputReceived -= outputHandler;
 			}
 			else 
 			{
