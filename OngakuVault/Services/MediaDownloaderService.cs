@@ -61,6 +61,15 @@ namespace OngakuVault.Services
 			Format = "bestaudio/best[acodec!=none]",
 			// If media is a video, convert it to a audio only
 			ExtractAudio = true,
+			// Embed the cover / thumbnail as cover art on the file if existing
+			EmbedThumbnail = true,
+			// Preserve file metadata
+			EmbedMetadata = true,
+			// Do not embed the infojson and subtitles in the metadata
+			NoEmbedInfoJson = true,
+			NoEmbedSubs = true,
+			// Ensure to download only the current media if the url is media + playlist of media
+			NoPlaylist = true,
 		};
 
 		/// <summary>
