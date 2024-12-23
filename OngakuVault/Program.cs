@@ -9,9 +9,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
  options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 /// Add services
 
+// Add WebSocketManagerService as a Singleton
+builder.Services.AddSingleton<IWebSocketManagerService, WebSocketManagerService>();
 // Add MediaDownloaderService as a Singleton
 builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
-
 // Add a JobService as a Singleton (Parallel Method Execution Queue Service)
 builder.Services.AddSingleton<IJobService, JobService>();
 
@@ -66,8 +67,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-// Configure the HTTP request pipeline.
 
+// Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
 // Enable Swagger API docs
@@ -77,12 +78,27 @@ if (app.Environment.IsDevelopment())
 	app.UseSwaggerUI();  // Enable Swagger UI for interactive API docs
 }
 
+// Create websocket configuration, default allow all origins
+WebSocketOptions webSocketOptions = new WebSocketOptions
+{
+	// Ensure websocket connection are kept alive with a heartbeat every 2 minutes
+	KeepAliveInterval = TimeSpan.FromMinutes(2),
+};
+
 // Use the CORS DefaultPolicy if the env OVERWRITE_CORS_ORIGIN is null or empty
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN")))
+string? customOrigin = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN");
+if (string.IsNullOrEmpty(customOrigin))
 {
 	app.UseCors();
-} else app.UseCors("OverwritePolicy");
+}
+else 
+{
+	app.UseCors("OverwritePolicy");
+	// Restrict websocket to the origin mentioned in the ENV variable
+	webSocketOptions.AllowedOrigins.Add(customOrigin);
+} 
 
+app.UseWebSockets(webSocketOptions);
 app.MapControllers();
 
 app.Run();
