@@ -90,8 +90,8 @@ namespace OngakuVault.Services
 			if (result) 
 			{
 				_logger.LogInformation("Job ID: '{ID}' has been added to the execution queue. (Queued)", jobModel.ID);
-				Jobs[jobModel.ID].Status = JobStatus.Queued; // Update the job status to Queued
-				AddJobToExecutionQueue(jobModel.ID);
+				jobModel.ReportStatus(JobStatus.Queued); // Report to all websocket connection that the job is now in the execution queue
+				AddJobToExecutionQueueAsync(jobModel.ID); // Plan the job for future execution
 			} 
 			return result;
 		}
@@ -138,7 +138,7 @@ namespace OngakuVault.Services
 		/// Start a new thread for a Job and wait for JobsSemaphore before processing
 		/// </summary>
 		/// <param name="jobID">The job ID in the <see cref="Jobs"/> list.</param>
-		private async void AddJobToExecutionQueue(string jobID)
+		private async void AddJobToExecutionQueueAsync(string jobID)
 		{
 			// Allow job failed checks to detect if a the job was set to failed state manually or because of a thrown exception.
 			bool didJobFailedDueToThrownException = false;

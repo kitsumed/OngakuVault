@@ -37,7 +37,7 @@ namespace OngakuVault.Services
 		private bool _isDisposed = false;
 		private readonly ILogger<MediaDownloaderService> _logger;
 		/// <summary>
-		/// The scrapper, YoutubeDownloadSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
+		/// The scrapper, YoutubeDLSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
 		/// </summary>
 		private readonly YoutubeDL MediaDownloader = new YoutubeDL(8);
 		/// <summary>
