@@ -1,7 +1,6 @@
 ﻿using OngakuVault.Helpers;
 using OngakuVault.Models;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
@@ -103,7 +102,7 @@ namespace OngakuVault.Services
 			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
 
 			// If OS is Windows, append ".exe" to the executables name
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			if (OperatingSystem.IsWindows())
 			{
 				MediaDownloader.YoutubeDLPath += ".exe";
 				MediaDownloader.FFmpegPath += ".exe";

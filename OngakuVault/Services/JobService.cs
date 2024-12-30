@@ -61,6 +61,13 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
+		/// <summary>
+		/// The path of the directory where the final files will be saved.
+		/// Defaults to EXECUTION_DIRECTORY\archived-audios\ if no environment variable are set.
+		/// </summary>
+		private readonly string OutputPath = Environment.GetEnvironmentVariable("OUTPUT_DIRECTORY") ?? Path.Combine(AppContext.BaseDirectory, "archived-audios");
+
+
 		public JobService(ILogger<JobService> logger, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService)
         {
             _logger = logger;
@@ -188,15 +195,19 @@ namespace OngakuVault.Services
 						}
 					});
 
-					FileInfo? downloadedAudioInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
-					if (downloadedAudioInfo != null)
+					FileInfo? downloadedFileInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
+					if (downloadedFileInfo != null)
 					{
-
+						// Ensure the final output directory exists
+						Directory.CreateDirectory(OutputPath);
+						// Set file permission for linux based systems
+						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
+						downloadedFileInfo.MoveTo(Path.Combine(OutputPath, downloadedFileInfo.Name));
 					}
 					else 
 					{
-						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due to the scraper not finding formats on the target webpage.", jobID);
-						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloded file. Did the scraper found any formats? Is webpage supported?", 100);
+						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due to the scraper not finding any formats/media on the target webpage. (the formats key is empty?)", jobID);
+						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloaded file. Did the scraper found any formats? Is webpage supported?", 100);
 					}
 				}
 				// Ignore canceledException when it's thrown due to the cancel signal on our cancellationToken
