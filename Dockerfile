@@ -10,13 +10,15 @@ ARG TARGETARCH
 # Set the default environment variables for ASP.NET Core : Other names can be found on https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host?view=aspnetcore-8.0#host-configuration-values
 ENV ASPNETCORE_HTTP_PORTS=8080
 ENV ASPNETCORE_HTTPS_PORT=8443
-ENV ENFORCE_HTTPS=false
 ENV ASPNETCORE_ENVIRONMENT=Production
 # Overwrite Kestrel settings to set the https certificate config if HTTPS is enforced. Source : https://medium.com/@davidclaeys/deploying-net-containers-in-docker-463fc9e0a84e
-ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/home/ongakuvault/certificate.pfx
-ENV ASPNETCORE_Kestrel__Certificates__Default__Password=Password-Here
+# NOTE: By default, leave theses variables empty as invalid settings would prevent the app from starting
+ENV ASPNETCORE_Kestrel__Certificates__Default__Path=
+ENV ASPNETCORE_Kestrel__Certificates__Default__Password=
 # App environment
 ENV OUTPUT_DIRECTORY=/home/ongakuvault/archived-audios/
+ENV ENABLE_SWAGGER_DOC=false
+ENV ENFORCE_HTTPS=false
 
 # Default port to expose
 EXPOSE ${ASPNETCORE_HTTP_PORTS}

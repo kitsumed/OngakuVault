@@ -72,7 +72,7 @@ var app = builder.Build();
 if (Environment.GetEnvironmentVariable("ENFORCE_HTTPS") == "true") app.UseHttpsRedirection();
 
 // Enable Swagger API docs
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER_DOC") == "true")
 {
 	app.UseSwagger();  // Enable Swagger UI
 	app.UseSwaggerUI();  // Enable Swagger UI for interactive API docs
