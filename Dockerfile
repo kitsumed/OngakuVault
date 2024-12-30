@@ -1,9 +1,8 @@
 # This Dockerfile was made to be used by Github Actions.
 # .NET 8.0 ASP.NET images github: https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md & https://github.com/dotnet/dotnet-docker/tree/main/src/aspnet/8.0
 # FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled
-# We can't use a chiseled image due to yt-dlp usage of /bin/sh on linux (shell)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine3.20
-
+# We can't use a chiseled image due to yt-dlp usage of /bin/sh on linux (shell), and alpine versions (smaller size) can't be used due to external package dependencies
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy
 WORKDIR /app
 
 # Define a build argument for the target platform-specific architecture
@@ -18,7 +17,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_Kestrel__Certificates__Default__Path=
 ENV ASPNETCORE_Kestrel__Certificates__Default__Password=
 # App environment
-ENV OUTPUT_DIRECTORY=/home/ongakuvault/archived-audios/
+ENV OUTPUT_DIRECTORY=/home/app/archived-audios/
 ENV ENABLE_SWAGGER_DOC=false
 ENV ENFORCE_HTTPS=false
 
