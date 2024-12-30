@@ -69,7 +69,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseHttpsRedirection();
+if (Environment.GetEnvironmentVariable("ENFORCE_HTTPS") == "true") app.UseHttpsRedirection();
 
 // Enable Swagger API docs
 if (app.Environment.IsDevelopment())
