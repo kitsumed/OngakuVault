@@ -1,9 +1,11 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.OpenApi.Models;
 using OngakuVault.Services;
 using System.Text.Json.Serialization;
-var builder = WebApplication.CreateBuilder(args);
 
+// User defined allowed origins, if null, no origins where set
+string[]? customCorsOrigins = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN")?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 // Add services to the container & configure a additional json option to change enums to strings in api REST.
 builder.Services.AddControllers().AddJsonOptions(options =>
  options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -50,16 +52,13 @@ builder.Services.AddCors(options =>
 			   .AllowAnyHeader(); // Allow any header
 	});
 
-	//Get the env variable to verify if we should overwrite the cors
-	string? customOrigin = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN");
-
-	// If the env variable is defined, allow the specified origin only
-	if (!string.IsNullOrEmpty(customOrigin))
+	// If the env variable for cors origins is defined, allow the specified origin only
+	if (customCorsOrigins != null)
 	{
 		// Allow a specific origin
 		options.AddPolicy("OverwritePolicy", policy =>
 		{
-			policy.WithOrigins(customOrigin)
+			policy.WithOrigins(customCorsOrigins)
 				.AllowAnyMethod()
 				.AllowAnyHeader();
 		});
@@ -77,6 +76,19 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABL
 	app.UseSwagger();  // Enable Swagger UI
 	app.UseSwaggerUI();  // Enable Swagger UI for interactive API docs
 }
+else 
+{
+	// We take the predicate and verify if the request first segment is /swagger
+	app.UseWhen(context => context.Request.Path.StartsWithSegments("/swagger"), appBuilder =>
+	{
+		// Custom middleware to handle the request
+		appBuilder.Run(async requestContext =>
+		{
+			requestContext.Response.StatusCode = 405;
+			await requestContext.Response.WriteAsync("Swagger API documentation is disabled in production environment. Set the environment variable 'ENABLE_SWAGGER_DOC' to 'true' to enable it.");
+		});
+	});
+}
 
 // Create websocket configuration, default allow all origins
 WebSocketOptions webSocketOptions = new WebSocketOptions
@@ -86,16 +98,18 @@ WebSocketOptions webSocketOptions = new WebSocketOptions
 };
 
 // Use the CORS DefaultPolicy if the env OVERWRITE_CORS_ORIGIN is null or empty
-string? customOrigin = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN");
-if (string.IsNullOrEmpty(customOrigin))
+if (customCorsOrigins == null)
 {
 	app.UseCors();
 }
 else 
 {
 	app.UseCors("OverwritePolicy");
-	// Restrict websocket to the origin mentioned in the ENV variable
-	webSocketOptions.AllowedOrigins.Add(customOrigin);
+    // Restrict websocket to the origin mentioned in the ENV variable
+    foreach (string currentUrl in customCorsOrigins)
+    {
+		webSocketOptions.AllowedOrigins.Add(currentUrl);
+	}
 } 
 
 app.UseWebSockets(webSocketOptions);
