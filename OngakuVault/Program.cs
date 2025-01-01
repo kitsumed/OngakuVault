@@ -11,10 +11,12 @@ builder.Services.AddControllers().AddJsonOptions(options =>
  options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 /// Add services
 
-// Add WebSocketManagerService as a Singleton
+// Add WebSocketManagerService as a Singleton (Service allowing management and interaction with websocket connections)
 builder.Services.AddSingleton<IWebSocketManagerService, WebSocketManagerService>();
-// Add MediaDownloaderService as a Singleton
+// Add MediaDownloaderService as a Singleton (Service allowing interaction with the scraper)
 builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
+// Add ATLCoreLoggingHandlerService as a Singleton (Redirect ATL library logs to our app)
+builder.Services.AddSingleton<ATLCoreLoggingHandlerService>();
 // Add a JobService as a Singleton (Parallel Method Execution Queue Service)
 builder.Services.AddSingleton<IJobService, JobService>();
 
@@ -65,7 +67,7 @@ builder.Services.AddCors(options =>
 	}
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (Environment.GetEnvironmentVariable("ENFORCE_HTTPS") == "true") app.UseHttpsRedirection();
@@ -115,4 +117,7 @@ else
 app.UseWebSockets(webSocketOptions);
 app.MapControllers();
 
+/// Force initialisation of some services as they need to be "called" at least once to be created and kept
+/// during the whole process life-time
+_ = app.Services.GetRequiredService<ATLCoreLoggingHandlerService>(); // Init the service in charge of redirecting ATL logs to our logs
 app.Run();

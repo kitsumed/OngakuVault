@@ -1,4 +1,5 @@
-﻿using OngakuVault.Models;
+﻿using ATL;
+using OngakuVault.Models;
 using System.Collections.Concurrent;
 using YoutubeDLSharp;
 using static OngakuVault.Helpers.ScraperErrorOutputHelper;
@@ -200,9 +201,30 @@ namespace OngakuVault.Services
 					{
 						// Ensure the final output directory exists
 						Directory.CreateDirectory(OutputPath);
+
+						// Load the file in ATL
+						Track audioTrack = new Track(downloadedFileInfo.FullName);
+						// Set the new file metadata if the user gived values
+						audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
+						bool wasNewMetadataApplyed = await audioTrack.SaveAsync();
+						// Log a warning if ATL failed to overwrite the downloaded audio
+						if (!wasNewMetadataApplyed) 
+						{
+							_logger.LogWarning("Job ID: '{ID}'. Tried to overwrite the downloaded audio file metadata using the ALT library but failed. More information about the issue should be available in prior logs.", jobID);
+						}
+
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
-						downloadedFileInfo.MoveTo(Path.Combine(OutputPath, downloadedFileInfo.Name));
+						// Ensure downloaded audio file name is unique
+						string finalAudioPath = Path.Combine(OutputPath, downloadedFileInfo.Name);
+						if (File.Exists(finalAudioPath)) 
+						{
+							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
+							finalAudioPath = Path.Combine(OutputPath, newAudioName);
+							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the downloaded audio name (now '{newAudioName}').", jobID, downloadedFileInfo.Name, newAudioName);
+						}
+						// Move audio file to the output directory (and rename the file to the file name in the path)
+						downloadedFileInfo.MoveTo(finalAudioPath);
 					}
 					else 
 					{

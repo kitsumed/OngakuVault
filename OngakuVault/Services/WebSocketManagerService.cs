@@ -36,7 +36,7 @@ namespace OngakuVault.Services
 
 	/// <summary>
 	/// This class implement the <see cref="IWebSocketManagerService"></see> interface,
-	/// allowing to manage websocket connections
+	/// allowing to manage and interact with websocket connections
 	/// </summary>
 	public class WebSocketManagerService : IWebSocketManagerService
 	{

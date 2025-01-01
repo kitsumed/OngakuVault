@@ -31,6 +31,11 @@ namespace OngakuVault.Services
 		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
 		public Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null);
 	}
+
+	/// <summary>
+	/// This class implements the <see cref="IMediaDownloaderService"/> interface and provides functionality
+	/// to interact with the yt-dlp scrapper.
+	/// </summary>
 	public class MediaDownloaderService : IMediaDownloaderService, IDisposable
 	{
 		private bool _isDisposed = false;
