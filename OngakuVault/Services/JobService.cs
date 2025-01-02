@@ -204,14 +204,40 @@ namespace OngakuVault.Services
 
 						// Load the file in ATL
 						Track audioTrack = new Track(downloadedFileInfo.FullName);
-						// Set the new file metadata if the user gived values
-						audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
-						bool wasNewMetadataApplyed = await audioTrack.SaveAsync();
-						// Log a warning if ATL failed to overwrite the downloaded audio
-						if (!wasNewMetadataApplyed) 
+						// Ensure ATL support at least one metadata format for the audio that can be overwriten
+						// (Prevent errors since some metadata formats supported by ATL are read-only)
+						IList<Format> audioTrackSupportedFormats = audioTrack.SupportedMetadataFormats;
+						if (audioTrackSupportedFormats.Any(format => format.Writable == true))
 						{
-							_logger.LogWarning("Job ID: '{ID}'. Tried to overwrite the downloaded audio file metadata using the ALT library but failed. More information about the issue should be available in prior logs.", jobID);
+							// Create a progress update, represent 10% of the Job progress
+							IProgress<float> metadataOverwriteProgress = new Progress<float>(progress =>
+							{
+								// Change progress (0.??) to a 0-10 scale
+								int currentProgress = (int)(10 * progress);
+								int totalProgress = currentProgress + Jobs[jobID].Progress;
+								// Ensure the new progress is bigger than current job progress
+								if (totalProgress > Jobs[jobID].Progress) 
+								{
+									Jobs[jobID].ReportStatus(JobStatus.Running, "Overwriting audio metadata...", totalProgress);
+								}
+							});
+							// Set the new file metadata if the user gived new values
+							audioTrack.Title = string.IsNullOrEmpty(Jobs[jobID].Data.Name) ? audioTrack.Title : Jobs[jobID].Data.Name;
+							audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
+							audioTrack.Album = string.IsNullOrEmpty(Jobs[jobID].Data.AlbumName) ? audioTrack.Album : Jobs[jobID].Data.AlbumName;
+							audioTrack.Year = Jobs[jobID].Data.ReleaseYear == null ? audioTrack.Year : Jobs[jobID].Data.ReleaseYear;
+							audioTrack.Genre = string.IsNullOrEmpty(Jobs[jobID].Data.Genre) ? audioTrack.Genre : Jobs[jobID].Data.Genre;
+							audioTrack.TrackNumber = Jobs[jobID].Data.TrackNumber == null ? audioTrack.TrackNumber : Jobs[jobID].Data.TrackNumber;
+							audioTrack.Description = string.IsNullOrEmpty(Jobs[jobID].Data.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
+
+							bool wasNewMetadataApplyed = await audioTrack.SaveAsync(metadataOverwriteProgress);
+							// Log a warning if ATL failed to overwrite the downloaded audio
+							if (!wasNewMetadataApplyed)
+							{
+								_logger.LogWarning("Job ID: '{ID}'. Tried to overwrite the downloaded audio file metadata using the ALT library but failed. More information about the issue should be available in prior logs.", jobID);
+							}
 						}
+						else _logger.LogWarning("Job ID: '{ID}'. Skipped overwriting metadata using the ALT library since no writable metadata formats where supported for the current audio.", jobID); ;
 
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
