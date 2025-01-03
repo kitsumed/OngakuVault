@@ -19,6 +19,7 @@ ENV ASPNETCORE_Kestrel__Certificates__Default__Password=
 # App environment
 ENV OUTPUT_DIRECTORY=/home/app/archived-audios/
 ENV ENABLE_SWAGGER_DOC=false
+ENV DISABLE_WEBSITE=false
 ENV ENFORCE_HTTPS=false
 
 # Default port to expose

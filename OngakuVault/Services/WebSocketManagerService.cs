@@ -2,6 +2,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OngakuVault.Services
 {
@@ -45,6 +46,19 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly ConcurrentDictionary<Guid, WebSocket> ClientsConnection = new ConcurrentDictionary<Guid, WebSocket>();
 
+		/// <summary>
+		/// Create a json serialisation config one time and re-use it across all method call
+		/// </summary>
+		private readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+		{
+			// Since the WebApplicationBuilder has its json serialiser configured to use "camelCase",
+			// we ensure consistency here by using it
+			PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+			// Add the StringEnumConverter to convert all enums to their string name insead of int value
+			// again, ensuring consistency with WebApplicationBuilder
+			Converters = { new JsonStringEnumConverter() },
+		};
+
 		public bool TryAddClient(WebSocket webSocket, out Guid clientId)
 		{
 			clientId = Guid.NewGuid();
@@ -69,7 +83,7 @@ namespace OngakuVault.Services
 				Key = key,
 				Data = data
 			};
-			string broadcastDataJson = JsonSerializer.Serialize<WebSocketBroadcastDataModel<T>>(broadcastData);
+			string broadcastDataJson = JsonSerializer.Serialize<WebSocketBroadcastDataModel<T>>(broadcastData, JsonSerializerOptions);
 			// Convert the json string to UTF8 bytes
 			byte[] buffer = Encoding.UTF8.GetBytes(broadcastDataJson);
 			// Run multiple async thread for every client connection
@@ -89,7 +103,7 @@ namespace OngakuVault.Services
 	/// communicate with clients (websocket connections)
 	/// </summary>
 	/// <typeparam name="T">The type of the data value</typeparam>
-	public class WebSocketBroadcastDataModel<T> 
+	public class WebSocketBroadcastDataModel<T>
 	{
 		/// <summary>
 		/// This is the name of the update. Allowing the client to

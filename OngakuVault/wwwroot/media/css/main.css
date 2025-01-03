@@ -1,0 +1,74 @@
+/* GLOBAL */
+.is-text-ellipsis {
+    width: 80%;
+    /* Takes up 80% of the available width */
+    white-space: nowrap;
+    /* Prevent the text from wrapping to a new line */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Keep the footer at the end of the page*/
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+footer {
+    margin-top: auto;
+    padding-bottom: 3rem !important;
+}
+
+/* SEARCH BAR */
+/* Smaller select element on mobile */
+@media (max-width: 562px) {
+    .select-mobile-reduce {
+        width: 95px;
+    }
+}
+
+/* RESULTS DIV */
+.is-skeleton-larger {
+    height: 44vh !important;
+}
+
+/* JOB ITEMS */
+.job-item {
+    position: relative;
+    /* Allow the cancel-job button to place properly */
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.job-item:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+}
+
+.job-item:active {
+    filter: brightness(0.9);
+    transform: scale(1.016);
+}
+
+.progress-tags {
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.cancel-job {
+    position: absolute;
+    top: 0px;
+    right: 5px;
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.356);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 15px 20px;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.cancel-job:hover {
+    color: red;
+    transform: scale(1.2);
+}

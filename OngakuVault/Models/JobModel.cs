@@ -55,7 +55,6 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The current status of the job
 		/// </summary>
-		[JsonConverter(typeof(JsonStringEnumConverter))]
 		public JobStatus Status { get; set; } = JobStatus.WaitingForQueue;
 		/// <summary>
 		/// Cancellation token to cancel the job execution
@@ -117,11 +116,12 @@ namespace OngakuVault.Models
 				ProgressTaskName = currentJobModel.ProgressTaskName;
 				Status = currentJobModel.Status;
 			}
-            public string ID { get; }
+			public string ID { get; }
+
 			public int Progress { get; }
+
 			public string? ProgressTaskName { get; }
 
-			[JsonConverter(typeof(JsonStringEnumConverter))]
 			public JobStatus Status { get; }
 		}
 	}

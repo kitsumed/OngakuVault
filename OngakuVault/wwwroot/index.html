@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>OngakuVault</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="./media/css/bulma.min.css">
+	<link rel="stylesheet" href="./media/css/animate.min.css">
+	<link rel="stylesheet" href="./media/css/main.css">
+</head>
+
+<body>
+	<!-- Load js scripts-->
+	<script src="./media/js/bulma.js"></script>
+	<script src="./media/js/utils.js"></script>
+	<script src="./media/js/index.js"></script>
+	<noscript>
+		<article class="message is-danger">
+			<div class="message-body">
+				<p>It seems that JavaScript is disabled in your browser. This website will not work as expected.</p>
+			</div>
+		</article>
+	</noscript>
+	<!-- Main Container -->
+	<div class="container is-fullhd">
+		<!-- Search Bar -->
+		<section class="section">
+			<div class="field has-addons is-expanded has-addons-centered animate__animated animate__fadeIn">
+				<p class="control">
+					<span class="select select-mobile-reduce">
+						<select id="searchInterrogationMode">
+							<option selected value="automatic">Fetch information</option>
+							<option value="manually">Enter manually</option>
+						</select>
+					</span>
+				</p>
+				<p class="control is-expanded has-icons-left">
+					<input class="input" type="url" placeholder="Media url" id="searchInput">
+					<span class="icon is-small is-left">
+						<img src="./media/pictures/icons/web.svg" width="28" />
+					</span>
+				</p>
+				<p class="control">
+					<button class="button is-primary" id="searchButton">
+						Send
+					</button>
+				</p>
+			</div>
+		</section>
+		<!-- Results -->
+		<section class="section pt-0 is-skeleton is-skeleton-larger" id="results">
+			<!-- HIDDEN SEARCH TEMPLATE FOR DEBUG -->
+			<div id="job-item-template" class="box has-background-black-ter is-clickable job-item is-hidden">
+				<p id="Title" class="is-size-5 has-text-weight-semibold is-text-ellipsis is-unselectable">
+					Media Title
+				</p>
+				<button id="cancel-job" class="cancel-job" aria-label="Close">×</button>
+				<div class="is-flex is-flex-direction-column">
+					<div class="field is-grouped is-grouped-multiline">
+						<div class="tags has-addons progress-tags">
+							<span class="tag is-dark is-unselectable">Progress:</span>
+							<span id="Progress" class="tag is-link is-unselectable">0%</span>
+						</div>
+						<div class="tags has-addons progress-tags">
+							<span class="tag is-dark is-unselectable">Current Task:</span>
+							<span id="ProgressTaskName" class="tag is-info is-unselectable has-text-weight-semibold">Waiting for execution</span>
+						</div>
+					</div>
+					<progress id="ProgressBar" class="progress is-link" max="100"></progress>
+				</div>
+			</div>
+
+			<!-- TEMPLATE No results default message -->
+			<section id="no-results-template" class="section mt-6 is-hidden">
+				<div class="columns is-mobile is-centered">
+					<figure class="image is-96x96 animate__animated animate__fadeIn">
+						<img src="./media/pictures/icons/search-not-found.svg" />
+					</figure>
+				</div>
+				<div class="columns is-mobile is-centered has-text-centered mt-3 animate__animated animate__jackInTheBox">
+					<h4 class="subtitle is-4 is-unselectable">There are no jobs to display!</h4>
+				</div>
+			</section>
+		</section>
+	</div>
+
+	<!-- Download Media Job Creation Modal -->
+	<div id="download-media-job-creation-modal" class="modal">
+		<div class="modal-background animate__faster"></div>
+		<div class="modal-card animate__faster">
+			<header class="modal-card-head">
+				<p class="modal-card-title">Set the final file information</p>
+				<button class="delete" aria-label="close"></button>
+			</header>
+			<section class="modal-card-body">
+				<div class="content">
+					<!-- Fields for the JobConfiguration section inside the job creation REST-->
+					<form id="JobConfiguration-form">
+						<div class="is-flex">
+							<label class="label is-align-self-center" for="extensionFormat">File Format:</label>
+							<div class="select pl-4">
+								<select id="finalAudioFormat" name="finalAudioFormat">
+									<option selected is-lossy value="mp3">mp3</option>
+									<option is-lossy value="aac">aac</option>
+									<option is-lossy value="m4a">m4a</option>
+									<option is-lossy value="opus">opus</option>
+									<option is-lossy value="vorbis">vorbis</option>
+									<option is-lossless value="flac">flac</option>
+									<option is-lossless value="wav">wav</option>
+								</select>
+							</div>
+						</div>
+						<article id="modal-warning-LosslessRecommended" class="message pt-4 is-info is-hidden">
+							<div class="message-body">
+								The server found that the best audio quality was in a lossless format. You selected a <strong>
+									lossy file
+									format
+								</strong>. To get the best quality available, choose a lossless format like
+								FLAC.
+								<strong>
+									If you keep the lossy format, the server will download the best available audio
+									and re-encode in the best quality supported by the chosen format.
+								</strong>
+							</div>
+						</article>
+						<article id="modal-warning-LosslessNotRecommended" class="message pt-4 is-warning is-hidden">
+							<div class="message-body">
+								You selected a <strong>lossless file format</strong>, but the server did not recommend
+								lossless audio. <strong>
+									If you keep the lossless format, the server will download the best
+									available lossy audio and re-encode it to the lossless format. The file size may
+									increase by 2 to 3 times without improving quality.
+								</strong>
+							</div>
+						</article>
+					</form>
+					<!-- Fields for the MediaInfo section inside the job creation REST-->
+					<form id="MediaInfo-form">
+						<div class="columns">
+							<div class="column is-half">
+								<div class="field">
+									<label class="label" for="mediaName">Name:</label>
+									<div class="control">
+										<input type="text" id="name" name="name" placeholder="Media Track Name" class="input">
+									</div>
+								</div>
+								<div class="field">
+									<label class="label" for="mediaAlbumName">Album Name:</label>
+									<div class="control">
+										<input type="text" id="albumName" name="albumName" placeholder="Album Name" class="input">
+									</div>
+								</div>
+								<div class="field">
+									<label class="label" for="mediaGenre">Media Genre:</label>
+									<div class="control">
+										<input type="text" id="genre" name="genre" placeholder="Media Genre" class="input">
+									</div>
+								</div>
+							</div>
+							<div class="column is-half">
+								<div class="field">
+									<label class="label" for="mediaArtistName">Artist Name:</label>
+									<div class="control">
+										<input type="text" id="artistName" name="artistName" placeholder="Artist Name" class="input">
+									</div>
+								</div>
+								<div class="field">
+									<label class="label" for="mediaReleaseYear">Release Year:</label>
+									<div class="control">
+										<input type="number" id="releaseYear" name="releaseYear" placeholder="Release Year" class="input" min="0" max="">
+									</div>
+								</div>
+								<div class="field">
+									<label class="label" for="mediaTrackNumber">Track Number:</label>
+									<div class="control">
+										<input type="number" id="trackNumber" name="trackNumber" placeholder="Track Number" class="input" min="0" max="">
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<label class="label" for="mediaTrackNumber">Media Description:</label>
+							<div class="control">
+								<textarea class="textarea" id="description" name="description" placeholder="Media Description"></textarea>
+							</div>
+						</div>
+					</form>
+				</div>
+			</section>
+			<footer class="modal-card-foot">
+				<div class="buttons">
+					<button close-modal class="button">Cancel</button>
+					<button confirm-modal class="button is-success">Start a job</button>
+				</div>
+			</footer>
+		</div>
+	</div>
+	<!-- Cancel job confirmation Modal -->
+	<div id="cancel-job-modal" class="modal">
+		<div class="modal-background animate__faster"></div>
+		<div class="modal-card animate__faster">
+			<header class="modal-card-head">
+				<p class="modal-card-title">Job Cancellation Confirmation</p>
+				<button class="delete" aria-label="close"></button>
+			</header>
+			<section class="modal-card-body">
+				<div class="content">
+					<h3>Are you sure you want to cancel this job?</h3>
+					<p>This action cannot be undone.</p>
+				</div>
+			</section>
+			<footer class="modal-card-foot">
+				<div class="buttons">
+					<button close-modal class="button">No</button>
+					<button confirm-modal class="button is-danger">Yes, cancel this job.</button>
+				</div>
+			</footer>
+		</div>
+	</div>
+	<!-- Warning / error message Modal -->
+	<div id="warning-modal" class="modal">
+		<div class="modal-background animate__faster"></div>
+		<div class="modal-card box animate__faster">
+			<section class="modal-card-body">
+				<div class="content">
+					<div class="columns is-mobile is-centered">
+						<figure class="image is-96x96">
+							<img src="./media/pictures/icons/warning-triangle.svg" />
+						</figure>
+					</div>
+					<div class="columns is-mobile is-centered has-text-centered mt-3 animate__animated animate__zoomIn">
+						<p class="subtitle is-5" id="warning-message">Error/warning message here.</p>
+					</div>
+				</div>
+			</section>
+			<div class="buttons is-right">
+				<button close-modal class="button">Ok</button>
+			</div>
+		</div>
+	</div>
+	<!-- Footer -->
+	<footer class="footer animate__animated animate__bounceInLeft">
+		<div class="content has-text-centered">
+			<p>
+				<strong>OngakuVault</strong> by <a href="https://github.com/kitsumed" target="_blank">kitsumed</a>.
+				The source code is licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a>.
+			</p>
+			<p>
+				See the <a href="./swagger">API documentation</a> or <a href="#not-available-yet">the application configuration wiki</a>.
+			</p>
+		</div>
+	</footer>
+</body>
+
+</html>

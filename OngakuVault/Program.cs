@@ -1,14 +1,23 @@
 using Microsoft.OpenApi.Models;
 using OngakuVault.Services;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 // User defined allowed origins, if null, no origins where set
 string[]? customCorsOrigins = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN")?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-// Add services to the container & configure a additional json option to change enums to strings in api REST.
-builder.Services.AddControllers().AddJsonOptions(options =>
- options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Define the "wwwroot" directory as the directory exposed by the server as the website
+builder.WebHost.UseWebRoot("wwwroot");
+
+// Add services to the container & configure json options
+builder.Services.AddControllers().AddJsonOptions(options => {
+	// Ensure json serializer use "camelCase" for keys name
+	options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+	// Configure a additional json option to change all enums to strings in api REST
+	// This make it so we don't need to specify it for every propriety
+	options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 /// Add services
 
 // Add WebSocketManagerService as a Singleton (Service allowing management and interaction with websocket connections)
@@ -116,6 +125,13 @@ else
 
 app.UseWebSockets(webSocketOptions);
 app.MapControllers();
+
+// Verify if website (static file serving) is disabled in env variable
+if (Environment.GetEnvironmentVariable("DISABLE_WEBSITE") != "true") 
+{
+	app.UseDefaultFiles(); // Url rewriter to support "index.html" like files
+	app.UseStaticFiles(); // Allow app to serve files on the wwwroot directory
+}
 
 /// Force initialisation of some services as they need to be "called" at least once to be created and kept
 /// during the whole process life-time
