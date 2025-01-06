@@ -1,4 +1,5 @@
-﻿using OngakuVault.Helpers;
+﻿using Microsoft.Extensions.Options;
+using OngakuVault.Helpers;
 using OngakuVault.Models;
 using System.Diagnostics;
 using YoutubeDLSharp;
@@ -40,10 +41,11 @@ namespace OngakuVault.Services
 	{
 		private bool _isDisposed = false;
 		private readonly ILogger<MediaDownloaderService> _logger;
+		private readonly AppSettingsModel _appSettings;
 		/// <summary>
-		/// The scrapper, YoutubeDLSharp (yt-dlp wrapper). 8 parallel yt-dlp process allowed to run
+		/// The scrapper, YoutubeDLSharp (yt-dlp wrapper)
 		/// </summary>
-		private readonly YoutubeDL MediaDownloader = new YoutubeDL(8);
+		private readonly YoutubeDL MediaDownloader;
 		/// <summary>
 		/// The directory in which the OngakuVault executable is located
 		/// </summary>
@@ -53,7 +55,7 @@ namespace OngakuVault.Services
 		/// The path of the directory where yt-dlp files will first be saved.
 		/// NOTE: This directory is deleted at the closure of the app.
 		/// </summary>
-		private readonly string TMPOutputPath = Environment.GetEnvironmentVariable("TMP_OUTPUT_DIRECTORY") ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
+		private readonly string TMPOutputPath;
 
 		/// <summary>
 		/// Hard-coded settings that are used for every Audio download request
@@ -99,9 +101,15 @@ namespace OngakuVault.Services
 			// MPEG-4 ALS - MPEG-4 Audio Lossless Coding
 			"als",
 		};
-		public MediaDownloaderService(ILogger<MediaDownloaderService> logger)
+		public MediaDownloaderService(ILogger<MediaDownloaderService> logger, IOptions<AppSettingsModel> appSettings)
 		{
+			// Init readonly fields
 			_logger = logger;
+			_appSettings = appSettings.Value;
+			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY  ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
+			_appSettings.TMP_OUTPUT_DIRECTORY = TMPOutputPath; // Overwrite setting value so that if value was null, it is now the new TempSub 
+			// Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
+			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPPER_PROC);
 			// Set the paths for yt-dlp and FFmpeg executables for linux by default
 			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
 			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");

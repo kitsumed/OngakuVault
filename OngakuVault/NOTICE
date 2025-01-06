@@ -3,7 +3,7 @@
 1. YoutubeDLSharp (Copyright (c) 2020-2024, Bluegrams) is licensed under the BSD 3-Clause License.
 2. Newtonsoft.Json (Copyright (c) 2007 James Newton-King) is licensed under MIT License.
 3. FFmpeg is licensed under the GNU General Public License (GPL) version 3, 29 June 2007.
-    The binary source code is provided by yt-dlp on github at https://github.com/yt-dlp/FFmpeg-Builds
+    The binary source code is provided by yt-dlp (a fork of the official FFmpeg) on github at https://github.com/yt-dlp/FFmpeg-Builds
 4. z440.atl.core (atldotnet) is licensed MIT Copyright (c) 2017 Zeugma440
 5. Ude.NetStandard is licensed under the GNU LESSER GENERAL PUBLIC LICENSE (LGPL-2.1) Version 2.1, February 1999
     The binary (dll-file) source code is provided on github at https://github.com/yinyue200/ude

@@ -1,14 +1,21 @@
-using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi.Models;
+using OngakuVault.Models;
 using OngakuVault.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// User defined allowed origins, if null, no origins where set
-string[]? customCorsOrigins = Environment.GetEnvironmentVariable("OVERWRITE_CORS_ORIGIN")?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
+// Create the webApplication and define the "wwwroot" directory as the website root for static files
+WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions {
+	WebRootPath = "wwwroot",
+});
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-// Define the "wwwroot" directory as the directory exposed by the server as the website
-builder.WebHost.UseWebRoot("wwwroot");
+builder.Configuration.AddEnvironmentVariables();
+// Verify the starting command arguments to overwrite app settings
+builder.Configuration.AddCommandLine(args);
+// Load the app settings for usage during init (in program.cs)
+AppSettingsModel appSettings = builder.Configuration.GetSection("Ongaku").Get<AppSettingsModel>() ?? new AppSettingsModel();
+// User defined allowed origins, if null, no origins where set
+string[]? customCorsOrigins = appSettings.Get_OVERWRITE_CORS_ORIGIN_AsArray();
 
 // Add services to the container & configure json options
 builder.Services.AddControllers().AddJsonOptions(options => {
@@ -18,8 +25,11 @@ builder.Services.AddControllers().AddJsonOptions(options => {
 	// This make it so we don't need to specify it for every propriety
 	options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
+
 /// Add services
 
+// Add a AppSettingsModel object that contains the app config to the services list (config is taken in order appsettings.json → env variable → run variable)
+builder.Services.Configure<AppSettingsModel>(builder.Configuration.GetSection("Ongaku")); // Load values under "Ongaku"
 // Add WebSocketManagerService as a Singleton (Service allowing management and interaction with websocket connections)
 builder.Services.AddSingleton<IWebSocketManagerService, WebSocketManagerService>();
 // Add MediaDownloaderService as a Singleton (Service allowing interaction with the scraper)
@@ -79,10 +89,10 @@ builder.Services.AddCors(options =>
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (Environment.GetEnvironmentVariable("ENFORCE_HTTPS") == "true") app.UseHttpsRedirection();
+if (appSettings.ENFORCE_HTTPS == true) app.UseHttpsRedirection();
 
 // Enable Swagger API docs
-if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ENABLE_SWAGGER_DOC") == "true")
+if (app.Environment.IsDevelopment() || appSettings.ENABLE_SWAGGER_DOC == true)
 {
 	app.UseSwagger();  // Enable Swagger UI
 	app.UseSwaggerUI();  // Enable Swagger UI for interactive API docs
@@ -127,7 +137,7 @@ app.UseWebSockets(webSocketOptions);
 app.MapControllers();
 
 // Verify if website (static file serving) is disabled in env variable
-if (Environment.GetEnvironmentVariable("DISABLE_WEBSITE") != "true") 
+if (appSettings.DISABLE_WEBSITE == false) 
 {
 	app.UseDefaultFiles(); // Url rewriter to support "index.html" like files
 	app.UseStaticFiles(); // Allow app to serve files on the wwwroot directory

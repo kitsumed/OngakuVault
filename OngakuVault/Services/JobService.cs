@@ -1,4 +1,5 @@
 ﻿using ATL;
+using Microsoft.Extensions.Options;
 using OngakuVault.Models;
 using System.Collections.Concurrent;
 using YoutubeDLSharp;
@@ -44,6 +45,7 @@ namespace OngakuVault.Services
 	public class JobService : IJobService
 	{
 		private readonly ILogger<JobService> _logger;
+		private readonly AppSettingsModel _appSettings;
 		private readonly IMediaDownloaderService _mediaDownloaderService;
 		private readonly IWebSocketManagerService _websocketManagerService;
 
@@ -53,27 +55,24 @@ namespace OngakuVault.Services
 		private readonly ConcurrentDictionary<string, JobModel> Jobs = new ConcurrentDictionary<string, JobModel>();
 
 		/// <summary>
-		/// JobsSemaphore to allow 4 async thread (jobs) at the same time
+		/// JobsSemaphore to allow a specific number of async thread (jobs) at the same time.
+		/// Others threads will wait for a place to be free before executing
 		/// </summary>
-		private readonly SemaphoreSlim JobsSemaphore = new SemaphoreSlim(4, 4);
+		private readonly SemaphoreSlim JobsSemaphore;
 
 		/// <summary>
 		/// Run jobs cleanup timer at every 30 minutes
 		/// </summary>
 		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
-		/// <summary>
-		/// The path of the directory where the final files will be saved.
-		/// Defaults to EXECUTION_DIRECTORY\archived-audios\ if no environment variable are set.
-		/// </summary>
-		private readonly string OutputPath = Environment.GetEnvironmentVariable("OUTPUT_DIRECTORY") ?? Path.Combine(AppContext.BaseDirectory, "archived-audios");
-
-
-		public JobService(ILogger<JobService> logger, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService)
+		public JobService(ILogger<JobService> logger,IOptions<AppSettingsModel> appSettings, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService)
         {
             _logger = logger;
+			_appSettings = appSettings.Value;
 			_mediaDownloaderService = mediaDownloaderService;
 			_websocketManagerService = webSocketManagerService;
+
+			JobsSemaphore = new SemaphoreSlim(_appSettings.PARALLEL_JOBS, _appSettings.PARALLEL_JOBS);
 			// Init jobs cleanup async task
 			Task.Run(async () =>
 			{
@@ -200,7 +199,7 @@ namespace OngakuVault.Services
 					if (downloadedFileInfo != null)
 					{
 						// Ensure the final output directory exists
-						Directory.CreateDirectory(OutputPath);
+						Directory.CreateDirectory(_appSettings.OUTPUT_DIRECTORY);
 
 						// Load the file in ATL
 						Track audioTrack = new Track(downloadedFileInfo.FullName);
@@ -242,11 +241,11 @@ namespace OngakuVault.Services
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
 						// Ensure downloaded audio file name is unique
-						string finalAudioPath = Path.Combine(OutputPath, downloadedFileInfo.Name);
+						string finalAudioPath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, downloadedFileInfo.Name);
 						if (File.Exists(finalAudioPath)) 
 						{
 							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
-							finalAudioPath = Path.Combine(OutputPath, newAudioName);
+							finalAudioPath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, newAudioName);
 							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the downloaded audio name (now '{newAudioName}').", jobID, downloadedFileInfo.Name, newAudioName);
 						}
 						// Move audio file to the output directory (and rename the file to the file name in the path)
