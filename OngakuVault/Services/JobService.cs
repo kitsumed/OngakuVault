@@ -158,6 +158,7 @@ namespace OngakuVault.Services
 				try
 				{
 					// Create a progress update for the yt-dlp scraper. Represent 80% of the Job progress
+					// We don't need to freeze the job progress to prevent going over 100% here since we are starting at 0%
 					IProgress<DownloadProgress> downloadProgress = new Progress<DownloadProgress>(progress =>
 					{
 						// Progress % contributions in total (0-80)
@@ -209,12 +210,13 @@ namespace OngakuVault.Services
 						if (audioTrackSupportedFormats.Any(format => format.Writable == true))
 						{
 							// Create a progress update, represent 10% of the Job progress
+						    int beforeMetadataOverwriteProgressValue = Jobs[jobID].Progress; // Freeze current progress to prevent adding more than +10%
 							IProgress<float> metadataOverwriteProgress = new Progress<float>(progress =>
 							{
-								// Change progress (0.??) to a 0-10 scale
-								int currentProgress = (int)(10 * progress);
-								int totalProgress = currentProgress + Jobs[jobID].Progress;
-								// Ensure the new progress is bigger than current job progress
+								// Change progress (0.???) to a 0-10 scale
+								int currentProgress = (int)(progress * 10);
+								int totalProgress = currentProgress + beforeMetadataOverwriteProgressValue;
+								// Ensure the new progress is bigger than current (freezed) job progress
 								if (totalProgress > Jobs[jobID].Progress) 
 								{
 									Jobs[jobID].ReportStatus(JobStatus.Running, "Overwriting audio metadata...", totalProgress);

@@ -65,7 +65,7 @@ namespace OngakuVault.Services
 			// Keep the best file quality possible
 			AudioQuality = 0,
 			// Prefer bestaudio, fallback to best (may be video, but must include audio)
-			Format = "bestaudio/best[acodec!=none]",
+			Format = "bestaudio/best",
 			// If media is a video, convert it to a audio only
 			ExtractAudio = true,
 			// Embed the cover / thumbnail as cover art on the file if existing
