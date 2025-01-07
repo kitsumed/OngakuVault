@@ -12,7 +12,7 @@ of your audio archive. The application also includes an optional web interface (
 - Keep original file metadata by default, including embedded thumbnail / artist cover.
 
 # [Showcase](https://kitsumed.github.io/ongakuvault/getting-started.html#showcase)
-You can see a showcase of the desktop & mobile interface along with a video of the web interface [here]((https://kitsumed.github.io/ongakuvault/getting-started.html#showcase)).
+You can see a showcase of the desktop & mobile interface along with a video of the web interface [here](https://kitsumed.github.io/ongakuvault/getting-started.html#showcase).
 
 # Platforms / Architectures [![Latest build from main branch](https://github.com/kitsumed/ongakuvault/actions/workflows/build-test-publish-asp.net-core.yml/badge.svg?branch=main)](https://github.com/kitsumed/ongakuvault/actions/workflows/build-test-publish-asp.net-core.yml)
 
