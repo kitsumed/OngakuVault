@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+## Ignores nodejs modules left-overs / files
+
+# vitepress
+docs/.vitepress/dist
+docs/.vitepress/cache 
