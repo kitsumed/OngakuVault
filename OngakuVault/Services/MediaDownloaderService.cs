@@ -8,7 +8,7 @@ using YoutubeDLSharp.Options;
 
 namespace OngakuVault.Services
 {
-	public interface IMediaDownloaderService 
+	public interface IMediaDownloaderService
 	{
 		/// <summary>
 		/// This method download a audio in the best possible quality before converting it to the choose format is selected.
@@ -19,7 +19,7 @@ namespace OngakuVault.Services
 		/// <param name="progressReport">A IProgress to get updates on the download progress</param>
 		/// <returns>The <see cref="FileInfo"/> of the downloaded audio, or null if the audio file was not created.</returns>
 		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
-		public Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best,  CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
+		public Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
 
 		/// <summary>
 		/// Get informations about a media
@@ -64,7 +64,7 @@ namespace OngakuVault.Services
 		{
 			// Keep the best file quality possible
 			AudioQuality = 0,
-			// Prefer bestaudio, fallback to best (may be video, but must include audio)
+			// Prefer bestaudio, fallback to best (may be a video)
 			Format = "bestaudio/best",
 			// If media is a video, convert it to a audio only
 			ExtractAudio = true,
@@ -106,9 +106,9 @@ namespace OngakuVault.Services
 			// Init readonly fields
 			_logger = logger;
 			_appSettings = appSettings.Value;
-			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY  ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
+			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
 			_appSettings.TMP_OUTPUT_DIRECTORY = TMPOutputPath; // Overwrite setting value so that if value was null, it is now the new TempSub 
-			// Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
+															   // Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
 			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPPER_PROC);
 			// Set the paths for yt-dlp and FFmpeg executables for linux by default
 			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
@@ -140,10 +140,11 @@ namespace OngakuVault.Services
 				{
 					// e.Data is a proc output, when running --version arg, the first and only output should be in yyyy.MM.dd format.
 					bool isDateValid = DateTime.TryParseExact(e.Data, "yyyy.MM.dd", null, System.Globalization.DateTimeStyles.None, out _);
-					if (isDateValid) 
+					if (isDateValid)
 					{
 						_logger.LogInformation("Current yt-dlp version is : {date}", e.Data);
-					} else _logger.LogWarning("Could not detect yt-dlp version. Output is : {output}", e.Data);
+					}
+					else _logger.LogWarning("Could not detect yt-dlp version. Output is : {output}", e.Data);
 				};
 				// Attach the event handler to the proc
 				temporaryYTDLPProc.OutputReceived += outputHandler;
@@ -152,7 +153,7 @@ namespace OngakuVault.Services
 				// Detach the event handler to allow the GC to free memory
 				temporaryYTDLPProc.OutputReceived -= outputHandler;
 			}
-			else 
+			else
 			{
 				_logger.LogWarning("MediaDownloaderService could not locate some external binaries. yt-dlp should be in '{YoutubeDLPath}' and FFmpeg in '{FFmpegPath}'.\r\nEnsure both binaries are under their respective paths.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			}
@@ -224,17 +225,17 @@ namespace OngakuVault.Services
 					.ThenByDescending(item => item.AudioSamplingRate ?? 0)
 					.FirstOrDefault();
 
-				// Loop trought format to verify if one of them is using a lossless encoding
-				foreach (FormatData item in mediaData.Data.Formats)
+				if (bestFormatData != null)
 				{
-					// Ensure the format has a audio codec
-					if (item.AudioCodec != null)
+					// Loop trought format to verify if one of them is using a lossless encoding
+					foreach (FormatData item in mediaData.Data.Formats)
 					{
-						// Verify if a codec in our list matches the item codec
-						bool isAudioLossless = LosslessCodecs.Any(codec => item.AudioCodec.Contains(codec));
-						if (isAudioLossless)
+						// Ensure the format has a audio codec
+						if (item.AudioCodec != null)
 						{
-							if (bestFormatData != null)
+							// Verify if a codec in our list matches the item codec
+							bool isAudioLossless = LosslessCodecs.Any(codec => item.AudioCodec.Contains(codec));
+							if (isAudioLossless)
 							{
 								// If some values from the item are missing, we force the best value possible (normally impossible values)
 								// Since a lossless file was found on the webpage, we assume it is better quality as somes webpage don't
@@ -249,6 +250,7 @@ namespace OngakuVault.Services
 									mediaInformations.IsLosslessRecommended = true;
 									break;
 								}
+
 							}
 						}
 					}

@@ -199,9 +199,6 @@ namespace OngakuVault.Services
 					FileInfo? downloadedFileInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
 					if (downloadedFileInfo != null)
 					{
-						// Ensure the final output directory exists
-						Directory.CreateDirectory(_appSettings.OUTPUT_DIRECTORY);
-
 						// Load the file in ATL
 						Track audioTrack = new Track(downloadedFileInfo.FullName);
 						// Ensure ATL support at least one metadata format for the audio that can be overwriten
@@ -242,14 +239,29 @@ namespace OngakuVault.Services
 
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
+						// Apply sub directory path format to the output directory if configured
+						string outputDirectory = _appSettings.OUTPUT_DIRECTORY;
+						if (!string.IsNullOrEmpty(_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT)) 
+						{
+							outputDirectory = Path.Combine(outputDirectory,_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT
+								.Replace("|NOW_YEAR|", DateTime.Now.Year.ToString())
+								.Replace("|NOW_MONTH|", DateTime.Now.Month.ToString())
+								.Replace("|NOW_DAY|", DateTime.Now.Day.ToString())
+								// Here audioTrack has the overwritten value (Jobs[jobID].Data.*) if the field was defined, else the original file values
+								.Replace("|AUDIO_ARTIST|", audioTrack.Artist ?? "Unknown")
+								.Replace("|AUDIO_ALBUM|", audioTrack.Album ?? "Unknown")
+								.Replace("|AUDIO_YEAR|", (audioTrack.Year ?? 0).ToString()));
+						}
 						// Ensure downloaded audio file name is unique
-						string finalAudioPath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, downloadedFileInfo.Name);
+						string finalAudioPath = Path.Combine(outputDirectory, downloadedFileInfo.Name);
 						if (File.Exists(finalAudioPath)) 
 						{
 							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
-							finalAudioPath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, newAudioName);
+							finalAudioPath = Path.Combine(outputDirectory, newAudioName);
 							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the downloaded audio name (now '{newAudioName}').", jobID, downloadedFileInfo.Name, newAudioName);
 						}
+						// Ensure the final output directory exists
+						Directory.CreateDirectory(outputDirectory);
 						// Move audio file to the output directory (and rename the file to the file name in the path)
 						downloadedFileInfo.MoveTo(finalAudioPath);
 					}

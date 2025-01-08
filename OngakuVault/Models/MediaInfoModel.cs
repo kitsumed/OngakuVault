@@ -14,33 +14,22 @@ namespace OngakuVault.Models
 		[SwaggerSchema(Description = "The media name/track title")]
 		public required string Name { get; set; }
 
-
-		private string _artistName = "Unknown";
 		/// <summary>
-		/// Atrist name. Defaults to 'Unknown' if null or empty.
+		/// Atrist name
 		/// </summary>
 		[SwaggerSchema(Description = "The artist name of the media")]
-		public string ArtistName
-		{
-			get => _artistName;
-			set => _artistName = string.IsNullOrEmpty(value) ? "Unknown" : value;
-		}
+		public string? ArtistName { get; set; }
 
-		private string _albumName = "Unknown";
 		/// <summary>
-		/// Album name. Defaults to 'Unknown' if null or empty.
+		/// Album name
 		/// </summary>
 		[SwaggerSchema(Description = "The album name of the media")]
-		public string AlbumName
-		{
-			get => _albumName;
-			set => _albumName = string.IsNullOrEmpty(value) ? "Unknown" : value;
-		}
+		public string? AlbumName { get; set; }
 
 		/// <summary>
 		/// The webpage url of the song
 		/// </summary>
-		[SwaggerSchema(Description = "The webpage url of the media")]
+		[SwaggerSchema(Description = "The webpage url of the media or direct url")]
 		public required string MediaUrl { get; set; }
 		/// <summary>
 		/// The year of release of the song

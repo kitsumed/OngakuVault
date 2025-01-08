@@ -12,13 +12,13 @@ namespace OngakuVault.Models
 		/// Contains the media info (additional data inside the job)
 		/// </summary>
 		[SwaggerSchema(Description = "The additional information inside the job, in this case, the basic info about the media.")]
-		public required MediaInfoModel mediaInfo { get; set; }
+		public required MediaInfoModel MediaInfo { get; set; }
 
 		/// <summary>
 		/// Contains the job configuration
 		/// </summary>
 		[SwaggerSchema(Description = "Configuration for the job, mostly related to actions done during job execution.")]
-		public required JobConfigurationModel jobConfiguration { get; set; }
+		public required JobConfigurationModel JobConfiguration { get; set; }
 
 	}
 }

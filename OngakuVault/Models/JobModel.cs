@@ -21,8 +21,8 @@ namespace OngakuVault.Models
 			// Configure dependency injection
 			_webSocketManagerService = webSocketManagerService;
 			// Define JobModel values
-			Data = jobRestCreationData.mediaInfo;
-			Configuration = jobRestCreationData.jobConfiguration;
+			Data = jobRestCreationData.MediaInfo;
+			Configuration = jobRestCreationData.JobConfiguration;
 		}
 
 		/// <summary>

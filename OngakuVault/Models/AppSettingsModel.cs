@@ -19,6 +19,16 @@
 		public string? TMP_OUTPUT_DIRECTORY { get; set; }
 
 		/// <summary>
+		/// The partial path of the directory where the final audio files will be saved. (Sub directory)
+		/// Defaults to null, if a value is set, the final output path will be <see cref="OUTPUT_DIRECTORY"/> + <see cref="OUTPUT_SUB_DIRECTORY_FORMAT"/>.
+		/// </summary>
+		/// <remarks>
+		/// This string support values replacing, if the text is placed in between two PIPE (|).
+		/// Currently the following values are available: NOW_YEAR, NOW_MONTH, NOW_DAY, AUDIO_ARTIST, AUDIO_ALBUM, AUDIO_YEAR
+		/// </remarks>
+		public string? OUTPUT_SUB_DIRECTORY_FORMAT { get; set; } = null;
+
+		/// <summary>
 		/// Enable or disable swagger api documentation on the website.
 		/// Disabled by default.
 		/// </summary>
