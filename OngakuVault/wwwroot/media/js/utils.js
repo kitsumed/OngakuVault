@@ -67,3 +67,62 @@ function getFormDataAsJSON(formElement) {
 
     return jsonObject;
 }
+
+/**
+ * Verify and format a time value to be in the MM:SS format
+ * @param {String} input The input to process
+ * @returns {String} The string in a MM:SS format or null for a invalid format
+ */
+function verifyAndFormatTime(input) {
+    // Remove all letters characters, except the colon
+    input = input.replace(/[^\d:]/g, "");
+    const regex = /^(\d+):(\d+\d)$/; // Allows all numbers between a ":"
+    const regexResult = input.match(regex);
+
+    if (regexResult) {
+        let minutes = parseInt(regexResult[1], 10); // Minutes part
+        let seconds = parseInt(regexResult[2], 10); // Seconds part
+
+        if (seconds >= 60) {
+            minutes += Math.floor(seconds / 60); // Add 1 minute for every 60 seconds
+            seconds = seconds % 60; // Keep the remaining seconds (less than 60)
+        }
+
+        // Format the seconds to always have 2 numbers (00)
+        const formattedSeconds = String(seconds).padStart(2, '0');
+        return `${minutes}:${formattedSeconds}`;
+    } else {
+        // If the input are only numbers and there is no ":", treat the value as seconds
+        if (input !== "" && !input.includes(":")) {
+            let seconds = parseInt(input, 10);
+            let minutes = Math.floor(seconds / 60); // Calculate minutes
+            seconds = seconds % 60; // Get remaining seconds
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            return `${minutes}:${formattedSeconds}`;
+        }
+        return null;
+    }
+}
+
+/**
+ * Converts a time in MM:SS format to a timestamp in milliseconds
+ * @param {String} time The time in MM:SS format (ex : "2:40")
+ * @returns {Number} The time in milliseconds, or null if the format is invalid
+ */
+function convertToMilliseconds(time) {
+    // Verify if the input time matches the MM:SS format
+    const regex = /^(\d+):(\d{2})$/; // MM can any numbers, SS is limited to 2 numbers
+    const match = time.match(regex);
+
+    if (match) {
+        const minutes = parseInt(match[1], 10);
+        const seconds = parseInt(match[2], 10);
+
+        // Convert to to ms
+        const totalSeconds = (minutes * 60) + seconds;
+        const milliseconds = totalSeconds * 1000;
+
+        return milliseconds;
+    }
+    return null;
+}

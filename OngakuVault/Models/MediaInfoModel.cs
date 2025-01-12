@@ -56,7 +56,8 @@ namespace OngakuVault.Models
 
 	/// <summary>
 	/// The MediaInfoAdvancedModel contains advanced information about a requested media.
-	/// In this application case, it is usually used in API Responses like <see cref="Controllers.MediaController.GetMediaInfo(string)"/>.
+	/// In this application case, it is usually used in API Responses like <see cref="Controllers.MediaController.GetMediaInfo(string)"/> where
+	/// the client request more informations about a media than needed by the server when receiving a job creation request.
 	/// </summary>
 	public class MediaInfoAdvancedModel : MediaInfoModel
 	{
