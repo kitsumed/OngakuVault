@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle lyrics removal / add
     jobCreationModalLyrics.addEventListener('click', (event) => {
+        const lyricsButtonsContainer = jobCreationModalLyrics.querySelector("#lyrics-buttons-container");
         // Check if the clicked element is a remove button
         if (event.target && event.target.id == 'remove-lyric') {
             const currentLyricElement = event.target.parentElement;
@@ -115,15 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log("User cannot remove the last lyric.");
             }
-        } else if (event.target && event.target.id == 'add-lyric') // Check for add button
-        {
+        } else if (event.target && event.target.id == 'add-lyric') { // Check for add button
             // Clone a existing lyric element, clear the values and add it to the DOM
             const newLyricElement = jobCreationModalLyrics.querySelector("#lyric").cloneNode(true);
-            const addNewLyricButton = jobCreationModalLyrics.querySelector("#add-lyric");
+            // Reset the fields of our lyric element copy
             newLyricElement.querySelector("#lyric-time").value = "";
             newLyricElement.querySelector("#lyric-content").value = "";
-            // Put the new lyric before the add new lyric button
-            jobCreationModalLyrics.insertBefore(newLyricElement, addNewLyricButton);
+            // Put the new lyric before the all of the lyrics related buttons
+            jobCreationModalLyrics.insertBefore(newLyricElement, lyricsButtonsContainer);
+        } else if (event.target && event.target.id == 'clear-lyrics-time') { // Clear all times inputs
+            const allLyricTimeElements = jobCreationModalLyrics.querySelectorAll("#lyric #lyric-time");
+            // Loop trought all lyric-time elements
+            for (var i = 0; i < allLyricTimeElements.length; i++) {
+                // Reset time element
+                allLyricTimeElements[i].value = "";
+            }
+        } else if (event.target && event.target.id == 'remove-all-lyrics') { // Remove all lyrics
+            const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+            // Loop trought all lyric elements (except the first one)
+            for (var i = 1; i < allLyricElements.length; i++) {
+                allLyricElements[i].remove();
+            }
+            // Reset the first element
+            allLyricElements[0].querySelector("#lyric-time").value = "";
+            allLyricElements[0].querySelector("#lyric-content").value = "";
         }
     });
 
@@ -135,9 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedTime = verifyAndFormatTime(currentLyricTime.value);
             if (formattedTime) {
                 currentLyricTime.value = formattedTime;
-            } else if (currentLyricTime.value.trim().length >= 1)
+            } else
             {
-                currentLyricTime.value = "00:00";
+                currentLyricTime.value = "00:00.00";
             }
         }
     });
@@ -238,7 +254,7 @@ async function doSearch() {
     const selectedInterrogationMode = document.getElementById("searchInterrogationMode").value
     const mediaUrl = document.getElementById("searchInput").value
     const downloadMediaJobCreationModal = document.getElementById("download-media-job-creation-modal")
-    var isMediaFetchValid = false; // Default to false, don't show the confirmation modal
+    let isMediaFetchValid = false; // Default to false, don't show the confirmation modal
 
     if (isUrlValid(mediaUrl)) {
         console.log(`Input URL : ${mediaUrl} | Interrogation Mode : ${selectedInterrogationMode}`);
@@ -297,38 +313,44 @@ async function doSearch() {
                     const newConfigurationModalForm = downloadMediaJobCreationModal.querySelector("#JobConfiguration-form");
                     const jobCreationModalLyrics = downloadMediaJobCreationModal.querySelector("#JobConfiguration-lyrics")
                     // Get all of the downloadMediaJobCreationModal forms data
-                    var newMediaInfoModelJson = getFormDataAsJSON(newMediaInfoModalForm);
-                    var newJobConfigurationModelJson = getFormDataAsJSON(newConfigurationModalForm);
-                    var newJobConfigurationModelLyricsJson = [];
-                    // Get the lyrics, if the user defined some
-                    const lyrics = jobCreationModalLyrics.querySelectorAll("#lyric");
-                    var shouldLyricsBeProcessed = true
-                    if (lyrics.length === 1) // If the number of lyrics is 1 (default), we verify if fields are empty or not before applying custom lyrics
+                    let newMediaInfoModelJson = getFormDataAsJSON(newMediaInfoModalForm);
+                    let newJobConfigurationModelJson = getFormDataAsJSON(newConfigurationModalForm);
+                    // [LYRIC-DATA PROCESSING]
+                    let newJobConfigurationModelLyricsJson = [];
+                    // Get the all of the lyrics elements
+                    const lyricsElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+                    let shouldLyricsBeProcessed = true
+                    // If the number of lyrics is 1 (default), the user may have not defined any lyrics,
+                    // so we verify if the only lyric-content element is empty or not before applying custom lyrics
+                    if (lyricsElements.length === 1) 
                     {
-                        shouldLyricsBeProcessed = lyrics[0].querySelector("#lyric-content").value.length !== 0 // False if content is empty
+                        shouldLyricsBeProcessed = lyricsElements[0].querySelector("#lyric-content").value.length !== 0 // False if content is empty
                     }
                     if (shouldLyricsBeProcessed)
                     {
                         // Loop trought all user created lyric
-                        for (let i = 0; i < lyrics.length; i++) {
-                            const currentLyricTime = lyrics[i].querySelector("#lyric-time");
-                            var lyricModel;
+                        for (let i = 0; i < lyricsElements.length; i++) {
+                            const currentLyricTime = lyricsElements[i].querySelector("#lyric-time").value;
+                            let lyricModel;
                             // Lyrics has a time
-                            if (currentLyricTime.value.length !== 0) {
+                            if (currentLyricTime.length !== 0) {
                                 lyricModel = {
-                                    content: lyrics[i].querySelector("#lyric-content").value,
-                                    time: convertToMilliseconds(currentLyricTime.value),
+                                    content: lyricsElements[i].querySelector("#lyric-content").value,
+                                    time: convertToMilliseconds(currentLyricTime),
                                 }
                             } else {
                                 lyricModel = {
-                                    content: lyrics[i].querySelector("#lyric-content").value
+                                    content: lyricsElements[i].querySelector("#lyric-content").value
                                 }
                             }
-                            newJobConfigurationModelLyricsJson.push(lyricModel); // Add the lyric to the lyrics list
+                            // Add the lyric to the json lyrics list
+                            newJobConfigurationModelLyricsJson.push(lyricModel);
                         }
-                        newJobConfigurationModelJson["lyrics"] = newJobConfigurationModelLyricsJson; // Create the lyrics key on the job configuration
+                        // Create the lyrics key on the job configuration with our json lyrics list
+                        newJobConfigurationModelJson["lyrics"] = newJobConfigurationModelLyricsJson;
                     }
 
+                    // [CREATING JSON POST REQUEST]
                     // Add the mediaUrl to the MediaInfoModel json
                     newMediaInfoModelJson["mediaUrl"] = mediaUrl;
                     // Create the json object (JobRESTCreationModel) that will be send to the api
@@ -483,7 +505,7 @@ function clearForm(parentElement) {
         } else if (input.tagName === 'SELECT') {
             // For select elements, the priority is the 'selected' attribute
             const options = input.querySelectorAll('option');
-            var foundSelected = false;
+            let foundSelected = false;
 
             options.forEach(option => {
                 if (option.hasAttribute('selected')) {

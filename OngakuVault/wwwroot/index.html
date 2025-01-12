@@ -86,7 +86,7 @@
 	</div>
 
 	<!-- Download Media Job Creation Modal -->
-	<div id="download-media-job-creation-modal" class="modal is-active">
+	<div id="download-media-job-creation-modal" class="modal">
 		<div class="modal-background animate__faster"></div>
 		<div class="modal-card animate__faster">
 			<header class="modal-card-head">
@@ -190,18 +190,30 @@
 					<!-- Custom field for the JobConfiguration section, Lyrics -->
 					<details>
 						<summary class="button mt-4 mb-2">Edit Lyrics</summary>
-						<div class="box is-shadowless has-background-grey-dark" id="JobConfiguration-lyrics">
-							<div class="control columns is-mobile mb-0" id="lyric">
-								<div class="column is-one-quarter">
-									<input type="text" id="lyric-time" placeholder="Time: MM:SS" class="input">
+                        <div class="box is-shadowless has-background-grey-dark" id="JobConfiguration-lyrics">
+                            <article class="message is-info">
+                                <div class="message-body">
+									<strong>By default</strong>, if there is only one lyric field and the content field is empty, lyrics are disabled.
+									<strong>If you define only the content field</strong> for your lyrics or if any lyric lacks a time value, the lyrics will
+									be embedded as static text, and all other time values will be ignored. However, <strong>if all your lyrics include
+									a time value</strong>, they will be embedded as synchronized lyrics.
 								</div>
-								<div class="column">
-									<input type="text" id="lyric-content" placeholder="Lyric" class="input">
-								</div>
-								<button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
-							</div>
-							<button class="button is-link is-small" id="add-lyric">Add new</button>
-						</div>
+                            </article>
+                            <div class="control columns is-mobile mb-0" id="lyric">
+                                <div class="column is-one-quarter">
+                                    <input type="text" id="lyric-time" placeholder="MM:SS.xx" class="input">
+                                </div>
+                                <div class="column">
+                                    <input type="text" id="lyric-content" placeholder="Lyric content" class="input">
+                                </div>
+                                <button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
+                            </div>
+                            <div class="buttons" id="lyrics-buttons-container">
+                                <button class="button is-link is-small" id="add-lyric">Add new</button>
+                                <button class="button is-warning is-small" id="clear-lyrics-time">Clear all times</button>
+                                <button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
+                            </div>
+                        </div>
 					</details>
 				</div>
 			</section>
