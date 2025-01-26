@@ -74,15 +74,28 @@
 		/// Empty by default, allowing all origins.
 		/// </summary>
 		public string? OVERWRITE_CORS_ORIGIN { get; set; }
+		/// <remarks>
+		/// Array version of <see cref="OVERWRITE_CORS_ORIGIN"/>
+		/// </remarks>
+		public string[]? OVERWRITE_CORS_ORIGIN_ARRAY => OVERWRITE_CORS_ORIGIN?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 
 
 		/// <summary>
-		/// Get <see cref="OVERWRITE_CORS_ORIGIN"/> values as a array (PIPE (|) used for separation)
+		/// List, in descending priority order, of allowed lyrics/subtitles
+		/// that can be fetched and returned by the server in a additional media info
+		/// request (by <see cref="Controllers.MediaController"/>).
+		/// All values are separated by PIPE (|). Ex: (https://example.com|https://example2.com)
+		/// Empty by default, not fetching any lyrics / subtitles.
 		/// </summary>
-		/// <returns>A array or null if empty</returns>
-		public string[]? Get_OVERWRITE_CORS_ORIGIN_AsArray()
-		{
-			return OVERWRITE_CORS_ORIGIN?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
-		}
+		/// <remarks>
+		/// Uses IETF language tags since the scraper (yt-dlp) uses them.
+		/// A value of "en" would match "en" and everything starting by "en-".
+		/// A value of "en-US" would match "en-US" and everything starting by "en-US-".
+		/// </remarks>
+		public string? LYRICS_LANGUAGE_PRIORITY { get; set; }
+		/// <remarks>
+		/// Array version of <see cref="LYRICS_LANGUAGE_PRIORITY"/>
+		/// </remarks>
+		public string[]? LYRICS_LANGUAGE_PRIORITY_ARRAY => LYRICS_LANGUAGE_PRIORITY?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 	}
 }

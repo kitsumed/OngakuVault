@@ -1,7 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
 using OngakuVault.Helpers;
 using OngakuVault.Models;
+using SubtitlesParserV2;
+using SubtitlesParserV2.Models;
+using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
@@ -101,6 +106,7 @@ namespace OngakuVault.Services
 			// MPEG-4 ALS - MPEG-4 Audio Lossless Coding
 			"als",
 		};
+
 		public MediaDownloaderService(ILogger<MediaDownloaderService> logger, IOptions<AppSettingsModel> appSettings)
 		{
 			// Init readonly fields
@@ -203,7 +209,7 @@ namespace OngakuVault.Services
 			}
 
 			if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("Playlist media are not currently supported.");
-			MediaInfoAdvancedModel mediaInformations = new MediaInfoAdvancedModel()
+			MediaInfoAdvancedModel returnedMediaInformations = new MediaInfoAdvancedModel()
 			{
 				Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
 				ArtistName = string.IsNullOrEmpty(mediaData.Data.Artist) ? mediaData.Data.Uploader : mediaData.Data.Artist, // Fallback to Uploader name
@@ -216,7 +222,7 @@ namespace OngakuVault.Services
 			};
 
 			// Ensure formats where found for the current media
-			// NOTE: While formats was set as not nullable, it can be null when no formats are found
+			// NOTE: While formats in the library are set as not nullable, it can be null when no formats are found
 			if (mediaData.Data?.Formats?.Length >= 1)
 			{
 				// Get the best format that has a audio codec by ordering bitrate and sampling rate
@@ -247,7 +253,7 @@ namespace OngakuVault.Services
 								// This prevent recommending lossless when the best audio quality is in a lossy audio.
 								if (itemBitrate >= (bestFormatData?.AudioBitrate ?? 0.0) && itemSamplingRate >= (bestFormatData?.AudioSamplingRate ?? 0.0))
 								{
-									mediaInformations.IsLosslessRecommended = true;
+									returnedMediaInformations.IsLosslessRecommended = true;
 									break;
 								}
 
@@ -258,7 +264,83 @@ namespace OngakuVault.Services
 			}
 			else throw new NotSupportedException("Scraper did not find any video or audio formats available on the webpage.");
 
-			return mediaInformations;
+			// Handle lyrics / subtitle fetching
+			string[]? lyricsLanguagePriority = _appSettings.LYRICS_LANGUAGE_PRIORITY_ARRAY;
+			if (lyricsLanguagePriority?.Length >= 1) // Ensure the setting is configured, else it's disabled
+			{
+				List<MediaLyric>? mediaLyrics = await GetLyricsAsync(mediaData, lyricsLanguagePriority);
+				if (mediaLyrics != null) returnedMediaInformations.Lyrics = mediaLyrics;
+			}
+
+			return returnedMediaInformations;
 		}
+
+
+		/// <summary>
+		/// Search for lyrics inside the results returned by the scrapper and try to parse them according to a language
+		/// priority.
+		/// </summary>
+		/// <param name="mediaData">The data (results) returned by the scrapper</param>
+		/// <param name="languagePriority">The language priority in IETF language tag</param>
+		/// <returns>A list of <see cref="MediaLyric"/> or null</returns>
+		/// <exception cref="ArgumentException"></exception>
+		private async Task<List<MediaLyric>?> GetLyricsAsync(RunResult<VideoData> mediaData, string[] languagePriority)
+		{
+			if (languagePriority.Length <= 0) throw new ArgumentException("Language priority need to have >= 1 element but has <= 0");
+			List<MediaLyric> lyrics = new List<MediaLyric>(); ;
+
+			// Loop every subtitles found, where Key is the IETF language tag and value a array of all
+			// available subtitle formats for that language.
+			foreach (KeyValuePair<string, SubtitleData[]> currSubtitle in mediaData.Data.Subtitles)
+			{
+				if (lyrics.Count >= 1) break;
+				// Verify if one of the defined language tag in the setting is similar to the current subtitle language tag
+				if (languagePriority.Any(languageTag => LanguageTagHelper.IsIETFLanguageTagSimilar(languageTag, currSubtitle.Key)))
+				{
+					// Loop trought all file format available for the current language
+					foreach (SubtitleData subtitleData in currSubtitle.Value)
+					{
+						// Verify if the file format is supported by our parser
+						SubtitleFormatType? subtitleFormatType = SubtitleFormat.GetFormatTypeByFileExtensionName(subtitleData.Ext);
+						if (subtitleFormatType.HasValue)
+						{
+							try
+							{
+								using HttpResponseMessage requestResponse = await WebRequestHelper.GetContentFromWebsiteAsync(new Uri(subtitleData.Url));
+								using Stream responseStream = await requestResponse.Content.ReadAsStreamAsync();
+								SubtitleParserResultModel? result = SubtitleParser.ParseStream(responseStream, Encoding.UTF8, subtitleFormatType.Value, false);
+								if (result != null)
+								{
+									// Loop trought all of the parsed subtitles/lyrics
+									foreach (SubtitleModel subtitleContent in result.Subtitles)
+									{
+										lyrics.Add(new MediaLyric()
+										{
+											Content = string.Join(' ', subtitleContent.Lines),
+											Time = subtitleContent.StartTime >= 0 ? subtitleContent.StartTime : null
+										});
+									}
+									break; // We found the lyrics, stop execution
+								}
+								else _logger.LogWarning("Failed to parse lyrics of extension '{extensionFormat}' with parser '{parser}'.", subtitleData.Ext, Enum.GetName(typeof(SubtitleFormatType), subtitleFormatType));
+							}
+							catch (HttpRequestException requestException)
+							{
+								_logger.LogWarning(requestException, "Failed to fetch lyrics on '{url}. Got HTTP response '{httpCode}. Exception: {ex}", subtitleData.Url, requestException.StatusCode, requestException.Message);
+							}
+							catch (Exception ex)
+							{
+								_logger.LogError(ex, "Unexpected error happened while fetching lyrics. Exception: {ex}", ex.Message);
+							}
+						}
+					}
+				}
+			}
+
+			// Return results
+			if (lyrics.Count <= 0) return null;
+			return lyrics;
+		}
+
 	}
 }

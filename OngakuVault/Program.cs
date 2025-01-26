@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using OngakuVault.Adapters;
 using OngakuVault.Models;
 using OngakuVault.Services;
 using System.Text.Json;
@@ -15,7 +16,7 @@ builder.Configuration.AddCommandLine(args);
 // Load the app settings for usage during init (in program.cs)
 AppSettingsModel appSettings = builder.Configuration.GetSection("Ongaku").Get<AppSettingsModel>() ?? new AppSettingsModel();
 // User defined allowed origins, if null, no origins where set
-string[]? customCorsOrigins = appSettings.Get_OVERWRITE_CORS_ORIGIN_AsArray();
+string[]? customCorsOrigins = appSettings.OVERWRITE_CORS_ORIGIN_ARRAY;
 
 // Add services to the container & configure json options
 builder.Services.AddControllers().AddJsonOptions(options => {
@@ -34,8 +35,6 @@ builder.Services.Configure<AppSettingsModel>(builder.Configuration.GetSection("O
 builder.Services.AddSingleton<IWebSocketManagerService, WebSocketManagerService>();
 // Add MediaDownloaderService as a Singleton (Service allowing interaction with the scraper)
 builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
-// Add ATLCoreLoggingHandlerService as a Singleton (Redirect ATL library logs to our app)
-builder.Services.AddSingleton<ATLCoreLoggingHandlerService>();
 // Add a JobService as a Singleton (Parallel Method Execution Queue Service)
 builder.Services.AddSingleton<IJobService, JobService>();
 
@@ -143,7 +142,8 @@ if (appSettings.DISABLE_WEBSITE == false)
 	app.UseStaticFiles(); // Allow app to serve files on the wwwroot directory
 }
 
-/// Force initialisation of some services as they need to be "called" at least once to be created and kept
-/// during the whole process life-time
-_ = app.Services.GetRequiredService<ATLCoreLoggingHandlerService>(); // Init the service in charge of redirecting ATL logs to our logs
+// Get the app loggerFactory & call the LoggerAdapter to redirect third-party logging to the app
+ILoggerFactory loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+ _ = new LoggerAdapter(loggerFactory);
+
 app.Run();

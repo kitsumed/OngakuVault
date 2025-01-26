@@ -67,5 +67,12 @@ namespace OngakuVault.Models
 		/// </summary>
 		[SwaggerSchema(ReadOnly = true, Description = "Indicates whether a lossless audio with the best quality in all of the available audio was found on the MediaUrl page")]
 		public bool IsLosslessRecommended { get; set; } = false;
+
+		/// <summary>
+		/// Return the lyrics/subtitle of the current media selected. Only applicable if the setting value
+		/// <see cref="AppSettingsModel.LYRICS_LANGUAGE_PRIORITY"/> is defined and the media have lyrics/subtitle.
+		/// </summary>
+		[SwaggerSchema(ReadOnly = true, Description = "Contains the media lyrics/subtitles")]
+		public List<MediaLyric> Lyrics { get; set; } = new List<MediaLyric>();
 	}
 }
