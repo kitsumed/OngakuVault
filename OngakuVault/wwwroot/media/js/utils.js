@@ -94,7 +94,7 @@ function verifyAndFormatTime(input) {
         }
 
         // Format all values to always have 2 numbers (00) (minimum)
-        const formattedMilliseconds = String(milliseconds).padStart(2, '0');
+        const formattedMilliseconds = String(milliseconds).padEnd(2, '0');
         const formattedSeconds = String(seconds).padStart(2, '0');
         const formattedMinutes = String(minutes).padStart(2, '0');
         return `${formattedMinutes}:${formattedSeconds}.${formattedMilliseconds}`;
@@ -143,7 +143,7 @@ function verifyAndFormatTime(input) {
             minutes += Math.floor(seconds / 60); // Calculate additional minutes from seconds
             seconds = seconds % 60; // Remove seconds that where changed to a minute
 
-            const formattedMilliseconds = String(milliseconds).padStart(2, '0');
+            const formattedMilliseconds = String(milliseconds).padEnd(2, '0');
             const formattedSeconds = String(seconds).padStart(2, '0');
             const formattedMinutes = String(minutes).padStart(2, '0');
             return `${formattedMinutes}:${formattedSeconds}.${formattedMilliseconds}`;
@@ -157,7 +157,7 @@ function verifyAndFormatTime(input) {
  * @param {String} time The time in MM:SS.xx format (ex : "2:40.00")
  * @returns {Number} The time in milliseconds, or null if the format is invalid
  */
-function convertToMilliseconds(time) {
+function convertStringFormatToMilliseconds(time) {
     // Verify if the input time matches the MM:SS.xx format
     const regex = /^(\d+):(\d{2})\.(\d{2})$/; // MM support infinite numbers, SS is limited to 2 numbers, xx is limited to 2
     const match = time.match(regex);
@@ -165,7 +165,7 @@ function convertToMilliseconds(time) {
     if (match) {
         const matchMinutes = parseInt(match[1], 10);
         const matchSeconds = parseInt(match[2], 10);
-        const matchMillisegonds = parseInt(match[3], 10);
+        const matchMilliseconds = parseInt(match[3], 10);
 
         // Convert to ms
         const totalSeconds = (matchMinutes * 60) + matchSeconds;
@@ -173,9 +173,27 @@ function convertToMilliseconds(time) {
         /* Since we only accept 2 numbers as millisegonds (regex), we multiply by 10 to add one 0, as millisegonds
         usually are in the format ,000. Thus we turn our ",20" to a ",200"
         */
-        milliseconds += matchMillisegonds * 10 
+        milliseconds += matchMilliseconds * 10 
 
         return milliseconds;
     }
     return null;
+}
+
+/**
+ * Convert milliseconds to a MM:SS.xx string format
+ * @param {Number} milliseconds
+ * @returns {String} A string in MM:SS.xx format
+ */
+function convertMillisecondsToStringFormat(milliseconds)
+{
+    let seconds = Math.floor(milliseconds / 1000); // +1 seconds per 1000 milliseconds
+    milliseconds = milliseconds % 1000;  // Remove milliseconds that are part of the seconds
+    let minutes = Math.floor(seconds / 60); // +1 minute per 60 seconds
+    seconds = seconds % 60;  // Remove seconds that are part of the minutes
+    // Format value to our MM:SS.xx format
+    const formattedMilliseconds = String(milliseconds).padEnd(2, '0').substr(0,2);
+    const formattedSeconds = String(seconds).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+    return `${formattedMinutes}:${formattedSeconds}.${formattedMilliseconds}`;
 }

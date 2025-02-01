@@ -12,6 +12,7 @@ const WebSocketEndpoint = `${WebSocketEndpointProtocol}${window.location.host}/w
 
 var noResultsTemplateHTMLElement; // Contains the noResults HTML Element
 var jobItemTemplateHTMLElement; // Contains a job item template HTML Element;
+var lyricElementTemplateHTMLElement; // Contains a lyric element template
 
 // Run when DOM finished loading
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,12 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // [Inside JobCreationModal]
     const jobCreationModalFinalAudioFormat = document.getElementById("finalAudioFormat")
     const jobCreationModalLyrics = document.getElementById("JobConfiguration-lyrics")
+    // Make a copy of a lyric element HTML Element
+    lyricElementTemplateHTMLElement = jobCreationModalLyrics.querySelector("#lyric").cloneNode(true);
     // Make a copy of the no results HTML Element
     noResultsTemplateHTMLElement = document.getElementById("no-results-template").cloneNode(true)
     noResultsTemplateHTMLElement.classList.remove("is-hidden")
     // Make a copy of a job item (to use as a template)
     jobItemTemplateHTMLElement = document.getElementById("job-item-template").cloneNode(true)
     jobItemTemplateHTMLElement.classList.remove("is-hidden")
+
+    // == REGISTER EVENTS ==
 
     // If the enter key is pressed inside searchInput, do a search
     searchInput.addEventListener('keyup', (event) => {
@@ -103,9 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle lyrics removal / add
+    // Handle lyrics related buttons
     jobCreationModalLyrics.addEventListener('click', (event) => {
-        const lyricsButtonsContainer = jobCreationModalLyrics.querySelector("#lyrics-buttons-container");
         // Check if the clicked element is a remove button
         if (event.target && event.target.id == 'remove-lyric') {
             const currentLyricElement = event.target.parentElement;
@@ -114,16 +118,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (allLyricElements.length >= 2) {
                 currentLyricElement.remove();
             } else {
-                console.log("User cannot remove the last lyric.");
+                console.log("User cannot remove the last lyric element.");
             }
         } else if (event.target && event.target.id == 'add-lyric') { // Check for add button
-            // Clone a existing lyric element, clear the values and add it to the DOM
-            const newLyricElement = jobCreationModalLyrics.querySelector("#lyric").cloneNode(true);
-            // Reset the fields of our lyric element copy
-            newLyricElement.querySelector("#lyric-time").value = "";
-            newLyricElement.querySelector("#lyric-content").value = "";
-            // Put the new lyric before the all of the lyrics related buttons
-            jobCreationModalLyrics.insertBefore(newLyricElement, lyricsButtonsContainer);
+            addLyricElement();
         } else if (event.target && event.target.id == 'clear-lyrics-time') { // Clear all times inputs
             const allLyricTimeElements = jobCreationModalLyrics.querySelectorAll("#lyric #lyric-time");
             // Loop trought all lyric-time elements
@@ -132,14 +130,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 allLyricTimeElements[i].value = "";
             }
         } else if (event.target && event.target.id == 'remove-all-lyrics') { // Remove all lyrics
+            removeLyricElements();
+            addLyricElement(); // Add one empty lyric element
+        } else if (event.target && event.target.id == 'remove-empty-lyrics') // Remove empty lyrics
+        {
+            removeEmptyLyricElements();
+            // Ensure that at least one lyric element still exist in the list
             const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
-            // Loop trought all lyric elements (except the first one)
-            for (var i = 1; i < allLyricElements.length; i++) {
-                allLyricElements[i].remove();
+            if (allLyricElements.length === 0)
+            {
+                addLyricElement();
             }
-            // Reset the first element
-            allLyricElements[0].querySelector("#lyric-time").value = "";
-            allLyricElements[0].querySelector("#lyric-content").value = "";
         }
     });
 
@@ -229,302 +230,372 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    
-});
+    // == FUNCTIONS ==
 
-/**
+    /**
  * Overwrite the warning modal message and show the modal.
  * @param {String} message The message to show
  */
-function showWarning(message)
-{
-    const warningModal = document.getElementById("warning-modal")
-    const warningModalMessage = document.getElementById("warning-message")
-    warningModalMessage.innerText = message;
-    openModal(warningModal);
-}
+    function showWarning(message) {
+        const warningModal = document.getElementById("warning-modal")
+        const warningModalMessage = document.getElementById("warning-message")
+        warningModalMessage.innerText = message;
+        openModal(warningModal);
+    }
 
-/**
- * Called when the user want to search media information on a website (mediaUrl) and create
- * a job on the server side.
- */
-async function doSearch() {
-    toggleLoadingAnimation();
-    // Get user inputs
-    const selectedInterrogationMode = document.getElementById("searchInterrogationMode").value
-    const mediaUrl = document.getElementById("searchInput").value
-    const downloadMediaJobCreationModal = document.getElementById("download-media-job-creation-modal")
-    let isMediaFetchValid = false; // Default to false, don't show the confirmation modal
+    /**
+     * Called when the user want to search media information on a website (mediaUrl) and create
+     * a job on the server side.
+     */
+    async function doSearch() {
+        toggleLoadingAnimation();
+        // Get user inputs
+        const selectedInterrogationMode = document.getElementById("searchInterrogationMode").value
+        const mediaUrl = document.getElementById("searchInput").value
+        const downloadMediaJobCreationModal = document.getElementById("download-media-job-creation-modal")
+        let isMediaFetchValid = false; // Default to false, don't show the confirmation modal
 
-    if (isUrlValid(mediaUrl)) {
-        console.log(`Input URL : ${mediaUrl} | Interrogation Mode : ${selectedInterrogationMode}`);
-        if (selectedInterrogationMode == "automatic") {
-            // Fetch basic information to the server by using the API
-            try {
-                const response = await fetch(`${APIEndpoint}/media/info?mediaUrl=${mediaUrl}`);
-                if (!response.ok) {
-                    showWarning(`Failed to fetch media info. Server responded with status ${response.status}.\nError: ${await response.text()}`);
-                    // Stop execution
-                    throw new Error(`Failed to get media info, api response code : ${response.status}`);
-                }
+        if (isUrlValid(mediaUrl)) {
+            console.log(`Input URL : ${mediaUrl} | Interrogation Mode : ${selectedInterrogationMode}`);
+            if (selectedInterrogationMode == "automatic") {
+                // Fetch basic information to the server by using the API
+                try {
+                    const response = await fetch(`${APIEndpoint}/media/info?mediaUrl=${mediaUrl}`);
+                    if (!response.ok) {
+                        showWarning(`Failed to fetch media info. Server responded with status ${response.status}.\nError: ${await response.text()}`);
+                        // Stop execution
+                        throw new Error(`Failed to get media info, api response code : ${response.status}`);
+                    }
 
-                const jsonResponse = await response.json();
-                /* Here we put the server json response into a attribute on the modal. The modal will perform
-                   verifications based on the user inputs. For example, verification of the final file type for the
-                   lossless & lossy codec warning will be done using this attribute.
-                */
-                downloadMediaJobCreationModal.setAttribute("data-mediaInfoJson", JSON.stringify(jsonResponse))
+                    const jsonResponse = await response.json();
+                    /* Here we put the server json response into a attribute on the modal. The modal will perform
+                       verifications based on the user inputs. For example, verification of the final file type for the
+                       lossless & lossy codec warning will be done using this attribute.
+                    */
+                    downloadMediaJobCreationModal.setAttribute("data-mediaInfoJson", JSON.stringify(jsonResponse))
 
-                // If lossless codec is available, select flac file format by default
-                if (jsonResponse.isLosslessRecommended) {
-                    const selectFileFormatElement = downloadMediaJobCreationModal.querySelector("#finalAudioFormat")
-                    selectFileFormatElement.value = "flac";
-                    // Trigger the update event since we updated from the js side
-                    selectFileFormatElement.dispatchEvent(new Event("change"))
-                }
+                    // If lossless codec is available, select flac file format by default
+                    if (jsonResponse.isLosslessRecommended) {
+                        const selectFileFormatElement = downloadMediaJobCreationModal.querySelector("#finalAudioFormat")
+                        selectFileFormatElement.value = "flac";
+                        // Trigger the update event since we updated from the js side
+                        selectFileFormatElement.dispatchEvent(new Event("change"))
+                    }
 
-                // We fill DOM elements of the modal that have a matching ID name with a key name from the json.
-                // Loop through the JSON keys
-                Object.keys(jsonResponse).forEach(key => {
-                    // Find the element with the matching ID
-                    const element = downloadMediaJobCreationModal.querySelector(`#${key}`);
-                    if (element) {
-                        // Ensure of the element type
-                        if (element.tagName === "TEXTAREA" || element.tagName === "INPUT") {
-                            element.value = jsonResponse[key]; // For input and textareas elements
+                    // We fill DOM elements of the modal that have a matching ID name with a key name from the json.
+                    // Loop through the JSON keys
+                    Object.keys(jsonResponse).forEach(key => {
+                        // Find the element with the matching ID
+                        const element = downloadMediaJobCreationModal.querySelector(`#${key}`);
+                        if (element) {
+                            // Ensure of the element type
+                            if (element.tagName === "TEXTAREA" || element.tagName === "INPUT") {
+                                element.value = jsonResponse[key]; // For input and textareas elements
+                            }
                         }
+                    });
+                    // Populate the lyrics element list if relevant
+                    if (jsonResponse.lyrics.length >= 1) {
+                        // Add lyric element for each MediaLyric model
+                        addLyricElement(jsonResponse.lyrics);
+                        // Remove the lyric elements with empty content (like the default first lyric element)
+                        removeEmptyLyricElements();
+                    }
+                    isMediaFetchValid = true;
+                } catch (error) {
+                    console.error("Failed to handle advanced media information returned by server.", error.message);
+                }
+
+            } else {
+                // Manual, we don't have any information from the server
+                downloadMediaJobCreationModal.removeAttribute("data-mediaInfoJson"); // Ensure no previously fetched data is present
+                // Ensure only one lyric element exists
+                removeLyricElements();
+                addLyricElement();
+                isMediaFetchValid = true;
+            }
+
+            if (isMediaFetchValid) {
+                openModalQuestion(downloadMediaJobCreationModal).then(async (isConfirm) => {
+                    if (isConfirm) {
+                        const newMediaInfoModalForm = downloadMediaJobCreationModal.querySelector("#MediaInfo-form");
+                        const newConfigurationModalForm = downloadMediaJobCreationModal.querySelector("#JobConfiguration-form");
+                        const jobCreationModalLyrics = downloadMediaJobCreationModal.querySelector("#JobConfiguration-lyrics")
+                        // Get all of the downloadMediaJobCreationModal forms data
+                        let newMediaInfoModelJson = getFormDataAsJSON(newMediaInfoModalForm);
+                        let newJobConfigurationModelJson = getFormDataAsJSON(newConfigurationModalForm);
+                        // [LYRIC-DATA PROCESSING]
+                        let newJobConfigurationModelLyricsJson = [];
+                        // Get all of the lyrics elements
+                        const lyricsElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+                        let shouldLyricsBeProcessed = false
+                        // If the number of lyrics is 1 (default) or bigger, the user may have not defined any lyrics,
+                        // so we verify if the first lyric-content element is empty or not before applying custom lyrics.
+                        if (lyricsElements && lyricsElements.length >= 1) {
+                            shouldLyricsBeProcessed = lyricsElements[0].querySelector("#lyric-content").value.length !== 0 // False if content is empty
+                        }
+                        if (shouldLyricsBeProcessed) {
+                            // Loop trought all user created lyric
+                            for (let i = 0; i < lyricsElements.length; i++) {
+                                const currentLyricTime = lyricsElements[i].querySelector("#lyric-time").value;
+                                let lyricModel;
+                                // Lyrics has a time
+                                if (currentLyricTime.length !== 0) {
+                                    lyricModel = {
+                                        content: lyricsElements[i].querySelector("#lyric-content").value ?? "",
+                                        time: convertStringFormatToMilliseconds(currentLyricTime),
+                                    }
+                                } else {
+                                    lyricModel = {
+                                        content: lyricsElements[i].querySelector("#lyric-content").value ?? ""
+                                    }
+                                }
+                                // Add the lyric to the json lyrics list
+                                newJobConfigurationModelLyricsJson.push(lyricModel);
+                            }
+                            // Create the lyrics key on the job configuration with our json lyrics list
+                            newJobConfigurationModelJson["lyrics"] = newJobConfigurationModelLyricsJson;
+                        }
+
+                        // [CREATING JSON POST REQUEST]
+                        // Add the mediaUrl to the MediaInfoModel json
+                        newMediaInfoModelJson["mediaUrl"] = mediaUrl;
+                        // Create the json object (JobRESTCreationModel) that will be send to the api
+                        const newJobRESTCreationModelJson = {
+                            mediaInfo: newMediaInfoModelJson,
+                            jobConfiguration: newJobConfigurationModelJson,
+                        }
+                        const response = await fetch(`${APIEndpoint}/job/create`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(newJobRESTCreationModelJson)
+                        });
+
+                        if (!response.ok) {
+                            showWarning(`Failed to create a new job. Server responded with status ${response.status}.\nError: ${await response.text()}`);
+                            // Stop execution
+                            throw new Error(`Failed to create a new job, api response code : ${response.status}`);
+                        }
+
+                        const jobModelResponseJson = await response.json();
+                        console.log(`Server created job ID '${jobModelResponseJson.id}' for '${mediaUrl}', waiting for websocket to report the job as queued...`);
+                        closeModal(downloadMediaJobCreationModal);
+                    }
+                    // Clear all inputs inside the MediaJobCreationModal
+                    clearForm(downloadMediaJobCreationModal);
+                })
+            }
+        } else {
+            showWarning(`The url '${mediaUrl}' is not a valid url. Your url need to start with 'http:\\\\' or 'https:\\\\' followed by a domain and top domain.`);
+        }
+        toggleLoadingAnimation();
+    }
+
+    /**
+     * Enable & Disable the loading css animation on the button & input.
+     */
+    function toggleLoadingAnimation() {
+        document.getElementById("searchInput").parentElement.classList.toggle("is-loading")
+        document.getElementById("searchButton").classList.toggle("is-loading")
+    }
+
+    /**
+     * Show the 'There are no results' message in the results container.
+     * *Will clear everything in the results container.
+     */
+    function showNoResultMessage() {
+        clearResults()
+        const resultsElement = document.getElementById("results");
+        const newItem = noResultsTemplateHTMLElement.cloneNode(true);
+        resultsElement.appendChild(newItem);
+    }
+
+    /**
+     * Return the job item element or null if not found
+     * @param {String} jobID The ID of the job on the server side
+     * @returns {HTMLDivElement} The div element or null if not found
+     */
+    function getJobItemByID(jobID) {
+        return document.getElementById(`job-item_${jobID}`)
+    }
+
+    /**
+     * Create a item entry inside the results element.
+     * Will also clear all child-element of the results element if there isn't a single element
+     * starting with ID "job-item_" (so a job item element). Allowing the removal of NoResults elements
+     * for example.
+     * @param {String} jobModel The data of a job (represended as JobModel on swagger)
+     * @returns {HTMLDivElement} The created Job Item element
+     */
+    function createJobItem(jobModel) {
+        const resultsElement = document.getElementById("results")
+        const newItem = jobItemTemplateHTMLElement.cloneNode(true);
+        newItem.id = `job-item_${jobModel.id}`;
+        // Get the element with ID Title inside the newItem
+        newItem.querySelector("#Title").textContent = jobModel.data.name;
+        // Set the progress of the current job
+        updateJobItemProgress(newItem, jobModel.status, jobModel.progress, jobModel.progressTaskName)
+        // Get all child element with a ID attribute, and verify if they start with "job-item_". Then invert the bool result
+        const shouldResultsBeCleared = !(Array.from(resultsElement.querySelectorAll("[id]")).some(element => element.id.startsWith("job-item_")));
+        if (shouldResultsBeCleared) clearResults(); // If shouldResultsBeCleared is true, clear results element childs
+        // Add our JobItem element as results element child
+        resultsElement.appendChild(newItem);
+        return newItem
+    }
+
+    /**
+     * Update on the DOM the specified job item progress related elements
+     * @param {HTMLDivElement} jobItemHTMLElement The Job Item element to edit
+     * @param {String} status The new status
+     * @param {Number} progress The new progress (0-100 int)
+     * @param {String} progressTaskName The new progress task name
+     */
+    function updateJobItemProgress(jobItemHTMLElement, status, progress, progressTaskName) {
+        const progressElement = jobItemHTMLElement.querySelector("#Progress");
+        const progressBarElement = jobItemHTMLElement.querySelector("#ProgressBar");
+        const progressTaskNameElement = jobItemHTMLElement.querySelector("#ProgressTaskName");
+
+        switch (status) {
+            case "Queued":
+                progressBarElement.className = "progress is-info";
+                progressElement.innerText = "Queued";
+                break;
+            case "Running":
+                progressBarElement.className = "progress is-link";
+                progressBarElement.value = progress;
+                progressElement.innerText = `${progress}%`;
+                progressTaskNameElement.innerText = progressTaskName;
+                break;
+            case "Completed":
+                progressBarElement.className = "progress is-success";
+                progressBarElement.value = progress;
+                progressElement.innerText = `${progress}%`;
+                progressTaskNameElement.innerText = progressTaskName;
+                break;
+            case "Failed":
+            case "Cancelled":
+                progressBarElement.className = "progress is-danger";
+                progressBarElement.value = progress;
+                progressElement.innerText = `${progress}%`;
+                progressTaskNameElement.innerText = progressTaskName;
+                break;
+            default:
+                console.warn(`Unsupported job status '${status}' was given for a job item progress update.`);
+                break;
+        }
+    }
+
+    /**
+     * Remove every children of the results container
+     */
+    function clearResults() {
+        const resultsElement = document.getElementById("results")
+        resultsElement.replaceChildren();
+    }
+
+    /**
+     * Will clear all input childs-element of a form
+     * @param {Element} parentElement The form itself
+     */
+    function clearForm(parentElement) {
+        // Get all input, select, and textarea elements within the parent element
+        const inputs = parentElement.querySelectorAll('input, select, textarea');
+
+        inputs.forEach(input => {
+            // Handle different type of inputs
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.checked = false;
+            } else if (input.tagName === 'SELECT') {
+                // For select elements, the priority is the 'selected' attribute
+                const options = input.querySelectorAll('option');
+                let foundSelected = false;
+
+                options.forEach(option => {
+                    if (option.hasAttribute('selected')) {
+                        // If the option has the 'selected' attribute we select it
+                        option.selected = true;
+                        foundSelected = true;
                     }
                 });
-                isMediaFetchValid = true;
-            } catch (error) {
-                console.error(error.message);
+
+                // If no option had the 'selected' attribute we select the first option
+                if (!foundSelected && options[0]) {
+                    options[0].selected = true;
+                }
+            } else {
+                // For text input and textarea we clear the value
+                input.value = '';
             }
 
-        } else {
-            // Manual, we don't have any information from the server
-            downloadMediaJobCreationModal.removeAttribute("data-mediaInfoJson"); // Ensure no previously fetched data is present
-            isMediaFetchValid = true;
-        }
-
-        if (isMediaFetchValid) {
-            openModalQuestion(downloadMediaJobCreationModal).then(async (isConfirm) => {
-                if (isConfirm) {
-                    const newMediaInfoModalForm = downloadMediaJobCreationModal.querySelector("#MediaInfo-form");
-                    const newConfigurationModalForm = downloadMediaJobCreationModal.querySelector("#JobConfiguration-form");
-                    const jobCreationModalLyrics = downloadMediaJobCreationModal.querySelector("#JobConfiguration-lyrics")
-                    // Get all of the downloadMediaJobCreationModal forms data
-                    let newMediaInfoModelJson = getFormDataAsJSON(newMediaInfoModalForm);
-                    let newJobConfigurationModelJson = getFormDataAsJSON(newConfigurationModalForm);
-                    // [LYRIC-DATA PROCESSING]
-                    let newJobConfigurationModelLyricsJson = [];
-                    // Get the all of the lyrics elements
-                    const lyricsElements = jobCreationModalLyrics.querySelectorAll("#lyric");
-                    let shouldLyricsBeProcessed = true
-                    // If the number of lyrics is 1 (default), the user may have not defined any lyrics,
-                    // so we verify if the only lyric-content element is empty or not before applying custom lyrics
-                    if (lyricsElements.length === 1) 
-                    {
-                        shouldLyricsBeProcessed = lyricsElements[0].querySelector("#lyric-content").value.length !== 0 // False if content is empty
-                    }
-                    if (shouldLyricsBeProcessed)
-                    {
-                        // Loop trought all user created lyric
-                        for (let i = 0; i < lyricsElements.length; i++) {
-                            const currentLyricTime = lyricsElements[i].querySelector("#lyric-time").value;
-                            let lyricModel;
-                            // Lyrics has a time
-                            if (currentLyricTime.length !== 0) {
-                                lyricModel = {
-                                    content: lyricsElements[i].querySelector("#lyric-content").value,
-                                    time: convertToMilliseconds(currentLyricTime),
-                                }
-                            } else {
-                                lyricModel = {
-                                    content: lyricsElements[i].querySelector("#lyric-content").value
-                                }
-                            }
-                            // Add the lyric to the json lyrics list
-                            newJobConfigurationModelLyricsJson.push(lyricModel);
-                        }
-                        // Create the lyrics key on the job configuration with our json lyrics list
-                        newJobConfigurationModelJson["lyrics"] = newJobConfigurationModelLyricsJson;
-                    }
-
-                    // [CREATING JSON POST REQUEST]
-                    // Add the mediaUrl to the MediaInfoModel json
-                    newMediaInfoModelJson["mediaUrl"] = mediaUrl;
-                    // Create the json object (JobRESTCreationModel) that will be send to the api
-                    const newJobRESTCreationModelJson = {
-                        mediaInfo: newMediaInfoModelJson,
-                        jobConfiguration: newJobConfigurationModelJson,
-                    }
-                    const response = await fetch(`${APIEndpoint}/job/create`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(newJobRESTCreationModelJson)
-                    });
-
-                    if (!response.ok) {
-                        showWarning(`Failed to create a new job. Server responded with status ${response.status}.\nError: ${await response.text()}`);
-                        // Stop execution
-                        throw new Error(`Failed to create a new job, api response code : ${response.status}`);
-                    }
-
-                    const jobModelResponseJson = await response.json();
-                    console.log(`Server created job ID '${jobModelResponseJson.id}' for '${mediaUrl}', waiting for websocket to report the job as queued...`);
-                    closeModal(downloadMediaJobCreationModal);
-                }
-                // Clear all inputs inside the MediaJobCreationModal
-                clearForm(downloadMediaJobCreationModal);
-            })
-        }
-    } else {
-        showWarning(`The url '${mediaUrl}' is not a valid url. Your url need to start with 'http:\\\\' or 'https:\\\\' followed by a domain and top domain.`);
+            // Trigger a change event for the element we just updated
+            input.dispatchEvent(new Event('change'));
+        });
     }
-    toggleLoadingAnimation();
-}
 
-/**
- * Enable & Disable the loading css animation on the button & input.
- */
-function toggleLoadingAnimation() {
-    document.getElementById("searchInput").parentElement.classList.toggle("is-loading")
-    document.getElementById("searchButton").classList.toggle("is-loading")
-}
+    /**
+     * Remove all lyrics element inside the JobConfiguration-lyrics.
+     */
+    function removeLyricElements() {
+        // JobConfiguration-lyrics is part of the JobCreationModal
+        const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+        // Loop trought all lyric elements
+        for (let i = 0; i < allLyricElements.length; i++) {
+            allLyricElements[i].remove();
+        }
+    }
 
-/**
- * Show the 'There are no results' message in the results container.
- * *Will clear everything in the results container.
- */
-function showNoResultMessage() {
-    clearResults()
-    const resultsElement = document.getElementById("results");
-    const newItem = noResultsTemplateHTMLElement.cloneNode(true);
-    resultsElement.appendChild(newItem);
-}
-
-/**
- * Return the job item element or null if not found
- * @param {String} jobID The ID of the job on the server side
- * @returns {HTMLDivElement} The div element or null if not found
- */
-function getJobItemByID(jobID) {
-    return document.getElementById(`job-item_${jobID}`)
-}
-
-/**
- * Create a item entry inside the results element.
- * Will also clear all child-element of the results element if there isn't a single element
- * starting with ID "job-item_" (so a job item element). Allowing the removal of NoResults elements
- * for example.
- * @param {String} jobModel The data of a job (represended as JobModel on swagger)
- * @returns {HTMLDivElement} The created Job Item element
- */
-function createJobItem(jobModel) {
-    const resultsElement = document.getElementById("results")
-    const newItem = jobItemTemplateHTMLElement.cloneNode(true);
-    newItem.id = `job-item_${jobModel.id}`;
-    // Get the element with ID Title inside the newItem
-    newItem.querySelector("#Title").textContent = jobModel.data.name;
-    // Set the progress of the current job
-    updateJobItemProgress(newItem, jobModel.status, jobModel.progress, jobModel.progressTaskName)
-    // Get all child element with a ID attribute, and verify if they start with "job-item_". Then invert the bool result
-    const shouldResultsBeCleared = !(Array.from(resultsElement.querySelectorAll("[id]")).some(element => element.id.startsWith("job-item_")));
-    if (shouldResultsBeCleared) clearResults(); // If shouldResultsBeCleared is true, clear results element childs
-    // Add our JobItem element as results element child
-    resultsElement.appendChild(newItem);
-    return newItem
-}
-
-/**
- * Update on the DOM the specified job item progress related elements
- * @param {HTMLDivElement} jobItemHTMLElement The Job Item element to edit
- * @param {String} status The new status
- * @param {Number} progress The new progress (0-100 int)
- * @param {String} progressTaskName The new progress task name
- */
-function updateJobItemProgress(jobItemHTMLElement, status, progress, progressTaskName)
-{
-    const progressElement = jobItemHTMLElement.querySelector("#Progress");
-    const progressBarElement = jobItemHTMLElement.querySelector("#ProgressBar");
-    const progressTaskNameElement = jobItemHTMLElement.querySelector("#ProgressTaskName");
-    
-    switch (status)
+    /**
+     * Remove all lyrics element that have their content input empty.
+     */
+    function removeEmptyLyricElements()
     {
-        case "Queued":
-            progressBarElement.className = "progress is-info";
-            progressElement.innerText = "Queued";
-            break;
-        case "Running":
-            progressBarElement.className = "progress is-link";
-            progressBarElement.value = progress;
-            progressElement.innerText = `${progress}%`;
-            progressTaskNameElement.innerText = progressTaskName;
-            break;
-        case "Completed":
-            progressBarElement.className = "progress is-success";
-            progressBarElement.value = progress;
-            progressElement.innerText = `${progress}%`;
-            progressTaskNameElement.innerText = progressTaskName;
-            break;
-        case "Failed":
-        case "Cancelled":
-            progressBarElement.className = "progress is-danger";
-            progressBarElement.value = progress;
-            progressElement.innerText = `${progress}%`;
-            progressTaskNameElement.innerText = progressTaskName;
-            break;
-        default:
-            console.warn(`Unsupported job status '${status}' was given for a job item progress update.`);
-            break;
-    }
-}
-
-/**
- * Remove every children of the results container
- */
-function clearResults() {
-    const resultsElement = document.getElementById("results")
-    resultsElement.replaceChildren();
-}
-
-/**
- * Will clear all input childs-element of a form
- * @param {Element} parentElement The form itself
- */
-function clearForm(parentElement) {
-    // Get all input, select, and textarea elements within the parent element
-    const inputs = parentElement.querySelectorAll('input, select, textarea');
-
-    inputs.forEach(input => {
-        // Handle different type of inputs
-        if (input.type === 'checkbox' || input.type === 'radio') {
-            input.checked = false;
-        } else if (input.tagName === 'SELECT') {
-            // For select elements, the priority is the 'selected' attribute
-            const options = input.querySelectorAll('option');
-            let foundSelected = false;
-
-            options.forEach(option => {
-                if (option.hasAttribute('selected')) {
-                    // If the option has the 'selected' attribute we select it
-                    option.selected = true;
-                    foundSelected = true;
-                }
-            });
-
-            // If no option had the 'selected' attribute we select the first option
-            if (!foundSelected && options[0]) {
-                options[0].selected = true;
+        // JobConfiguration-lyrics is part of the JobCreationModal
+        const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+        // Loop trought all lyric elements
+        for (let i = 0; i < allLyricElements.length; i++) {
+            // Ensure the value is empty, null, undefined, etc
+            if (!allLyricElements[i].querySelector("#lyric-content").value)
+            {
+                allLyricElements[i].remove();
             }
-        } else {
-            // For text input and textarea we clear the value
-            input.value = '';
+        }
+    }
+
+    /**
+     * Create one or multiple lyric element. If a list of MediaLyric is given, a lyric element will be created and
+     * populated for each MediaLyric. If the value is not defined, one empty lyric element will be created.
+     * @param {Array} lyricsArray A list of MediaLyric (see swagger docs)
+     */
+    function addLyricElement(lyricsArray) {
+        const lyricsButtonsContainer = jobCreationModalLyrics.querySelector("#lyrics-buttons-container");
+        let numberOfElements = 1
+        if (lyricsArray != null && lyricsArray.length >= 2) {
+            numberOfElements = lyricsArray.length;
         }
 
-        // Trigger a change event for the element we just updated
-        input.dispatchEvent(new Event('change'));
-    });
-}
+        // Create one/multiple lyric element
+        for (let i = 0; i < numberOfElements; i++) {
+            // Clone the lyric element template and add it to the DOM
+            const newLyricElement = lyricElementTemplateHTMLElement.cloneNode(true);
+            let lyricTimeValue = "";
+            let lyricContentValue = "";
+            if (lyricsArray != null)
+            {
+                if (lyricsArray[i].time != null)
+                {
+                    lyricTimeValue = convertMillisecondsToStringFormat(lyricsArray[i].time)
+                }
+                if (lyricsArray[i].content != null) {
+                    lyricContentValue = lyricsArray[i].content
+                }
+            } 
+            // Reset the fields of our lyric element copy
+            newLyricElement.querySelector("#lyric-time").value = lyricTimeValue;
+            newLyricElement.querySelector("#lyric-content").value = lyricContentValue;
+            // Put the new lyric before the all of the lyrics related buttons
+            jobCreationModalLyrics.insertBefore(newLyricElement, lyricsButtonsContainer);
+        }
+    }
+});
