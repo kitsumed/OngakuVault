@@ -115,7 +115,7 @@ namespace OngakuVault.Services
 			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
 			_appSettings.TMP_OUTPUT_DIRECTORY = TMPOutputPath; // Overwrite setting value so that if value was null, it is now the new TempSub 
 															   // Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
-			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPPER_PROC);
+			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPER_PROC);
 			// Set the paths for yt-dlp and FFmpeg executables for linux by default
 			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
 			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");

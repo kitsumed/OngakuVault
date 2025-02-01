@@ -50,21 +50,21 @@
 		/// Number of allowed scrapper processes (yt-dlp) that can run at the same time.
 		/// 8 by default, minimum 1, limited to 100.
 		/// </summary>
-		public int PARALLEL_SCRAPPER_PROC
+		public int PARALLEL_SCRAPER_PROC
 		{
-			get => _parallelScrapperProc;
-			set => _parallelScrapperProc = (value < 1) ? 1 : (value > 100) ? 100 : value;
+			get => _parallelScraperProc;
+			set => _parallelScraperProc = (value < 1) ? 1 : (value > 100) ? 100 : value;
 		}
-		private int _parallelScrapperProc = 8;
+		private int _parallelScraperProc = 8;
 
 		/// <summary>
 		/// Number of allowed download jobs that can run at the same time.
-		/// 4 by default, minimum 1, limited to PARALLEL_SCRAPPER_PROC value
+		/// 4 by default, minimum 1, limited to PARALLEL_SCRAPER_PROC value
 		/// </summary>
 		public int PARALLEL_JOBS
 		{
 			get => _parallelJobs;
-			set => _parallelJobs = (value < 1) ? 1 : (value > PARALLEL_SCRAPPER_PROC) ? PARALLEL_SCRAPPER_PROC : value;
+			set => _parallelJobs = (value < 1) ? 1 : (value > PARALLEL_SCRAPER_PROC) ? PARALLEL_SCRAPER_PROC : value;
 		}
 		private int _parallelJobs = 4;
 
