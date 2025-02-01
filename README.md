@@ -28,7 +28,7 @@ You can see a showcase of the desktop & mobile interface along with a video of t
 [^1]: [See **IMPORTANT** note in documentation](https://kitsumed.github.io/ongakuvault/installation.html#installation-methods).
 
 # TODO
-- [ ] Add support for `lyrics` and `synced lyrics` metadata.
+- [X] Add support for `lyrics` and `synced lyrics` metadata.
 
 ## License
 ```txt
