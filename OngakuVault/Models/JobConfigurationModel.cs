@@ -12,7 +12,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The audio format to which the best audio will be converted after being downloaded.
 		/// </summary>
-		[SwaggerSchema( Description = "The audio format to which the best audio will be converted after being downloaded. Defaults to 'Mp3'. Choose 'Best' to avoid re-encoding.")]
+		[SwaggerSchema( Description = "The audio format to which the downloaded audio will be converted to after being downloaded. Defaults to 'Mp3'. Choose 'Best' to avoid re-encoding.")]
 		public AudioConversionFormat FinalAudioFormat { get; set; } = AudioConversionFormat.Mp3;
 
 		/// <summary>

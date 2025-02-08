@@ -20,7 +20,7 @@ namespace OngakuVault.Services
 		/// <summary>
 		/// Add a new job inside the list and add it to the execution queue
 		/// </summary>
-		/// <param name="job">The current job informations</param>
+		/// <param name="jobModel">The current job informations</param>
 		/// <returns>True if the job was added, false if a job with the same ID is already in the list (probably the same job)</returns>
 		bool TryAddJobToQueue(JobModel jobModel);
 

@@ -23,7 +23,7 @@ namespace OngakuVault.Services
 		/// <param name="cancellationToken">Token for cancellation</param>
 		/// <param name="progressReport">A IProgress to get updates on the download progress</param>
 		/// <returns>The <see cref="FileInfo"/> of the downloaded audio, or null if the audio file was not created.</returns>
-		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
+		/// <exception cref="ScraperErrorOutputHelper.ProcessedScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
 		public Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null);
 
 		/// <summary>
@@ -32,9 +32,10 @@ namespace OngakuVault.Services
 		/// <param name="url">The url of the media</param>
 		/// <param name="flatPlaylist">If set to true, does not extract information for others video in a playlist</param>
 		/// <param name="fetchComments">If set to true, fetch comments on a media</param>
+		/// <param name="cancellationToken">If defined, allow to cancel the task</param>
 		/// <returns>Return a <see cref="MediaInfoAdvancedModel"/>. Contains advanced info about the media</returns>
 		/// <exception cref="NotSupportedException">Related to the data returned by yt-dlp about the current media</exception>
-		/// <exception cref="ScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
+		/// <exception cref="ScraperErrorOutputHelper.ProcessedScraperErrorOutputException">Related to the error output of the scraper (yt-dlp)</exception>
 		public Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null);
 	}
 

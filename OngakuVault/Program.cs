@@ -58,6 +58,7 @@ builder.Services.AddSwaggerGen(options =>
 			Url = new Uri("https://github.com/kitsumed/OngakuVault")
 		},
 	});
+	options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OngakuVault.xml"));
 	options.EnableAnnotations();
 });
 

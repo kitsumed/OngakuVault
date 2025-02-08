@@ -69,7 +69,7 @@
 		private int _parallelJobs = 4;
 
 		/// <summary>
-		/// List of allowed origins for REST & Websocket connections.
+		/// List of allowed origins for REST and Websocket connections.
 		/// Origins are separated by PIPE (|). Ex: (https://example.com|https://example2.com)
 		/// Empty by default, allowing all origins.
 		/// </summary>

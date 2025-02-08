@@ -6,12 +6,13 @@ namespace OngakuVault.Models
 	/// The MediaInfoModel contains basic information about a requested media.
 	/// In this application case, it is usually contained inside a <see cref="JobModel.Data"/>.
 	/// </summary>
+	[SwaggerSchema(Description = "Contains basic information about a requested media")]
 	public class MediaInfoModel
 	{
 		/// <summary>
 		/// Song name
 		/// </summary>
-		[SwaggerSchema(Description = "The media name/track title")]
+		[SwaggerSchema(Nullable = false, Description = "The media name/track title")]
 		public required string Name { get; set; }
 
 		/// <summary>
@@ -29,7 +30,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The webpage url of the song
 		/// </summary>
-		[SwaggerSchema(Description = "The webpage url of the media or direct url")]
+		[SwaggerSchema(Nullable = false, Description = "The webpage url of the media or direct url")]
 		public required string MediaUrl { get; set; }
 		/// <summary>
 		/// The year of release of the song
@@ -56,9 +57,10 @@ namespace OngakuVault.Models
 
 	/// <summary>
 	/// The MediaInfoAdvancedModel contains advanced information about a requested media.
-	/// In this application case, it is usually used in API Responses like <see cref="Controllers.MediaController.GetMediaInfo(string)"/> where
+	/// In this application case, it is usually used in API Responses like <see cref="Controllers.MediaController.GetMediaInfo"/> where
 	/// the client request more informations about a media than needed by the server when receiving a job creation request.
 	/// </summary>
+	[SwaggerSchema(Description = "Contains advanced information about a requested media")]
 	public class MediaInfoAdvancedModel : MediaInfoModel
 	{
 		/// <summary>
