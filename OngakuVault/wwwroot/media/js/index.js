@@ -1,8 +1,8 @@
 // Script for the index.html page
 // Requires: bulma.js, utils.js
 // INIT API & WS ENDPOINTS
-var APIEndpointProtocol = 'http://'; 
-var WebSocketEndpointProtocol = 'ws://';
+let APIEndpointProtocol = 'http://';
+let WebSocketEndpointProtocol = 'ws://';
 if (window.location.protocol === 'https:') {
     APIEndpointProtocol = 'https://';
     WebSocketEndpointProtocol = 'wss://';
@@ -10,9 +10,9 @@ if (window.location.protocol === 'https:') {
 const APIEndpoint = `${APIEndpointProtocol}${window.location.host}/api`;
 const WebSocketEndpoint = `${WebSocketEndpointProtocol}${window.location.host}/ws`;
 
-var noResultsTemplateHTMLElement; // Contains the noResults HTML Element
-var jobItemTemplateHTMLElement; // Contains a job item template HTML Element;
-var lyricElementTemplateHTMLElement; // Contains a lyric element template
+let noResultsTemplateHTMLElement; // Contains the noResults HTML Element
+let jobItemTemplateHTMLElement; // Contains a job item template HTML Element;
+let lyricElementTemplateHTMLElement; // Contains a lyric element template
 
 // Run when DOM finished loading
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetch(`${APIEndpoint}/job/${jobId}/cancel`, { method: 'DELETE' }).then(async (response) => {
                         if (!response.ok) {
                             showWarning(`Failed to cancel selected job. Server responded with status ${response.status}.\nError: ${await response.text()}`);
-                            console.error(`Failed to cancel job id '${jobId}', api response code : ${response.status}`)
+                            console.error(`Failed to cancel job id '${jobId}', api response code : ${response.status}`, response)
                         }
                         closeModal(cancelJobModal); // Free the modal
                     });
@@ -137,14 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
             removeEmptyLyricElements();
             // Ensure that at least one lyric element still exist in the list
             const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
-            if (allLyricElements.length === 0)
-            {
+            if (allLyricElements.length === 0) {
                 addLyricElement();
             }
         }
     });
 
-    // Handle lyrics time format
+    // Handle lyrics time format & the button to load lyrics from file
     jobCreationModalLyrics.addEventListener('change', (event) => {
         // Check if the element that triggered the input event is a lyric time element
         if (event.target && event.target.id == 'lyric-time') {
@@ -152,10 +151,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedTime = verifyAndFormatTime(currentLyricTime.value);
             if (formattedTime) {
                 currentLyricTime.value = formattedTime;
-            } else
-            {
+            } else {
                 currentLyricTime.value = "00:00.00";
             }
+        } else if (event.target && event.target.id == 'load-lyrics-from-file') {
+            const animatedButton = event.target.parentElement.querySelector("span");
+            const currentLyricSelectedFile = event.target.files[0]
+            if (!currentLyricSelectedFile) return;
+
+            if (currentLyricSelectedFile.size > 2097152) // 2MB in bytes
+            {
+                showWarning("Your lyrics file cannot be bigger than 2MB.");
+                return;
+            }
+
+            // Simulate as if the input element was in a form that got submitted
+            const formData = new FormData();
+            formData.append("File", currentLyricSelectedFile)
+
+            animatedButton.classList.toggle("is-loading");
+            // Send request to server
+            fetch(`${APIEndpoint}/Lyric/getLyricsFromFile`, { method: "POST", body: formData }).then(async (response) => {
+                animatedButton.classList.toggle("is-loading");
+                if (!response.ok) {
+                    showWarning(`Could not parse lyrics. Server responded with status ${response.status}.\nError: ${await response.text()}`);
+                    console.error(`Failed to parse lyrics, api response code : ${response.status}`, response);
+                    return;
+                }
+                const responseLyrics = await response.json();
+                console.log(`Found ${responseLyrics.length} lyrics inside the uploaded file.`)
+                if (responseLyrics && responseLyrics.length >= 1) {
+                    addLyricElement(responseLyrics)
+                } else showWarning("The server parsed the uploaded file but did not find any lyrics.");
+            });
         }
     });
 
@@ -163,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetch(`${APIEndpoint}/job/all`).then(async (response) => {
         if (!response.ok) {
             showWarning(`Failed to fetch the jobs list. Server responded with status ${response.status}.\nError: ${await response.text()}`);
-            console.error(`Failed to get the jobs list, api response code : ${response.status}`)
+            console.error(`Failed to get the jobs list, api response code : ${response.status}`, response)
         } else {
             const responseJsonCurrentJobs = await response.json();
 
@@ -193,12 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const message = webSocketBroadcastDataJson.data; // The message
                     const jobItemElement = getJobItemByID(message.id); // The jobItemElement affected by the message, if it exist (else it's null) 
                     console.debug(`WebSocket: Reiceived a message from server with key: '${messageKey}'.`);
-                    switch (messageKey)
-                    {
+                    switch (messageKey) {
                         // New job reported as queued, add it to the results list if not already present
                         case "NewJobWasQueued": // Here, message is a JobModel (see swagger schema)
-                            if (jobItemElement === null)
-                            {
+                            if (jobItemElement === null) {
                                 createJobItem(message);
                             }
                             break;
@@ -208,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 updateJobItemProgress(jobItemElement, message.status, message.progress, message.progressTaskName);
                             } else {
                                 console.warn(`Websocket: Reiceived a status update for job id '${message.id}', but couldn't locate a job item in the DOM with this ID.'`);
-                            } 
+                            }
                             break;
                         default:
                             console.warn(`WebSocket: Reiceived a message from server with key: '${messageKey}'. But the client does not know how to handle it.`);
@@ -226,16 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
             socket.addEventListener("error", (error) => {
                 console.error("WebSocket error:", error);
             });
-            
+
         }
     });
 
     // == FUNCTIONS ==
 
     /**
- * Overwrite the warning modal message and show the modal.
- * @param {String} message The message to show
- */
+    * Overwrite the warning modal message and show the modal.
+    * @param {String} message The message to show
+    */
     function showWarning(message) {
         const warningModal = document.getElementById("warning-modal")
         const warningModalMessage = document.getElementById("warning-message")
@@ -549,15 +575,13 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Remove all lyrics element that have their content input empty.
      */
-    function removeEmptyLyricElements()
-    {
+    function removeEmptyLyricElements() {
         // JobConfiguration-lyrics is part of the JobCreationModal
         const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
         // Loop trought all lyric elements
         for (let i = 0; i < allLyricElements.length; i++) {
             // Ensure the value is empty, null, undefined, etc
-            if (!allLyricElements[i].querySelector("#lyric-content").value)
-            {
+            if (!allLyricElements[i].querySelector("#lyric-content").value) {
                 allLyricElements[i].remove();
             }
         }
@@ -581,16 +605,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const newLyricElement = lyricElementTemplateHTMLElement.cloneNode(true);
             let lyricTimeValue = "";
             let lyricContentValue = "";
-            if (lyricsArray != null)
-            {
-                if (lyricsArray[i].time != null)
-                {
+            if (lyricsArray != null) {
+                if (lyricsArray[i].time != null) {
                     lyricTimeValue = convertMillisecondsToStringFormat(lyricsArray[i].time)
                 }
                 if (lyricsArray[i].content != null) {
                     lyricContentValue = lyricsArray[i].content
                 }
-            } 
+            }
             // Reset the fields of our lyric element copy
             newLyricElement.querySelector("#lyric-time").value = lyricTimeValue;
             newLyricElement.querySelector("#lyric-content").value = lyricContentValue;

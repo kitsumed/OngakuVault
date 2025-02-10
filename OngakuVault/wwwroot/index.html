@@ -209,10 +209,21 @@
                                 <button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
                             </div>
 							<div class="buttons" id="lyrics-buttons-container">
+								<div class="file is-link is-small mb-0">
+									<label class="file-label">
+										<input class="file-input" type="file" id="load-lyrics-from-file" />
+										<span class="file-cta button">
+											<span class="file-icon mr-1">
+												<img src="./media/pictures/icons/upload.svg" />
+											</span>
+											<span class="file-label"> Load from file</span>
+										</span>
+									</label>
+								</div>
 								<button class="button is-link is-small" id="add-lyric">Add new</button>
 								<button class="button is-warning is-small" id="clear-lyrics-time">Clear all times</button>
-								<button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
 								<button class="button is-danger is-small" id="remove-empty-lyrics">Remove empty</button>
+								<button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
 							</div>
                         </div>
 					</details>
