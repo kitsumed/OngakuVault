@@ -220,7 +220,9 @@ namespace OngakuVault.Services
 									Jobs[jobID].ReportStatus(JobStatus.Running, "Overwriting audio metadata...", totalProgress);
 								}
 							});
+
 							// Set the new file metadata if the user gived new values
+							
 							audioTrack.Title = string.IsNullOrEmpty(Jobs[jobID].Data.Name) ? audioTrack.Title : Jobs[jobID].Data.Name;
 							audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data?.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
 							audioTrack.Album = string.IsNullOrEmpty(Jobs[jobID].Data?.AlbumName) ? audioTrack.Album : Jobs[jobID].Data.AlbumName;
@@ -228,7 +230,7 @@ namespace OngakuVault.Services
 							audioTrack.Genre = string.IsNullOrEmpty(Jobs[jobID].Data?.Genre) ? audioTrack.Genre : Jobs[jobID].Data.Genre;
 							audioTrack.TrackNumber = Jobs[jobID].Data?.TrackNumber == null ? audioTrack.TrackNumber : Jobs[jobID].Data.TrackNumber;
 							audioTrack.Description = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
-							audioTrack.Comment = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
+							audioTrack.Comment = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Comment : Jobs[jobID].Data.Description;
 							if (Jobs[jobID].Configuration.Lyrics != null)
 							{
 								// Overwrite media lyrics with empty one / create lyrics
