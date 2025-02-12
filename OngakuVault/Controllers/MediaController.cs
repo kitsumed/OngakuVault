@@ -28,7 +28,7 @@ namespace OngakuVault.Controllers
 		[Produces("application/json", "text/plain")]
 		public async Task<ActionResult> GetMediaInfo(string mediaUrl, CancellationToken cancellationToken)
 		{
-			if (!Helpers.UrlHelper.IsUrlValid(mediaUrl))
+			if (!Helpers.UrlHelper.IsUrlUsingHttpScheme(mediaUrl))
 			{
 				return BadRequest("mediaUrl scheme can only be http or https.");
 			}

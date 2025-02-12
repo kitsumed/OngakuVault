@@ -115,11 +115,21 @@ namespace OngakuVault.Services
 			_appSettings = appSettings.Value;
 			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
 			_appSettings.TMP_OUTPUT_DIRECTORY = TMPOutputPath; // Overwrite setting value so that if value was null, it is now the new TempSub 
-															   // Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
-			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPER_PROC);
-			// Set the paths for yt-dlp and FFmpeg executables for linux by default
-			MediaDownloader.YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp");
-			MediaDownloader.FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg");
+			// Ensure the given output path exist
+			Directory.CreateDirectory(TMPOutputPath);
+			// Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
+			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPER_PROC) 
+			{
+				// Ensure each download have a unique name by adding the epoch time
+				OutputFileTemplate = "%(title)s [%(id)s]_%(epoch)s.%(ext)s",
+				// Set the paths for yt-dlp and FFmpeg executables for linux by default
+				YoutubeDLPath = Path.Combine(ExecutableDirectory, "yt-dlp"),
+				FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg"),
+				// Set the download path
+				OutputFolder = TMPOutputPath,
+				// Restrict files name to ASCII
+				//RestrictFilenames = true,
+			};
 
 			// If OS is Windows, append ".exe" to the executables name
 			if (OperatingSystem.IsWindows())
@@ -127,11 +137,7 @@ namespace OngakuVault.Services
 				MediaDownloader.YoutubeDLPath += ".exe";
 				MediaDownloader.FFmpegPath += ".exe";
 			}
-			// Set the download path
-			Directory.CreateDirectory(TMPOutputPath); // Ensure the given output path exist
-			MediaDownloader.OutputFolder = TMPOutputPath;
 			_logger.LogInformation("Current temporary download output path is set to : {TMPOutputPath}", TMPOutputPath);
-			MediaDownloader.RestrictFilenames = true; // Only allow ASCII
 
 			// Ensure that yt-dlp and ffmpeg binary are existing when initialising
 			if (File.Exists(MediaDownloader.YoutubeDLPath) && File.Exists(MediaDownloader.FFmpegPath))
@@ -183,10 +189,13 @@ namespace OngakuVault.Services
 
 		public async Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null)
 		{
+			// Sanitize the url to prevent possible command injections on windows & linux
+			string sanitizedMediaUrl = UrlHelper.SanitizeUrl(mediaUrl) ?? throw new FormatException($"Tried to sanitize the given mediaUrl '{mediaUrl}' to a safe URL Encoded url but failed.");
+
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Download the media audio
-			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(mediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, AudioDownloaderOverrideOptions);
+			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(sanitizedMediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, AudioDownloaderOverrideOptions);
 			// If succes is false, throw a ScraperErrorOutputException using ProcessScraperErrorOutput
 			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
 			// Ensure file exists, else return null
@@ -198,10 +207,13 @@ namespace OngakuVault.Services
 
 		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null)
 		{
+			// Sanitize the url to prevent possible command injections on windows & linux
+			string sanitizedUrl = UrlHelper.SanitizeUrl(url) ?? throw new FormatException($"Tried to sanitize the given url '{url}' to a safe URL Encoded url but failed.");
+
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Fetch media information
-			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(url, cancellationToken.Value, flatPlaylist, fetchComments);
+			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(sanitizedUrl, cancellationToken.Value, flatPlaylist, fetchComments);
 			if (!mediaData.Success)
 			{
 				// Failed to fetch / get media info from a webpage

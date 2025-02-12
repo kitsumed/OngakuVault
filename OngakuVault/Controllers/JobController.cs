@@ -24,7 +24,7 @@ namespace OngakuVault.Controllers
 		public ActionResult CreateJob(JobRESTCreationModel newJobRESTCreationData)
 		{
 			// Verify if the url is not http/https
-			if (!Helpers.UrlHelper.IsUrlValid(newJobRESTCreationData.MediaInfo.MediaUrl))
+			if (!Helpers.UrlHelper.IsUrlUsingHttpScheme(newJobRESTCreationData.MediaInfo.MediaUrl))
 			{
 				return BadRequest("The mediaUrl inside mediaInfo can only be a scheme of type http or https.");
 			}
