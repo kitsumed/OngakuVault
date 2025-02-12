@@ -1,4 +1,5 @@
 ﻿using OngakuVault.Services;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Text.Json.Serialization;
 
 namespace OngakuVault.Models
@@ -6,6 +7,7 @@ namespace OngakuVault.Models
 	/// <summary>
 	/// The JobModel class used by <see cref="JobService"/> to contains informations about a Job.
 	/// </summary>
+	[SwaggerSchema(Description = "A JobModel represent a download job on the server")]
 	public class JobModel : IDisposable
 	{
 		// We store the webSockerManager service to broadcast our status update to all clients

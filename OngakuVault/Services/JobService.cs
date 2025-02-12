@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using OngakuVault.Models;
 using System.Collections.Concurrent;
+using System.Linq;
 using YoutubeDLSharp;
 using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
@@ -19,7 +20,7 @@ namespace OngakuVault.Services
 		/// <summary>
 		/// Add a new job inside the list and add it to the execution queue
 		/// </summary>
-		/// <param name="job">The current job informations</param>
+		/// <param name="jobModel">The current job informations</param>
 		/// <returns>True if the job was added, false if a job with the same ID is already in the list (probably the same job)</returns>
 		bool TryAddJobToQueue(JobModel jobModel);
 
@@ -219,14 +220,39 @@ namespace OngakuVault.Services
 									Jobs[jobID].ReportStatus(JobStatus.Running, "Overwriting audio metadata...", totalProgress);
 								}
 							});
+
 							// Set the new file metadata if the user gived new values
+							
 							audioTrack.Title = string.IsNullOrEmpty(Jobs[jobID].Data.Name) ? audioTrack.Title : Jobs[jobID].Data.Name;
-							audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
-							audioTrack.Album = string.IsNullOrEmpty(Jobs[jobID].Data.AlbumName) ? audioTrack.Album : Jobs[jobID].Data.AlbumName;
-							audioTrack.Year = Jobs[jobID].Data.ReleaseYear == null ? audioTrack.Year : Jobs[jobID].Data.ReleaseYear;
-							audioTrack.Genre = string.IsNullOrEmpty(Jobs[jobID].Data.Genre) ? audioTrack.Genre : Jobs[jobID].Data.Genre;
-							audioTrack.TrackNumber = Jobs[jobID].Data.TrackNumber == null ? audioTrack.TrackNumber : Jobs[jobID].Data.TrackNumber;
-							audioTrack.Description = string.IsNullOrEmpty(Jobs[jobID].Data.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
+							audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data?.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
+							audioTrack.Album = string.IsNullOrEmpty(Jobs[jobID].Data?.AlbumName) ? audioTrack.Album : Jobs[jobID].Data.AlbumName;
+							audioTrack.Year = Jobs[jobID].Data?.ReleaseYear == null ? audioTrack.Year : Jobs[jobID].Data.ReleaseYear;
+							audioTrack.Genre = string.IsNullOrEmpty(Jobs[jobID].Data?.Genre) ? audioTrack.Genre : Jobs[jobID].Data.Genre;
+							audioTrack.TrackNumber = Jobs[jobID].Data?.TrackNumber == null ? audioTrack.TrackNumber : Jobs[jobID].Data.TrackNumber;
+							audioTrack.Description = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
+							audioTrack.Comment = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Comment : Jobs[jobID].Data.Description;
+							if (Jobs[jobID].Configuration.Lyrics != null)
+							{
+								// Overwrite media lyrics with empty one / create lyrics
+								audioTrack.Lyrics = new LyricsInfo
+								{
+									ContentType = LyricsInfo.LyricsType.LYRICS,
+								};
+
+								// If all lyrics are >= 0, process the lyrics as synced
+								bool isSyncLyrics = Jobs[jobID].Configuration.Lyrics!.All(lyric => lyric.Time != null && lyric.Time >= 0);
+								if (isSyncLyrics)
+								{
+									// Add synced lyrics
+									Jobs[jobID].Configuration.Lyrics!.ForEach(lyric => audioTrack.Lyrics.SynchronizedLyrics.Add(new LyricsInfo.LyricsPhrase(lyric.Time!.Value, lyric.Content)));
+								}
+								else 
+								{
+									// Add lyrics
+									IEnumerable<string> lyrics = Jobs[jobID].Configuration.Lyrics!.Select(lyric => lyric.Content);
+									audioTrack.Lyrics.UnsynchronizedLyrics = string.Join(Environment.NewLine, lyrics);
+								}
+							}
 
 							bool wasNewMetadataApplyed = await audioTrack.SaveAsync(metadataOverwriteProgress);
 							// Log a warning if ATL failed to overwrite the downloaded audio

@@ -22,8 +22,8 @@ features:
     details: Powered by the yt-dlp library, enabling seamless downloads from a variety of website.
     link: /getting-started#what-website-are-supported
     linkText: Learn more
-  - title: Simultaneous Downloads
-    details: Take control with the ability to configure how many downloads can run concurrently, optimizing your time.
+  - title: Customizable Features
+    details: Take control with a range of customization options, including the ability to configure simultaneous downloads and support for unsynchronized and synchronized embedded lyrics.
     link: /configurations
     linkText: See available configurations
   - title: Include a Web Interface

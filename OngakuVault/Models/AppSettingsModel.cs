@@ -50,39 +50,52 @@
 		/// Number of allowed scrapper processes (yt-dlp) that can run at the same time.
 		/// 8 by default, minimum 1, limited to 100.
 		/// </summary>
-		public int PARALLEL_SCRAPPER_PROC
+		public int PARALLEL_SCRAPER_PROC
 		{
-			get => _parallelScrapperProc;
-			set => _parallelScrapperProc = (value < 1) ? 1 : (value > 100) ? 100 : value;
+			get => _parallelScraperProc;
+			set => _parallelScraperProc = (value < 1) ? 1 : (value > 100) ? 100 : value;
 		}
-		private int _parallelScrapperProc = 8;
+		private int _parallelScraperProc = 8;
 
 		/// <summary>
 		/// Number of allowed download jobs that can run at the same time.
-		/// 4 by default, minimum 1, limited to PARALLEL_SCRAPPER_PROC value
+		/// 4 by default, minimum 1, limited to PARALLEL_SCRAPER_PROC value
 		/// </summary>
 		public int PARALLEL_JOBS
 		{
 			get => _parallelJobs;
-			set => _parallelJobs = (value < 1) ? 1 : (value > PARALLEL_SCRAPPER_PROC) ? PARALLEL_SCRAPPER_PROC : value;
+			set => _parallelJobs = (value < 1) ? 1 : (value > PARALLEL_SCRAPER_PROC) ? PARALLEL_SCRAPER_PROC : value;
 		}
 		private int _parallelJobs = 4;
 
 		/// <summary>
-		/// List of allowed origins for REST & Websocket connections.
+		/// List of allowed origins for REST and Websocket connections.
 		/// Origins are separated by PIPE (|). Ex: (https://example.com|https://example2.com)
 		/// Empty by default, allowing all origins.
 		/// </summary>
 		public string? OVERWRITE_CORS_ORIGIN { get; set; }
+		/// <remarks>
+		/// Array version of <see cref="OVERWRITE_CORS_ORIGIN"/>
+		/// </remarks>
+		public string[]? OVERWRITE_CORS_ORIGIN_ARRAY => OVERWRITE_CORS_ORIGIN?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 
 
 		/// <summary>
-		/// Get <see cref="OVERWRITE_CORS_ORIGIN"/> values as a array (PIPE (|) used for separation)
+		/// List, in descending priority order, of allowed lyrics/subtitles
+		/// that can be fetched and returned by the server in a additional media info
+		/// request (by <see cref="Controllers.MediaController"/>).
+		/// All values are separated by PIPE (|). Ex: (https://example.com|https://example2.com)
+		/// Empty by default, not fetching any lyrics / subtitles.
 		/// </summary>
-		/// <returns>A array or null if empty</returns>
-		public string[]? Get_OVERWRITE_CORS_ORIGIN_AsArray()
-		{
-			return OVERWRITE_CORS_ORIGIN?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
-		}
+		/// <remarks>
+		/// Uses IETF language tags since the scraper (yt-dlp) uses them.
+		/// A value of "en" would match "en" and everything starting by "en-".
+		/// A value of "en-US" would match "en-US" and everything starting by "en-US-".
+		/// </remarks>
+		public string? LYRICS_LANGUAGE_PRIORITY { get; set; }
+		/// <remarks>
+		/// Array version of <see cref="LYRICS_LANGUAGE_PRIORITY"/>
+		/// </remarks>
+		public string[]? LYRICS_LANGUAGE_PRIORITY_ARRAY => LYRICS_LANGUAGE_PRIORITY?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 	}
 }

@@ -72,3 +72,26 @@ footer {
     color: red;
     transform: scale(1.2);
 }
+
+/* Create Job Modal, LYRICS button using details element*/
+details[open] > summary.button {
+    background-color: #2956a7;
+}
+
+.remove-lyric {
+    position: absolute;
+    top: 0px;
+    right: 5px;
+    font-size: 35px;
+    color: rgba(255, 255, 255, 0.356);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.remove-lyric:hover {
+   color: red;
+   transform: scale(1.2);
+}

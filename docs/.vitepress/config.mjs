@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "Ongakuvault Docs",
+  title: "Ongakuvault",
   lang: "en-ca",
   description: "The Ongakuvault documentation website!",
   base: '/ongakuvault/', // We overwrite the root "/" base for "/repo-name/" due to how github pages work

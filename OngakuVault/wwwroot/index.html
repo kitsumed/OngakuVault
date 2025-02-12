@@ -95,9 +95,33 @@
 			</header>
 			<section class="modal-card-body">
 				<div class="content">
+					<!-- Warning messages -->
+					<article id="modal-warning-LosslessRecommended" class="message is-info is-hidden">
+						<div class="message-body">
+							The server found that the best audio quality was in a lossless format. You selected a <strong>
+								lossy file
+								format
+							</strong>. To get the best quality available, choose a lossless format like
+							FLAC.
+							<strong>
+								If you keep the lossy format, the server will download the best available audio
+								and re-encode in the best quality supported by the chosen format.
+							</strong>
+						</div>
+					</article>
+					<article id="modal-warning-LosslessNotRecommended" class="message is-warning is-hidden">
+						<div class="message-body">
+							You selected a <strong>lossless file format</strong>, but the server did not recommend
+							lossless audio. <strong>
+								If you keep the lossless format, the server will download the best
+								available lossy audio and re-encode it to the lossless format. The file size may
+								increase by 2 to 3 times without improving quality.
+							</strong>
+						</div>
+					</article>
 					<!-- Fields for the JobConfiguration section inside the job creation REST-->
 					<form id="JobConfiguration-form">
-						<div class="is-flex">
+						<div class="is-flex pb-2">
 							<label class="label is-align-self-center" for="extensionFormat">File Format:</label>
 							<div class="select pl-4">
 								<select id="finalAudioFormat" name="finalAudioFormat">
@@ -111,29 +135,6 @@
 								</select>
 							</div>
 						</div>
-						<article id="modal-warning-LosslessRecommended" class="message pt-4 is-info is-hidden">
-							<div class="message-body">
-								The server found that the best audio quality was in a lossless format. You selected a <strong>
-									lossy file
-									format
-								</strong>. To get the best quality available, choose a lossless format like
-								FLAC.
-								<strong>
-									If you keep the lossy format, the server will download the best available audio
-									and re-encode in the best quality supported by the chosen format.
-								</strong>
-							</div>
-						</article>
-						<article id="modal-warning-LosslessNotRecommended" class="message pt-4 is-warning is-hidden">
-							<div class="message-body">
-								You selected a <strong>lossless file format</strong>, but the server did not recommend
-								lossless audio. <strong>
-									If you keep the lossless format, the server will download the best
-									available lossy audio and re-encode it to the lossless format. The file size may
-									increase by 2 to 3 times without improving quality.
-								</strong>
-							</div>
-						</article>
 					</form>
 					<!-- Fields for the MediaInfo section inside the job creation REST-->
 					<form id="MediaInfo-form">
@@ -186,6 +187,46 @@
 							</div>
 						</div>
 					</form>
+					<!-- Custom field for the JobConfiguration section, Lyrics -->
+					<details>
+						<summary class="button mt-4 mb-2">Edit Lyrics</summary>
+                        <div class="box is-shadowless has-background-grey-dark" id="JobConfiguration-lyrics">
+                            <article class="message is-info">
+                                <div class="message-body">
+									<strong>By default</strong>, if the content field of the first lyric element is empty, lyrics are disabled.
+									<strong>If you define only the content field</strong> or if any lyric lacks a time value, all lyrics will
+									be embedded as static text, and other time values will be ignored. However, <strong>if all your lyrics include
+									a time value</strong>, they will be embedded as synchronized lyrics.
+								</div>
+                            </article>
+                            <div class="control columns is-mobile mb-0" id="lyric">
+                                <div class="column is-one-quarter">
+                                    <input type="text" id="lyric-time" placeholder="MM:SS.xx" class="input">
+                                </div>
+                                <div class="column">
+                                    <input type="text" id="lyric-content" placeholder="Lyric content" class="input">
+                                </div>
+                                <button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
+                            </div>
+							<div class="buttons" id="lyrics-buttons-container">
+								<div class="file is-link is-small mb-0">
+									<label class="file-label">
+										<input class="file-input" type="file" id="load-lyrics-from-file" />
+										<span class="file-cta button">
+											<span class="file-icon mr-1">
+												<img src="./media/pictures/icons/upload.svg" />
+											</span>
+											<span class="file-label"> Load from file</span>
+										</span>
+									</label>
+								</div>
+								<button class="button is-link is-small" id="add-lyric">Add new</button>
+								<button class="button is-warning is-small" id="clear-lyrics-time">Clear all times</button>
+								<button class="button is-danger is-small" id="remove-empty-lyrics">Remove empty</button>
+								<button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
+							</div>
+                        </div>
+					</details>
 				</div>
 			</section>
 			<footer class="modal-card-foot">
