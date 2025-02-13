@@ -47,6 +47,13 @@
 		public bool ENFORCE_HTTPS { get; set; } = false;
 
 		/// <summary>
+		/// If enabled, all existing non-standard fields will be removed from the audio file metadata.
+		/// We uses the ATL library for metadata, for more informations on what is a non-standard field
+		/// refer to https://github.com/Zeugma440/atldotnet/wiki/Focus-on-non-standard-fields
+		/// </summary>
+		public bool CLEAR_METADATA_NONSTANDARD_FIELDS { get; set; } = false;
+
+		/// <summary>
 		/// Number of allowed scrapper processes (yt-dlp) that can run at the same time.
 		/// 8 by default, minimum 1, limited to 100.
 		/// </summary>

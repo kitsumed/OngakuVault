@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Options;
 using OngakuVault.Models;
 using System.Collections.Concurrent;
-using System.Linq;
 using YoutubeDLSharp;
 using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
@@ -254,6 +253,9 @@ namespace OngakuVault.Services
 								}
 							}
 
+							// If the used enabled the clear non standards fields (in the file metadata) settings
+							if (_appSettings.CLEAR_METADATA_NONSTANDARD_FIELDS) audioTrack.AdditionalFields?.Clear();
+
 							bool wasNewMetadataApplyed = await audioTrack.SaveAsync(metadataOverwriteProgress);
 							// Log a warning if ATL failed to overwrite the downloaded audio
 							if (!wasNewMetadataApplyed)
@@ -262,7 +264,6 @@ namespace OngakuVault.Services
 							}
 						}
 						else _logger.LogWarning("Job ID: '{ID}'. Skipped overwriting metadata using the ALT library since no writable metadata formats where supported for the current audio.", jobID); ;
-
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
 						// Apply sub directory path format to the output directory if configured
@@ -294,7 +295,7 @@ namespace OngakuVault.Services
 					else 
 					{
 						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due to the scraper not finding any formats/media on the target webpage. (the formats key is empty?)", jobID);
-						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloaded file. Did the scraper found any formats? Is webpage supported?", 100);
+						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloaded file. Did the scraper found any formats? Is the webpage supported?", 100);
 					}
 				}
 				// Ignore canceledException when it's thrown due to the cancel signal on our cancellationToken

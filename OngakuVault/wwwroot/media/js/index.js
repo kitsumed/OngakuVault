@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             socket.addEventListener("close", () => {
                 console.log("WebSocket: Connection with server was closed.");
+                showWarning("WebSocket connection with server was closed, jobs status won't be updated anymore.\nReload your page to reconnect.");
             });
 
             socket.addEventListener("error", (error) => {

@@ -19,6 +19,7 @@
 ## Advanced configuration
 | Environment Variable        | Description                                                               | Default Value                               | Docker Default Value                        |
 |-----------------------------|---------------------------------------------------------------------------|---------------------------------------------|---------------------------------------------|
+| [`Ongaku__CLEAR_METADATA_NONSTANDARD_FIELDS`](#clear-metadata-nonstandard-fields)| Removes additionals (non-standard) fields from your files metadata.| `false`                                     | `false`                                     |
 | `Ongaku__DISABLE_WEBSITE`           | Disables the website at root `/`, leaving only the API.                   | `false`                                     | `false`                                     |
 | `Ongaku__ENABLE_SWAGGER_DOC`        | Enables Swagger API doc at `/swagger`.                                    | `false`                                     | `false`                                     |
 | `Ongaku__ENFORCE_HTTPS`             | If `true`, redirects HTTP to HTTPS.                                       | `false`                                     | `false`                                     |
@@ -30,6 +31,10 @@
 | `Ongaku__TMP_OUTPUT_DIRECTORY`      | Temporary directory for downloading audio, ⚠️**deleted at app closure**. | Temp directory created in OS Temp directory | Temp directory created in OS Temp directory |
 
 ## Detailed descriptions
+### CLEAR_METADATA_NONSTANDARD_FIELDS
+The `CLEAR_METADATA_NONSTANDARD_FIELDS` variable allows you to remove every fields that are not part of the metadata specs (like ID3v2) standard format. They are also known as *additionals* fields.
+This project uses [atldotnet](https://github.com/Zeugma440/atldotnet) to edit the files metadata, to learn more about what is considered a non-standard field, read the [ATL wiki about non standard fields](https://github.com/Zeugma440/atldotnet/wiki/Focus-on-non-standard-fields#what-are-non-standard-fields-).
+
 ### LYRICS_LANGUAGE_PRIORITY
 The `LYRICS_LANGUAGE_PRIORITY` variable uses [IETF tags](https://wikipedia.org/wiki/IETF_language_tag) returned by the scraper yt-dlp to select, if found, the lyrics language.
 You can define multiples languages by separating them of a PIPE (`|`) character.
