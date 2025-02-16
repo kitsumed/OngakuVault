@@ -31,6 +31,8 @@
 | `Ongaku__TMP_OUTPUT_DIRECTORY`      | Temporary directory for downloading audio, ⚠️**deleted at app closure**. | Temp directory created in OS Temp directory | Temp directory created in OS Temp directory |
 
 ## Detailed descriptions
+If you are unsure about the usage of a variable and do not find a detailed description here, take a look at the [descriptions in the source code](https://github.com/kitsumed/OngakuVault/blob/main/OngakuVault/Models/AppSettingsModel.cs).
+
 ### CLEAR_METADATA_NONSTANDARD_FIELDS
 The `CLEAR_METADATA_NONSTANDARD_FIELDS` variable allows you to remove every fields that are not part of the metadata specs (like ID3v2) standard format. They are also known as *additionals* fields.
 This project uses [atldotnet](https://github.com/Zeugma440/atldotnet) to edit the files metadata, to learn more about what is considered a non-standard field, read the [ATL wiki about non standard fields](https://github.com/Zeugma440/atldotnet/wiki/Focus-on-non-standard-fields#what-are-non-standard-fields-).
