@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsDiv = document.getElementById("results")
     // [Modals]
     const cancelJobModal = document.getElementById("cancel-job-modal")
-    const downloadMediaJobCreationModal = document.getElementById("download-media-job-creation-modal")
+    const jobCreationModal = document.getElementById("download-media-job-creation-modal")
     // [Inside JobCreationModal]
     const jobCreationModalFinalAudioFormat = document.getElementById("finalAudioFormat")
     const jobCreationModalLyrics = document.getElementById("JobConfiguration-lyrics")
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         // Get the content of the data-mediaInfoJson attribute
-        const currentMediaInfoString = downloadMediaJobCreationModal.getAttribute("data-mediaInfoJson");
+        const currentMediaInfoString = jobCreationModal.getAttribute("data-mediaInfoJson");
         if (currentMediaInfoString) {
             const currentMediaInfoJson = JSON.parse(currentMediaInfoString);
             const isLosslessRecommended = currentMediaInfoJson.isLosslessRecommended;
@@ -110,8 +110,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle lyrics related buttons
     jobCreationModalLyrics.addEventListener('click', (event) => {
-        // Check if the clicked element is a remove button
-        if (event.target && event.target.id == 'remove-lyric') {
+        // Verify if the button is a search lyrics button
+        if (event.target && event.target.id == 'search-lyrics-button')
+        {
+            let buttonElement = event.target;
+            // If the clicked element is a IMG, we want to get the parent button
+            if (event.target.tagName === "IMG")
+            {
+                buttonElement = event.target.parentElement.parentElement
+            }
+            let finalUrl = buttonElement.getAttribute("prefixUrl")
+            // Get the track name and put it between the prefix and suffix url
+            finalUrl += jobCreationModal.querySelector('#MediaInfo-form input[id="name"]').value ?? "nameHere"
+            finalUrl += buttonElement.getAttribute("suffixUrl") ?? ""
+            window.open(finalUrl, '_blank', 'noopener, noreferrer');
+        } // [BUTTONS RELATED TO LYRICS]
+        else if (event.target && event.target.id == 'remove-lyric') { // Check if the clicked element is a remove button
             const currentLyricElement = event.target.parentElement;
             // Ensure at least one lyric element exist before removing
             const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");

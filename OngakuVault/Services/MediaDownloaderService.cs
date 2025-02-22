@@ -211,7 +211,7 @@ namespace OngakuVault.Services
 			// Sanitize the url to prevent possible command injections on windows & linux
 			// NOTE: The library we use for yt-dlp, YoutubeDLSharp, run by default yt-dlp using a CMD on windows, thus opening the door to commands injections. Binary are run directly on linux.
 			string sanitizedUrl = UrlHelper.SanitizeUrl(url) ?? throw new FormatException($"Tried to sanitize the given url '{url}' to a safe URL Encoded url but failed.");
-
+			
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Fetch media information

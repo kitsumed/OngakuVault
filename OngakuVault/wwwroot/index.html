@@ -190,24 +190,50 @@
 					<!-- Custom field for the JobConfiguration section, Lyrics -->
 					<details>
 						<summary class="button mt-4 mb-2">Edit Lyrics</summary>
-                        <div class="box is-shadowless has-background-grey-dark" id="JobConfiguration-lyrics">
-                            <article class="message is-info">
-                                <div class="message-body">
+						<div class="box is-shadowless has-background-grey-dark" id="JobConfiguration-lyrics">
+							<article class="message is-info mb-2">
+								<div class="message-body">
 									<strong>By default</strong>, if the content field of the first lyric element is empty, lyrics are disabled.
 									<strong>If you define only the content field</strong> or if any lyric lacks a time value, all lyrics will
-									be embedded as static text, and other time values will be ignored. However, <strong>if all your lyrics include
-									a time value</strong>, they will be embedded as synchronized lyrics.
+									be embedded as static text, and other time values will be ignored. However, <strong>
+										if all your lyrics include
+										a time value
+									</strong>, they will be embedded as synchronized lyrics.
 								</div>
-                            </article>
-                            <div class="control columns is-mobile mb-0" id="lyric">
-                                <div class="column is-one-quarter">
-                                    <input type="text" id="lyric-time" placeholder="MM:SS.xx" class="input">
-                                </div>
-                                <div class="column">
-                                    <input type="text" id="lyric-content" placeholder="Lyric content" class="input">
-                                </div>
-                                <button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
-                            </div>
+							</article>
+
+							<div class="is-flex is-align-content-center">
+								<p class="mr-1 has-text-white-bis">Search lyrics on:</p>
+								<div class="columns" id="search-lyrics">
+									<div class="column">
+										<button class="button is-small is-text" title="Google" id="search-lyrics-button" prefixUrl="https://www.google.com/search?q=" suffixUrl=' intext:("lyrics"|"subtitles")&udm=14'>
+											<span class="icon is-small">
+												<img src="./media/pictures/icons/google-G.svg" id="search-lyrics-button" />
+											</span>
+										</button>
+										<button class="button is-small is-text" title="Genuis" id="search-lyrics-button" prefixUrl="https://genius.com/search?q=">
+											<span class="icon is-small">
+												<img src="./media/pictures/icons/genius.svg" id="search-lyrics-button" />
+											</span>
+										</button>
+										<button class="button is-small is-text" title="Musixmatch" id="search-lyrics-button" prefixUrl="https://www.musixmatch.com/search?query=">
+											<span class="icon is-small">
+												<img src="./media/pictures/icons/musixmatch.svg" id="search-lyrics-button" />
+											</span>
+										</button>
+									</div>
+								</div>
+							</div>
+
+							<div class="control columns is-mobile mb-0" id="lyric">
+								<div class="column is-one-quarter">
+									<input type="text" id="lyric-time" placeholder="MM:SS.xx" class="input">
+								</div>
+								<div class="column">
+									<input type="text" id="lyric-content" placeholder="Lyric content" class="input">
+								</div>
+								<button id="remove-lyric" class="remove-lyric" aria-label="Remove">×</button>
+							</div>
 							<div class="buttons" id="lyrics-buttons-container">
 								<div class="file is-link is-small mb-0">
 									<label class="file-label">
@@ -225,7 +251,7 @@
 								<button class="button is-danger is-small" id="remove-empty-lyrics">Remove empty</button>
 								<button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
 							</div>
-                        </div>
+						</div>
 					</details>
 				</div>
 			</section>
