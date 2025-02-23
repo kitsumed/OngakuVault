@@ -149,7 +149,8 @@ namespace OngakuVault.Services
 				// Create a temporary yt-dlp proc
 				YoutubeDLProcess temporaryYTDLPProc = new YoutubeDLProcess(MediaDownloader.YoutubeDLPath);
 				// Create a event handler to listen to the proc outputs
-				EventHandler<DataReceivedEventArgs> outputHandler = (o, e) =>
+				EventHandler<DataReceivedEventArgs>? outputHandler = null;
+				outputHandler = (o, e) =>
 				{
 					// e.Data is a proc output, when running --version arg, the first and only output should be in yyyy.MM.dd format.
 					bool isDateValid = DateTime.TryParseExact(e.Data, "yyyy.MM.dd", null, System.Globalization.DateTimeStyles.None, out _);
@@ -158,13 +159,13 @@ namespace OngakuVault.Services
 						_logger.LogInformation("Current yt-dlp version is : {date}", e.Data);
 					}
 					else _logger.LogWarning("Could not detect yt-dlp version. Output is : {output}", e.Data);
+					// Detach the event handler to allow the GC to free memory
+					temporaryYTDLPProc.OutputReceived -= outputHandler;
 				};
 				// Attach the event handler to the proc
 				temporaryYTDLPProc.OutputReceived += outputHandler;
-				// Run the proc with the --version argument and wait for proc exit
-				temporaryYTDLPProc.RunAsync(null, new OptionSet { Version = true, Simulate = true }).Wait();
-				// Detach the event handler to allow the GC to free memory
-				temporaryYTDLPProc.OutputReceived -= outputHandler;
+				// Run the proc with the --version argument in another thread to prevent delaying the initialisation of MediaDownloaderService.
+				_ = temporaryYTDLPProc.RunAsync(null, new OptionSet { Version = true, Simulate = true });
 			}
 			else
 			{
