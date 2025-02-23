@@ -24,9 +24,25 @@
 		/// </summary>
 		/// <remarks>
 		/// This string support values replacing, if the text is placed in between two PIPE (|).
-		/// Currently the following values are available: NOW_YEAR, NOW_MONTH, NOW_DAY, AUDIO_ARTIST, AUDIO_ALBUM, AUDIO_YEAR
+		/// Currently the following processors are applied: <br/>
+		/// 1. <see cref="Helpers.ValueReplacingHelper.ProcessDate(System.Text.StringBuilder)"/>
+		/// <br/>
+		/// 2. <see cref="Helpers.ValueReplacingHelper.ProcessTrack(System.Text.StringBuilder, ATL.Track)"/>
 		/// </remarks>
 		public string? OUTPUT_SUB_DIRECTORY_FORMAT { get; set; } = null;
+
+		/// <summary>
+		/// The template format used to rename the downloaded file name.
+		/// Defaults to null, if a value is set, the file name will be renamed after processing the replaceable values.
+		/// </summary>
+		/// <remarks>
+		/// This string support values replacing, if the text is placed in between two PIPE (|).
+		/// Currently the following processors are applied: <br/>
+		/// 1. <see cref="Helpers.ValueReplacingHelper.ProcessDate(System.Text.StringBuilder)"/>
+		/// <br/>
+		/// 2. <see cref="Helpers.ValueReplacingHelper.ProcessTrack(System.Text.StringBuilder, ATL.Track)"/>
+		/// </remarks>
+		public string? OUTPUT_FILE_FORMAT { get; set; } = null;
 
 		/// <summary>
 		/// Enable or disable swagger api documentation on the website.

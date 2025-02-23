@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using OngakuVault.Models;
 using System.Collections.Concurrent;
+using System.Text;
 using YoutubeDLSharp;
 using static OngakuVault.Helpers.ScraperErrorOutputHelper;
 
@@ -266,26 +267,45 @@ namespace OngakuVault.Services
 						else _logger.LogWarning("Job ID: '{ID}'. Skipped overwriting metadata using the ALT library since no writable metadata formats where supported for the current audio.", jobID); ;
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
-						// Apply sub directory path format to the output directory if configured
+						
+						// Get base output directory & file name
 						string outputDirectory = _appSettings.OUTPUT_DIRECTORY;
+						string fileName = downloadedFileInfo.Name;
+
+						// Apply sub directory path format to the output directory if configured
 						if (!string.IsNullOrEmpty(_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT)) 
 						{
-							outputDirectory = Path.Combine(outputDirectory,_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT
-								.Replace("|NOW_YEAR|", DateTime.Now.Year.ToString())
-								.Replace("|NOW_MONTH|", DateTime.Now.Month.ToString())
-								.Replace("|NOW_DAY|", DateTime.Now.Day.ToString())
-								// Here audioTrack has the overwritten value (Jobs[jobID].Data.*) if the field was defined, else the original file values
-								.Replace("|AUDIO_ARTIST|", audioTrack.Artist ?? "Unknown")
-								.Replace("|AUDIO_ALBUM|", audioTrack.Album ?? "Unknown")
-								.Replace("|AUDIO_YEAR|", (audioTrack.Year ?? 0).ToString()));
+							StringBuilder stringBuilder = new StringBuilder(_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT);
+							// Replace date values
+							stringBuilder = Helpers.ValueReplacingHelper.ProcessDate(stringBuilder);
+							// Replace ATL Track values
+							stringBuilder = Helpers.ValueReplacingHelper.ProcessTrack(stringBuilder, audioTrack);
+
+							outputDirectory = Path.Combine(outputDirectory, stringBuilder.ToString());
 						}
-						// Ensure downloaded audio file name is unique
-						string finalAudioPath = Path.Combine(outputDirectory, downloadedFileInfo.Name);
+						// Apply the file name format if configured
+						if (!string.IsNullOrEmpty(_appSettings.OUTPUT_FILE_FORMAT))
+						{
+							// Process & apply the template format
+							string fileExtension = Path.GetExtension(fileName);
+							StringBuilder stringBuilder = new StringBuilder(_appSettings.OUTPUT_FILE_FORMAT);
+							// Replace date values
+							stringBuilder = Helpers.ValueReplacingHelper.ProcessDate(stringBuilder);
+							// Replace ATL Track values
+							stringBuilder = Helpers.ValueReplacingHelper.ProcessTrack(stringBuilder, audioTrack);
+							// Add the file extension
+							stringBuilder.Append(fileExtension);
+
+							fileName = stringBuilder.ToString();
+						}
+
+						// Ensure file name is unique, else add current time in ticks at the end
+						string finalAudioPath = Path.Combine(outputDirectory, fileName);
 						if (File.Exists(finalAudioPath)) 
 						{
 							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
 							finalAudioPath = Path.Combine(outputDirectory, newAudioName);
-							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the downloaded audio name (now '{newAudioName}').", jobID, downloadedFileInfo.Name, newAudioName);
+							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the file name (now '{newAudioName}').", jobID, fileName, newAudioName);
 						}
 						// Ensure the final output directory exists
 						Directory.CreateDirectory(outputDirectory);
