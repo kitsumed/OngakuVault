@@ -51,14 +51,13 @@ namespace OngakuVault.Controllers
 				// If it's a know error (a "normal" error) returned often by the scraper, can be send to the client
 				if (ex.IsKnownError)
 				{
-					_logger.LogWarning("Known scraper error was returned by the scraper when using mediaUrl : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
+					_logger.LogWarning("Known scraper error was returned by the scraper. Using mediaUrl : '{mediaUrl}'. Error: {message}. Original Scraper Error: {originalError}", mediaUrl, ex.Message, ex.OriginalError);
 					return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
 				}
 				else _logger.LogError("An unexpected scraper error occurred while fetching media information on : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
 			}
 			catch (Exception ex) // Handle every other errors
 			{
-				// We print other error as Error since they are not planned
 				_logger.LogError(ex, "An unexpected error occurred while fetching media information. Error: {message}", ex.Message);
 			}
 			// If request failed, return a vague error message to client

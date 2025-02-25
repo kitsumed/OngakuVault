@@ -329,12 +329,12 @@ namespace OngakuVault.Services
 						ProcessedScraperErrorOutputException processedEx = (ProcessedScraperErrorOutputException)ex;
 						if (processedEx.IsKnownError)
 						{
-							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}. Original Scraper Error: {}", jobID, processedEx.Message, processedEx.OriginalError);
 							Jobs[jobID].ReportStatus(JobStatus.Failed, $"Known scraper error occurred: {ex.Message}", 100);
 						}
 						else 
 						{
-							_logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Error: {message}", jobID, ex.Message);
+							_logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Scraper Error: {message}", jobID, processedEx.Message);
 							Jobs[jobID].ReportStatus(JobStatus.Failed, "An unexpected scraper error occurred", 100);
 						}
 					}

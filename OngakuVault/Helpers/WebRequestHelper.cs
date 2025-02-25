@@ -13,7 +13,7 @@ namespace OngakuVault.Helpers
 			DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower, // Fall back to HTTP1/1.1 if server does not support
 		};
 
-		private static readonly string DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+		private static readonly string DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
 
 		/// <summary>
 		/// Make a request to a website and get the response message
@@ -22,7 +22,7 @@ namespace OngakuVault.Helpers
 		/// <param name="userAgent">Optional, overwrite the user-agent used for the request</param>
 		/// <exception cref="HttpRequestException">If the response http code is not in the 200-299 range</exception>
 		/// <remarks>
-		/// Don't forget to dispose of the response message.
+		/// <strong>Don't forget to dispose of the response message.</strong>
 		/// </remarks>
 		/// <returns>The response message</returns>
 		public static async Task<HttpResponseMessage> GetContentFromWebsiteAsync(Uri requestUrl, string? userAgent = null)

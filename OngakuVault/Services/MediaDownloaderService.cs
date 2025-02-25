@@ -62,9 +62,9 @@ namespace OngakuVault.Services
 		private readonly string TMPOutputPath;
 
 		/// <summary>
-		/// Hard-coded settings that are used for every Audio download request
+		/// Hard-coded settings that are used for every audio download request
 		/// </summary>
-		private readonly OptionSet AudioDownloaderOverrideOptions = new OptionSet()
+		private readonly OptionSet DownloaderOverwriteOptions = new OptionSet()
 		{
 			// Keep the best file quality possible
 			AudioQuality = 0,
@@ -82,6 +82,11 @@ namespace OngakuVault.Services
 			// Ensure to download only the current media if the url is media + playlist of media
 			NoPlaylist = true,
 		};
+
+		/// <summary>
+		/// Hard-coded settings that are used for every fetching of information by the scraper
+		/// </summary>
+		private readonly OptionSet InformationOverwriteOptions = new OptionSet() { };
 
 		/// <summary>
 		/// List of lossless codecs
@@ -113,7 +118,7 @@ namespace OngakuVault.Services
 			_appSettings = appSettings.Value;
 			TMPOutputPath = _appSettings.TMP_OUTPUT_DIRECTORY ?? Directory.CreateTempSubdirectory("ongakuvault_downloads_").FullName;
 			_appSettings.TMP_OUTPUT_DIRECTORY = TMPOutputPath; // Overwrite setting value so that if value was null, it is now the new TempSub 
-			// Ensure the given output path exist
+			// Ensure the given TMP output path exist
 			Directory.CreateDirectory(TMPOutputPath);
 			// Create a instance of the yt-dlp wrapper that can run up to "PARALLEL_SCRAPPER_PROC" value of processes simultaneously
 			MediaDownloader = new YoutubeDL((byte)_appSettings.PARALLEL_SCRAPER_PROC) 
@@ -169,6 +174,13 @@ namespace OngakuVault.Services
 			{
 				_logger.LogWarning("MediaDownloaderService could not locate some external binaries. yt-dlp should be in '{YoutubeDLPath}' and FFmpeg in '{FFmpegPath}'.\r\nEnsure both binaries are under their respective paths.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			}
+
+			// Overwrite the yt-dlp configuration depending on the defined appSettings
+			if (!string.IsNullOrEmpty(_appSettings.SCRAPER_USERAGENT)) // Apply custom user-agent
+			{
+				DownloaderOverwriteOptions.AddHeaders = new string[] { $"User-Agent:{_appSettings.SCRAPER_USERAGENT}" };
+				InformationOverwriteOptions.AddHeaders = new string[] { $"User-Agent:{_appSettings.SCRAPER_USERAGENT}" };
+			}
 		}
 		/// <summary>
 		/// Called when Disposing of MediaDownaloderService (should only happen at application closure)
@@ -195,7 +207,7 @@ namespace OngakuVault.Services
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Download the media audio
-			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(sanitizedMediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, AudioDownloaderOverrideOptions);
+			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(sanitizedMediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, DownloaderOverwriteOptions);
 			// If succes is false, throw a ScraperErrorOutputException using ProcessScraperErrorOutput
 			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
 			// Ensure file exists, else return null
@@ -214,7 +226,7 @@ namespace OngakuVault.Services
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Fetch media information
-			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(sanitizedUrl, cancellationToken.Value, flatPlaylist, fetchComments);
+			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(sanitizedUrl, cancellationToken.Value, flatPlaylist, fetchComments, InformationOverwriteOptions);
 			if (!mediaData.Success)
 			{
 				// Failed to fetch / get media info from a webpage
@@ -301,14 +313,14 @@ namespace OngakuVault.Services
 		private async Task<List<MediaLyric>?> GetLyricsAsync(RunResult<VideoData> mediaData, string[] languagePriority)
 		{
 			if (languagePriority.Length <= 0) throw new ArgumentException("Language priority need to have >= 1 element but has <= 0");
-			List<MediaLyric> lyrics = new List<MediaLyric>(); ;
+			List<MediaLyric> lyrics = new List<MediaLyric>();
 
 			// Loop every subtitles found, where Key is the IETF language tag and value a array of all
 			// available subtitle formats for that language.
 			foreach (KeyValuePair<string, SubtitleData[]> currSubtitle in mediaData.Data.Subtitles)
 			{
 				if (lyrics.Count >= 1) break;
-				// Verify if one of the defined language tag in the setting is similar to the current subtitle language tag
+				// Verify if one of the given language tag is similar to the current subtitle language tag
 				if (languagePriority.Any(languageTag => LanguageTagHelper.IsIETFLanguageTagSimilar(languageTag, currSubtitle.Key)))
 				{
 					// Loop trought all file format available for the current language
@@ -320,7 +332,7 @@ namespace OngakuVault.Services
 						{
 							try
 							{
-								using HttpResponseMessage requestResponse = await WebRequestHelper.GetContentFromWebsiteAsync(new Uri(subtitleData.Url));
+								using HttpResponseMessage requestResponse = await WebRequestHelper.GetContentFromWebsiteAsync(new Uri(subtitleData.Url), _appSettings.WEB_REQUEST_USERAGENT);
 								using Stream responseStream = await requestResponse.Content.ReadAsStreamAsync();
 								SubtitleParserResultModel? result = SubtitleParser.ParseStream(responseStream, Encoding.UTF8, subtitleFormatType.Value, false);
 								if (result != null)
@@ -336,7 +348,7 @@ namespace OngakuVault.Services
 									}
 									break; // We found the lyrics, stop execution
 								}
-								else _logger.LogWarning("Failed to parse lyrics of extension '{extensionFormat}' with parser '{parser}'.", subtitleData.Ext, Enum.GetName(typeof(SubtitleFormatType), subtitleFormatType));
+								else _logger.LogWarning("Fetched lyrics from the source '{url}' as extension '{extensionFormat}' but failed to parser them with the parser '{parser}'.",subtitleData.Url , subtitleData.Ext, Enum.GetName(typeof(SubtitleFormatType), subtitleFormatType));
 							}
 							catch (HttpRequestException requestException)
 							{

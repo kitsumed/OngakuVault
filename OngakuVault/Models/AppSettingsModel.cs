@@ -70,6 +70,17 @@
 		public bool CLEAR_METADATA_NONSTANDARD_FIELDS { get; set; } = false;
 
 		/// <summary>
+		/// If defined, will use the specified user-agent for every web request made by the OngakuVault application,
+		/// like fetching lyrics url returned by the scraper.
+		/// </summary>
+		public string? WEB_REQUEST_USERAGENT { get; set; } = null;
+
+		/// <summary>
+		/// If defined, will configure the yt-dlp scraper to use the specified user-agent.
+		/// </summary>
+		public string? SCRAPER_USERAGENT { get; set; } = null;
+
+		/// <summary>
 		/// Number of allowed scrapper processes (yt-dlp) that can run at the same time.
 		/// 8 by default, minimum 1, limited to 100.
 		/// </summary>

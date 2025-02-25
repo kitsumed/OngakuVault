@@ -25,7 +25,9 @@
 | `Ongaku__DISABLE_WEBSITE`           | Disables the website at root `/`, leaving only the API.                   | `false`                                     | `false`                             |
 | `Ongaku__ENABLE_SWAGGER_DOC`        | Enables Swagger API doc at `/swagger`.                                    | `false`                                     | `false`                             |
 | `Ongaku__ENFORCE_HTTPS`             | If `true`, redirects HTTP to HTTPS.                                       | `false`                                     | `false`                             |
-| [`Ongaku__LYRICS_LANGUAGE_PRIORITY`](#lyrics-language-priority)  | Lyrics/subtitle languages to prioritize when available. (IETF tags)    | *Empty*, lyrics fetching disabled.          | *empty*   |
+| [`Ongaku__LYRICS_LANGUAGE_PRIORITY`](#lyrics-language-priority)  | Lyrics/subtitle languages to prioritize when available. (IETF tags)    | *empty*, lyrics fetching disabled.          | *empty*   |
+| `Ongaku__WEB_REQUEST_USERAGENT`     | Define the user-agent OngakuVault should use for all web requests.        | *empty*                                     | *empty*                             |
+| `Ongaku__SCRAPER_USERAGENT`         | Define the user-agent the scraper (yt-dlp) should use for all web requests.| *empty*                                    | *empty*                             |
 | `Ongaku__OUTPUT_DIRECTORY`          | Output directory for downloaded audio files.                              | *empty*, defaults to `./archived-audios`    | `/home/app/archived-audios`         |
 | [`Ongaku__OUTPUT_FILE_FORMAT`](#output-file-format)| Downloaded files naming template                           | *empty*                                     | *empty*                             |
 | [`Ongaku__OUTPUT_SUB_DIRECTORY_FORMAT`](#output-sub-directory-format)| Sub directory for downloaded audio files.| *empty*                                     | *empty*                             |
