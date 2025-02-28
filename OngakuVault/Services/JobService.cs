@@ -25,6 +25,17 @@ namespace OngakuVault.Services
 		bool TryAddJobToQueue(JobModel jobModel);
 
 		/// <summary>
+		/// Remove a job from the queue
+		/// </summary>
+		/// <remarks>
+		/// You can only remove jobs that have completed the execution process. You can force the execution process to complete by cancelling the job.
+		/// </remarks>
+		/// <param name="jobModel">The current job informations</param>
+		/// <returns>True if the job was removed, false if the job couln't be removed.</returns>
+		/// <exception cref="InvalidOperationException">If the job did not complete its execution process</exception>
+		bool TryRemoveJobFromQueue(JobModel jobModel);
+
+		/// <summary>
 		/// Get a job (JobModel) from it's ID
 		/// </summary>
 		/// <param name="ID">The Job ID</param>
@@ -104,6 +115,17 @@ namespace OngakuVault.Services
 			return result;
 		}
 
+		public bool TryRemoveJobFromQueue(JobModel jobModel) 
+		{
+			if (jobModel.Status != JobStatus.Completed && jobModel.Status != JobStatus.Cancelled && jobModel.Status != JobStatus.Failed) throw new InvalidOperationException("The current job is still waiting for or is ongoing execution. You can only remove jobs that completed the execution process.");
+			bool wasJobRemoved = Jobs.TryRemove(jobModel.ID, out _);
+			if (wasJobRemoved)
+			{
+				jobModel?.Dispose();
+			}
+			return wasJobRemoved;
+		}
+
 		public bool TryGetJobByID(string ID, out JobModel? job)
 		{
 			// Try to get the job, return success boolean, & out JobModel
@@ -133,10 +155,7 @@ namespace OngakuVault.Services
 					if (dateTimeNow.Subtract(jobModel.CreationDate).TotalMinutes >= totalMinutes) 
 					{
 						// Free the old job from the list
-						if (Jobs.TryRemove(jobModel.ID, out _))
-						{
-							jobModel?.Dispose();
-						}
+						TryRemoveJobFromQueue(jobModel);
 					};
 				}
 			}

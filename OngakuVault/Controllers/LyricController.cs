@@ -17,7 +17,7 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpPost("getLyricsFromFile")]
-		[EndpointDescription("Get a list of the lyrics from a file encoded in UTF8. Size limit of 2MB.")]
+		[EndpointDescription("Convert a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 2MB.")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<MediaLyric>))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]

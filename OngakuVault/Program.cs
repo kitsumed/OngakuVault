@@ -46,7 +46,7 @@ builder.Services.AddSwaggerGen(options =>
 	{
 		Version = "v1",
 		Title = "OngakuVault",
-		Description = "An ASP.NET API for archieving audio/songs of a webpage locally on a device",
+		Description = "An ASP.NET API for archieving audio/songs of a webpage locally on a device using yt-dlp as its scraper",
 		License = new OpenApiLicense
 		{
 			Name = "Licensed under Apache 2.0",
@@ -58,6 +58,7 @@ builder.Services.AddSwaggerGen(options =>
 			Url = new Uri("https://github.com/kitsumed/OngakuVault")
 		},
 	});
+	// Uses code comments as description on swagger for elements that don't have a custom swagger description
 	options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OngakuVault.xml"));
 	options.EnableAnnotations();
 });

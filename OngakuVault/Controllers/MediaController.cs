@@ -20,7 +20,7 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpGet("info")]
-		[EndpointDescription("Get advanced informations about a media from a url")]
+		[EndpointDescription("Use the scraper to get advanced informations about a media")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MediaInfoAdvancedModel))]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]

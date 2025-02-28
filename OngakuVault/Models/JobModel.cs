@@ -102,6 +102,8 @@ namespace OngakuVault.Models
 	
 		public void Dispose()
 		{
+			// Report to every websocket clients that the server is disposing of the job
+			_webSocketManagerService.BroadcastAsync("JobDestroyed", ID);
 			CancellationTokenSource?.Dispose();
 		}
 

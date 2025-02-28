@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Components.RenderTree;
-using Microsoft.AspNetCore.Mvc;
-using OngakuVault.Helpers;
+﻿using Microsoft.AspNetCore.Mvc;
 using OngakuVault.Services;
 using System.Net.WebSockets;
 
@@ -21,14 +19,14 @@ namespace OngakuVault.Controllers
 			_webSocketManagerService = webSocketManagerService;
 		}
 
-		[HttpGet("test")]
+		/*[HttpGet("test")]
 		[EndpointDescription("test")]
 		[Produces("application/json")]
 		public ActionResult test()
 		{
 			_webSocketManagerService.BroadcastAsync<string>("update", "test");
 			return Ok();
-		}
+		}*/
 
 		[Route("/ws")] // See https://learn.microsoft.com/en-us/aspnet/core/fundamentals/websockets?view=aspnetcore-8.0
 		[ApiExplorerSettings(IgnoreApi = true)] // Swagger does not support websocket (as it require a mvc.HttpGetAttribute, who cause websocket to stop working)

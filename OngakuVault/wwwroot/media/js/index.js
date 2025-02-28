@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const jobId = jobItemElement.id.replace("job-item_", ""); // Get the job id out of the jobItem element id
             openModalQuestion(cancelJobModal).then((didConfirm) => {
                 if (didConfirm) {
-                    fetch(`${APIEndpoint}/job/${jobId}/cancel`, { method: 'DELETE' }).then(async (response) => {
+                    fetch(`${APIEndpoint}/job/cancel/${jobId}`, { method: 'DELETE' }).then(async (response) => {
                         if (!response.ok) {
                             showWarning(`Failed to cancel selected job. Server responded with status ${response.status}.\nError: ${await response.text()}`);
                             console.error(`Failed to cancel job id '${jobId}', api response code : ${response.status}`, response)
@@ -249,6 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             } else {
                                 console.warn(`Websocket: Reiceived a status update for job id '${message.id}', but couldn't locate a job item in the DOM with this ID.'`);
                             }
+                            break;
+                        // Server reported the removal of a job from it's memory
+                        case "JobDestroyed": // Here message is a string (the job ID)
+                            let removedJobItem = getJobItemByID(message);
+                            removedJobItem.remove(); // Remove the job element from DOM
                             break;
                         default:
                             console.warn(`WebSocket: Reiceived a message from server with key: '${messageKey}'. But the client does not know how to handle it.`);
