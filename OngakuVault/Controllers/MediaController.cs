@@ -35,7 +35,7 @@ namespace OngakuVault.Controllers
 			// Fetch video data
 			try
 			{
-				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl, default, default, cancellationToken);
+				MediaInfoAdvancedModel mediaInfoModel = await _mediaDownloaderService.GetMediaInformations(mediaUrl, true, false, cancellationToken);
 				if (mediaInfoModel != null) return Ok(mediaInfoModel);
 			}
 			// Ignore canceledException when it's thrown due to the cancel signal on our cancellationToken

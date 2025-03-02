@@ -81,6 +81,8 @@ namespace OngakuVault.Services
 			NoEmbedSubs = true,
 			// Ensure to download only the current media if the url is media + playlist of media
 			NoPlaylist = true,
+			// Do not load informations about other media if url contains a playlist
+			FlatPlaylist = true,
 		};
 
 		/// <summary>
@@ -226,6 +228,7 @@ namespace OngakuVault.Services
 			// If no cancellation token was given, generate a "None" token
 			cancellationToken = cancellationToken ?? CancellationToken.None;
 			// Fetch media information
+			// NOTE: flatplaylist is enabled so that if a given url contains a specific media ALONG with a playlist, the playlist part get ignored by the scraper
 			RunResult<VideoData> mediaData = await MediaDownloader.RunVideoDataFetch(sanitizedUrl, cancellationToken.Value, flatPlaylist, fetchComments, InformationOverwriteOptions);
 			if (!mediaData.Success)
 			{
@@ -234,7 +237,9 @@ namespace OngakuVault.Services
 				ScraperErrorOutputHelper.ProcessScraperErrorOutput(mediaData.ErrorOutput);
 			}
 
-			if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("Playlist media are not currently supported.");
+			// Ensure the scraper results isn't a playlist
+			if (mediaData.Data.ResultType == MetadataType.Playlist) throw new NotSupportedException("The scraper returned a playlist (list) of different media. You cannot get data about a specific media by giving a playlist url.");
+			
 			MediaInfoAdvancedModel returnedMediaInformations = new MediaInfoAdvancedModel()
 			{
 				Name = string.IsNullOrEmpty(mediaData.Data.Track) ? mediaData.Data.Title : mediaData.Data.Track, // Fallback to Title
