@@ -67,6 +67,40 @@ namespace OngakuVault.Helpers
 					{
 						throw new ProcessedScraperErrorOutputException("The scraper extractor reported the url as unsupported.", true, errorLine);
 					}
+
+					// Search for error related to DRM (websites known for using DRM)
+					// Example: ERROR: [DRM] The requested site is known to use DRM protection. It will NOT be supported.
+					// Note: Seems to be reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/unsupported.py#L21
+					if (errorLine.Contains("The requested site is known to use DRM protection"))
+					{
+						throw new ProcessedScraperErrorOutputException("Scraper did not proceed with the request due to the website being know to use DRM protection, which isn't supported.", true, errorLine);
+					}
+
+					// Search for error related to DRM (DRM content detected)
+					// Example: ERROR: [generic] random: This video is DRM protected
+					// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1221
+					// Note: might also trigger false positive like: ERROR: This video is either unavailable in your region or is DRM protected
+					if (errorLine.Contains("DRM protected"))
+					{
+						throw new ProcessedScraperErrorOutputException("Scraper detected that the website may/is using DRM protection, which isn't supported.", true, errorLine);
+					}
+
+					// Search for error related to login required
+					// Example: ERROR: This video is only available for registered users
+					// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1242
+					if (errorLine.Contains("This video is only available for registered users"))
+					{
+						throw new ProcessedScraperErrorOutputException("Scraper reported that the video is only available for registered users.", true, errorLine);
+					}
+
+					// Search for error related to geo restrictions
+					// Example: ERROR: This video is not available from your location due to geo restriction
+					// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1252
+					if (errorLine.Contains("This video is not available from your location due to geo restriction"))
+					{
+						throw new ProcessedScraperErrorOutputException("Scraper reported that the video is not available due to geo restriction.", true, errorLine);
+					}
+
 				}
 				/// The error is a unknown one
 			}
