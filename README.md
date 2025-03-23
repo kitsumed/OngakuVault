@@ -47,4 +47,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 ## Acknowledgements / Notice
-Third-party acknowledgements & licenses can be found inside [the NOTICE file](OngakuVault/NOTICE).
+Third-party acknowledgements & licenses can be found inside [the NOTICE file](NOTICE).
