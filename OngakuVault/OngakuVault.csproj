@@ -28,10 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="LICENSE">
+    <None Include="../LICENSE">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="NOTICE">
+    <None Include="../NOTICE">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
