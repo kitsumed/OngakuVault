@@ -29,6 +29,12 @@ export default defineConfig({
               { text: 'Replacing third-party binary', link: '/configurations/replacing-third-party-binary' },
             ]
           },
+          {
+            text: 'API Usage', link: '/api',
+            items: [
+              { text: 'WebSocket Docs', link: '/api/websocket-docs' },
+            ]
+          },
         ]
       }
     ],

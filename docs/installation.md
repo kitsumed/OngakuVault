@@ -26,6 +26,8 @@ Before installing Ongakuvault, please take note of the following:
 ### From binary releases
 You can access the latest binary release [here](https://github.com/kitsumed/OngakuVault/releases/latest).
 These releases currently include builds for the following platforms : `win x64`, `win x32`, `linux arm32`, `linux arm64`, `linux amd64`.
+
+Windows users can start OngakuVault by running the `Ongakuvault.exe` binary. Linux users can run OngakuVault by using the command `dotnet Ongakuvault.dll`.
 > [!NOTE]
 > Ongakuvault builds do not include the .NET Core Runtime in their binary to minimize file size. This means you'll need to install it on your system if you haven't done so already.
 
@@ -33,8 +35,7 @@ These releases currently include builds for the following platforms : `win x64`,
 1. Visit the [Microsoft .NET Core 8 download page](https://dotnet.microsoft.com/download/dotnet/8.0).  
 2. Choose the latest 8.x.x version available.  
 3. Find the section to download the **ASP.NET Core Runtime**.  
-4. For Windows users, download the installer matching your system architecture. For Linux users, follow the package manager instructions provided by Microsoft. 
-
+4. For Windows users, download the installer matching your system architecture. For Linux users, follow the package manager instructions provided by Microsoft.
 
 ### From Docker
 Docker images are available on the github packages registry, you can pull a specific version of Ongakuvault by running `docker image pull ghcr.io/kitsumed/OngakuVault:1.0.0`.
