@@ -144,16 +144,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (didApply)
                 {
                     const offsetModalForum = getFormDataAsJSON(lyricsOffsetModalForum);
+                    const offsetTime = convertStringFormatToMilliseconds(offsetModalForum.offsetTime)
                     // Get all of the lyrics elements
                     const lyricsElements = jobCreationModalLyrics.querySelectorAll("#lyric");
-                    if (lyricsElements.length >= 1) {
+                    if (lyricsElements.length >= 1 && offsetTime !== null) {
                         // Loop trought all user created lyric
                         for (let i = 0; i < lyricsElements.length; i++) {
                             const currentLyricTimeElement = lyricsElements[i].querySelector("#lyric-time");
                             // Ensure lyrics is not empty
                             if (currentLyricTimeElement.value.length !== 0) {
                                 const originalTime = convertStringFormatToMilliseconds(currentLyricTimeElement.value)
-                                const offsetTime = convertStringFormatToMilliseconds(offsetModalForum.offsetTime)
                                 if (offsetModalForum.offsetType === "positive") {
                                     currentLyricTimeElement.value = convertMillisecondsToStringFormat(originalTime + offsetTime)
                                 } else if (offsetModalForum.offsetType === "negative") {
