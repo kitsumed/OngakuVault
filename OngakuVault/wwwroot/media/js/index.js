@@ -23,9 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // [Modals]
     const cancelJobModal = document.getElementById("cancel-job-modal")
     const jobCreationModal = document.getElementById("download-media-job-creation-modal")
+    const lyricsOffsetModal = document.getElementById("lyrics-offset-modal")
     // [Inside JobCreationModal]
     const jobCreationModalFinalAudioFormat = document.getElementById("finalAudioFormat")
     const jobCreationModalLyrics = document.getElementById("JobConfiguration-lyrics")
+    // [Inside LyricsOffsetModal]
+    const lyricsOffsetModalForum = document.getElementById("lyrics-offset-forum")
     // Make a copy of a lyric element HTML Element
     lyricElementTemplateHTMLElement = jobCreationModalLyrics.querySelector("#lyric").cloneNode(true);
     // Make a copy of the no results HTML Element
@@ -136,6 +139,45 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (event.target && event.target.id == 'add-lyric') { // Check for add button
             addLyricElement();
+        } else if (event.target && event.target.id == 'time-offset') { // Check for offset button
+            openModalQuestion(lyricsOffsetModal).then((didApply) => {
+                if (didApply)
+                {
+                    const offsetModalForum = getFormDataAsJSON(lyricsOffsetModalForum);
+                    // Get all of the lyrics elements
+                    const lyricsElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+                    if (lyricsElements.length >= 1) {
+                        // Loop trought all user created lyric
+                        for (let i = 0; i < lyricsElements.length; i++) {
+                            const currentLyricTimeElement = lyricsElements[i].querySelector("#lyric-time");
+                            // Ensure lyrics is not empty
+                            if (currentLyricTimeElement.value.length !== 0) {
+                                const originalTime = convertStringFormatToMilliseconds(currentLyricTimeElement.value)
+                                const offsetTime = convertStringFormatToMilliseconds(offsetModalForum.offsetTime)
+                                if (offsetModalForum.offsetType === "positive") {
+                                    currentLyricTimeElement.value = convertMillisecondsToStringFormat(originalTime + offsetTime)
+                                } else if (offsetModalForum.offsetType === "negative") {
+                                    const newTimeMS = originalTime - offsetTime;
+                                    // If the negative offset made a time go in negative, we remove the lyrics element connected to it
+                                    if (newTimeMS < 0) {
+                                        // Ensure we don't remove the lyric element if it's the only one left
+                                        if (lyricsElements.length !== 1) {
+                                            lyricsElements[i].remove();
+                                        } else {
+                                            currentLyricTimeElement.value = ""
+                                        }
+                                    } else {
+                                        currentLyricTimeElement.value = convertMillisecondsToStringFormat(newTimeMS)
+                                    }
+                                } else {
+                                    console.warn("Invalid offsetType selected.", offsetModalForum)
+                                }
+                            } 
+                        }
+                    }
+                    closeModal(lyricsOffsetModal);
+                }
+            });
         } else if (event.target && event.target.id == 'clear-lyrics-time') { // Clear all times inputs
             const allLyricTimeElements = jobCreationModalLyrics.querySelectorAll("#lyric #lyric-time");
             // Loop trought all lyric-time elements
@@ -165,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedTime = verifyAndFormatTime(currentLyricTime.value);
             if (formattedTime) {
                 currentLyricTime.value = formattedTime;
-            } else {
+            } else if (currentLyricTime.value !== "") {
                 currentLyricTime.value = "00:00.00";
             }
         } else if (event.target && event.target.id == 'load-lyrics-from-file') {
@@ -198,6 +240,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     addLyricElement(responseLyrics)
                 } else showWarning("The server parsed the uploaded file but did not find any lyrics.");
             });
+        }
+    });
+
+    // Handle changes on the lyrics offset modal
+    lyricsOffsetModal.addEventListener('change', (event) => {
+        // Check if the element that triggered the input event is the lyric offset time
+        if (event.target && event.target.id == 'offsetTime') {
+            const currentLyricTime = event.target;
+            const formattedTime = verifyAndFormatTime(currentLyricTime.value);
+            if (formattedTime) {
+                currentLyricTime.value = formattedTime;
+            } else if (currentLyricTime.value !== "") {
+                currentLyricTime.value = "00:00.00";
+            }
         }
     });
 

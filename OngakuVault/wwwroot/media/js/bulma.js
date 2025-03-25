@@ -43,6 +43,7 @@ function openModal(modalElement) {
     animateCSS(modalCard, "fadeInDown")
     animateCSS(modalBackground, "fadeIn")
     modalElement.classList.add('is-active');
+    modalCard.focus();
 
     // Find all buttons inside modalCard with the "is-loading" class
     const loadingButtons = modalCard.querySelectorAll('button.is-loading');

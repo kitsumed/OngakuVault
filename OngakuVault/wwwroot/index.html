@@ -88,7 +88,7 @@
 	<!-- Download Media Job Creation Modal -->
 	<div id="download-media-job-creation-modal" class="modal">
 		<div class="modal-background animate__faster"></div>
-		<div class="modal-card animate__faster">
+		<div class="modal-card animate__faster" tabindex="-1">
 			<header class="modal-card-head">
 				<p class="modal-card-title">Set the final file information</p>
 				<button class="delete" aria-label="close"></button>
@@ -246,10 +246,11 @@
 										</span>
 									</label>
 								</div>
-								<button class="button is-link is-small" id="add-lyric">Add new</button>
-								<button class="button is-warning is-small" id="clear-lyrics-time">Clear all times</button>
-								<button class="button is-danger is-small" id="remove-empty-lyrics">Remove empty</button>
-								<button class="button is-danger is-small" id="remove-all-lyrics">Remove all</button>
+								<button class="button is-link is-small" id="add-lyric">Add</button>
+								<button class="button is-link is-small" id="time-offset">Offset</button>
+								<button class="button is-warning is-small" id="clear-lyrics-time">Clear times</button>
+								<button class="button is-danger is-small" id="remove-empty-lyrics">Clear empty</button>
+								<button class="button is-danger is-small" id="remove-all-lyrics">Clear all</button>
 							</div>
 						</div>
 					</details>
@@ -257,8 +258,56 @@
 			</section>
 			<footer class="modal-card-foot">
 				<div class="buttons">
+					<button confirm-modal class="button is-success">Start Job</button>
 					<button close-modal class="button">Cancel</button>
-					<button confirm-modal class="button is-success">Start a job</button>
+				</div>
+			</footer>
+		</div>
+	</div>
+	<!-- Lyrics Offset Modal -->
+	<div id="lyrics-offset-modal" class="modal">
+		<div class="modal-background animate__faster"></div>
+		<div class="modal-card animate__faster" tabindex="-1">
+			<header class="modal-card-head">
+				<p class="modal-card-title">Applying offset to lyrics time</p>
+				<button class="delete" aria-label="close"></button>
+			</header>
+			<section class="modal-card-body">
+				<div class="content">
+					<article class="message is-info">
+						<div class="message-body">
+							The offset time will be applied to all lyrics elements. It <strong>can be positive or negative</strong>. If the offset time is negative, <strong>lyrics elements that reach a negative value (under 0 milliseconds) will be removed</strong>.
+						</div>
+					</article>
+					<form id="lyrics-offset-forum">
+						<div class="field">
+							<label class="label" for="offsetTime">Offset Type:</label>
+							<div class="control">
+								<div class="radios">
+									<label class="radio">
+										<input type="radio" name="offsetType" value="positive" checked />
+										Positive
+									</label>
+									<label class="radio">
+										<input type="radio" name="offsetType" value="negative" />
+										Negative
+									</label>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<label class="label" for="offsetTime">Offset Time:</label>
+							<div class="control">
+								<input type="text" id="offsetTime" name="offsetTime" placeholder="MM:SS.xx" class="input">
+							</div>
+						</div>
+					</form>
+				</div>
+			</section>
+			<footer class="modal-card-foot">
+				<div class="buttons">
+					<button confirm-modal class="button is-success">Apply</button>
+					<button close-modal class="button">Cancel</button>
 				</div>
 			</footer>
 		</div>
@@ -266,7 +315,7 @@
 	<!-- Cancel job confirmation Modal -->
 	<div id="cancel-job-modal" class="modal">
 		<div class="modal-background animate__faster"></div>
-		<div class="modal-card animate__faster">
+		<div class="modal-card animate__faster" tabindex="-1">
 			<header class="modal-card-head">
 				<p class="modal-card-title">Job Cancellation Confirmation</p>
 				<button class="delete" aria-label="close"></button>
@@ -293,7 +342,7 @@
 	<!-- Warning / error message Modal -->
 	<div id="warning-modal" class="modal">
 		<div class="modal-background animate__faster"></div>
-		<div class="modal-card box animate__faster">
+		<div class="modal-card box animate__faster" tabindex="-1">
 			<section class="modal-card-body">
 				<div class="content">
 					<div class="columns is-mobile is-centered">
