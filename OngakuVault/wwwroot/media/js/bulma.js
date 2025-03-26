@@ -38,7 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener("beforeunload", (event) => {
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
-    if (dataLostModals >= 1) {
+    // Verify for localhost so we ignore dataloss on local dev
+    if (dataLostModals >= 1 && window.location.hostname !== "localhost") {
         // Recommended
         event.preventDefault();
         // Included for legacy support
