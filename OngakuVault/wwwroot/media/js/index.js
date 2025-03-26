@@ -179,22 +179,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } else if (event.target && event.target.id == 'clear-lyrics-time') { // Clear all times inputs
-            const allLyricTimeElements = jobCreationModalLyrics.querySelectorAll("#lyric #lyric-time");
-            // Loop trought all lyric-time elements
-            for (var i = 0; i < allLyricTimeElements.length; i++) {
-                // Reset time element
-                allLyricTimeElements[i].value = "";
+            if (confirm("Do you want to clear all lyrics elements time values?") == true) {
+                const allLyricTimeElements = jobCreationModalLyrics.querySelectorAll("#lyric #lyric-time");
+                // Loop trought all lyric-time elements
+                for (var i = 0; i < allLyricTimeElements.length; i++) {
+                    // Reset time element
+                    allLyricTimeElements[i].value = "";
+                }
             }
         } else if (event.target && event.target.id == 'remove-all-lyrics') { // Remove all lyrics
-            removeLyricElements();
-            addLyricElement(); // Add one empty lyric element
+            if (confirm("Do you want to clear all existing lyrics elements?") == true) {
+                removeLyricElements();
+                addLyricElement(); // Add one empty lyric element
+            }
         } else if (event.target && event.target.id == 'remove-empty-lyrics') // Remove empty lyrics
         {
-            removeEmptyLyricElements();
-            // Ensure that at least one lyric element still exist in the list
-            const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
-            if (allLyricElements.length === 0) {
-                addLyricElement();
+            if (confirm("Do you want to clear all lyrics elements with empty content?") == true) {
+                removeEmptyLyricElements();
+                // Ensure that at least one lyric element still exist in the list
+                const allLyricElements = jobCreationModalLyrics.querySelectorAll("#lyric");
+                if (allLyricElements.length === 0) {
+                    addLyricElement();
+                }
             }
         }
     });
