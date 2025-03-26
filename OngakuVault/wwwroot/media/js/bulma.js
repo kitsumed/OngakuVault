@@ -5,6 +5,10 @@
     Requires: utils.js
 */
 // Some parts of the code are based on the bulma docs
+
+// Number of active Modals that require a warning of possible data-loss when closing the website
+let dataLostModals = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Add a click event to the DOM. 
     document.addEventListener('click', (event) => {
@@ -32,6 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+window.addEventListener("beforeunload", (event) => {
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
+    if (dataLostModals >= 1) {
+        // Recommended
+        event.preventDefault();
+        // Included for legacy support
+        return true;
+    }
+});
+
 /**
  * Make a modal visible
  * @param {Element} modalElement The modal element
@@ -51,6 +65,11 @@ function openModal(modalElement) {
         // Ensure no buttons in the modal are in a "loading" state when first showing up
         button.classList.remove("is-loading");
     });
+
+    // Enable dataloss warning if the page is closed when the modal is visible
+    if (modalElement.matches("[show-dataloss-warning]")) {
+        dataLostModals++;
+    }
 }
 
 /**
@@ -118,6 +137,11 @@ function closeModal(modalElement) {
         // Remove the UI locked attribute if found
         modalElement.removeAttribute("user-locked-modal");
     });
+
+    // Disable dataloss warning when the page is closing
+    if (modalElement.matches("[show-dataloss-warning]")) {
+        dataLostModals--;
+    }
 }
 
 /**
