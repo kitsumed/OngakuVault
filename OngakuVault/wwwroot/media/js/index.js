@@ -221,9 +221,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentLyricSelectedFile = event.target.files[0]
             if (!currentLyricSelectedFile) return;
 
-            if (currentLyricSelectedFile.size > 2097152) // 2MB in bytes
+            if (currentLyricSelectedFile.size > 4194304) // 4MB in bytes
             {
-                showWarning("Your lyrics file cannot be bigger than 2MB.");
+                showWarning("Your lyrics file cannot be bigger than 4MB.");
                 return;
             }
 

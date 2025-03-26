@@ -17,12 +17,12 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpPost("getLyricsFromFile")]
-		[EndpointDescription("Convert a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 2MB.")]
+		[EndpointDescription("Convert a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 4MB.")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<MediaLyric>))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
-		[RequestSizeLimit(2097152)] // 2MB in bytes
+		[RequestSizeLimit(4194304)] // 4MB in bytes
 		public ActionResult GetLyricsFromFile(IFormFile File)
 		{
 			string fileExtension = Path.GetExtension(File.FileName).Remove(0, 1); // File extension without the dot
