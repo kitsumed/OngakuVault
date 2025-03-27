@@ -45,7 +45,7 @@ jobs:
           VERSION_NUMBER=$(echo $GITHUB_REF_NAME | sed 's/^v//')
 
           # Workaround for the linux architecture/platform name used by dotnet.
-          # Rename the x64 architecture name to it's other name "AMD64". When creating multi-containerized applications, Docker uses "amd64" as the architecture name. 
+          # Rename the x64 architecture name to it's other name "AMD64". When creating multi-containerized applications, Docker uses "amd64" as the architecture name. We do this for consistency.
           BUILD_NAME="${{ matrix.platform }}"
           if [ "$BUILD_NAME" == "linux-x64" ]; then
             BUILD_NAME="linux-amd64"
@@ -54,46 +54,11 @@ jobs:
 
           dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
 
-      - name: Download FFmpeg latest binary
-        shell: bash
+      - name: Download latest FFmpeg and yt-dlp
+        shell: pwsh
         run: |
-          # Change the binary download url depending of the architecture/platform we are currently building
-          URL=""
-          if [[ "${{ matrix.platform }}" == "linux-x64" ]]; then
-            URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
-          elif [[ "${{ matrix.platform }}" == "linux-arm64" ]]; then
-            URL="https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
-          fi
-          
-          # Ensure Url is not empty
-          if [[ -n $URL ]]; then
-            wget -q --show-progress "${URL}" -O "./FFmpeg.tar.xz"
-            # Extract only the 'ffmpeg' and 'ffprobe' files from the 'bin' directory to the custom directory.
-            # Ignore the 2 first directory inside the tar file using strip-components argument.
-            tar -xf FFmpeg.tar.xz --wildcards --no-anchored --strip-components=2 -C "./build/${{ matrix.platform }}" 'bin/ffmpeg' 'bin/ffprobe'
-          else
-            echo "No FFmpeg binary url was given for ${{ matrix.platform }}."
-          fi
-
-      - name: Download yt-dlp latest binary
-        shell: bash
-        run: |
-          # Change the binary download url depending of the architecture/platform we are currently building
-          URL="" 
-          if [[ "${{ matrix.platform }}" == "linux-x64" ]]; then
-            URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
-          elif [[ "${{ matrix.platform }}" == "linux-arm64" ]]; then
-            URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
-          elif [[ "${{ matrix.platform }}" == "linux-arm" ]]; then
-            URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l"
-          fi
-
-          # Ensure Url is not empty
-          if [[ -n $URL ]]; then
-            wget -q --show-progress "${URL}" -O "./build/${{ matrix.platform }}/yt-dlp"
-          else
-            echo "No yt-dlp binary url was given for ${{ matrix.platform }}."
-          fi
+          # Will put all files in the "build/$Platform" directory at the current CD (repo root "./")
+          ./workflows/scripts/download_external_binaries.ps1 -Platform "${{ matrix.platform }}"
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
@@ -101,8 +66,8 @@ jobs:
           # Change the Name to the custom build name
           name: ${{ env.BUILD_NAME }}-build
           path: ./build/${{ matrix.platform }}
-          # Only keep the artifact up on github for 1 day
-          retention-days: 1
+          # Only keep the artifact up on github for 4 day
+          retention-days: 4
           compression-level: 6
 
   # Windows based builds
@@ -139,59 +104,19 @@ jobs:
           $VERSION_NUMBER = $env:GITHUB_REF_NAME -replace '^v', ''
           dotnet publish --configuration Release --runtime ${{ matrix.platform }} --self-contained false --no-restore --output ./build/${{ matrix.platform }} /p:Version=$VERSION_NUMBER /p:AssemblyVersion=$VERSION_NUMBER
 
-      - name: Download FFmpeg latest binary
+      - name: Download latest FFmpeg and yt-dlp
         shell: pwsh
         run: |
-          # Change the binary download url depending of the architecture/platform we are currently building
-          $URL = ""
-          $MATRIX_PLATFORM = "${{ matrix.platform }}" # Powershell condition require a env variable to work
-          if ($MATRIX_PLATFORM -eq "win-x64") {
-            $URL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-          } elseif ($MATRIX_PLATFORM -eq "win-x86") {
-            $URL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win32-gpl.zip"
-          }
-
-          # Ensure Url is not empty
-          if ($URL -ne "") {
-            Invoke-WebRequest -Uri $URL -OutFile "./FFmpeg.zip"
-            # Expand the zip file into the ./FFmpeg directory
-            Expand-Archive -Path "./FFmpeg.zip" -DestinationPath "./FFmpeg"
-
-            # Get the directory name that contains the 'bin' folder inside ./FFmpeg
-            $FFmpegBinFolderPath =  (Get-ChildItem -Path ".\FFmpeg" -Recurse -Filter "bin" -Directory).fullname
-            # Move ffmpeg.exe and ffprobe.exe to the final directory
-            Move-Item -Path "$FFmpegBinFolderPath/ffmpeg.exe" -Destination "./build/${{ matrix.platform }}/ffmpeg.exe"
-            Move-Item -Path "$FFmpegBinFolderPath/ffprobe.exe" -Destination "./build/${{ matrix.platform }}/ffprobe.exe"
-          } else {
-            Write-Host "No FFmpeg binary url was given for ${{ matrix.platform }}."
-          }
-
-      - name: Download yt-dlp latest binary
-        shell: pwsh
-        run: |
-          # Change the binary download url depending of the architecture/platform we are currently building
-          $URL = ""
-          $MATRIX_PLATFORM = "${{ matrix.platform }}" # Powershell condition require a env variable to work
-          if ($MATRIX_PLATFORM -eq "win-x64") {
-            $URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
-          } elseif ($MATRIX_PLATFORM -eq "win-x86") {
-            $URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe"
-          }
-
-          # Ensure Url is not empty
-          if ($URL -ne "") {
-            Invoke-WebRequest -Uri $URL -OutFile "./build/${{ matrix.platform }}/yt-dlp.exe"
-          } else {
-            Write-Host "No yt-dlp binary url was given for ${{ matrix.platform }}."
-          }
+          # Will put all files in the "build/$Platform" directory at the current CD (repo root "./")
+          ./workflows/scripts/download_external_binaries.ps1 -Platform "${{ matrix.platform }
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: ./build/${{ matrix.platform }}
-          # Only keep the artifact up on github for 1 day
-          retention-days: 1
+          # Only keep the artifact up on github for 4 day
+          retention-days: 4
           compression-level: 6
 
   # Build Docker images and Push to GitHub Packages
