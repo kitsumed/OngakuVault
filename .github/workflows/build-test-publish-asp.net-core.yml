@@ -58,7 +58,11 @@ jobs:
         shell: pwsh
         run: |
           # Will put all files in the "build/$Platform" directory at the current CD (repo root "./" / $GITHUB_WORKSPACE)
-          $GITHUB_WORKSPACE/.github/workflows/scripts/download_external_binaries.ps1 -Platform "${{ matrix.platform }}"
+
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/download_external_binaries.ps1"
+          # Run script
+          pwsh -File $ScriptPath -Platform "${{ matrix.platform }}"
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
@@ -108,7 +112,11 @@ jobs:
         shell: pwsh
         run: |
           # Will put all files in the "build/$Platform" directory at the current CD (repo root "./" / $GITHUB_WORKSPACE)
-          "$GITHUB_WORKSPACE/.github/workflows/scripts/download_external_binaries.ps1" -Platform "${{ matrix.platform }}"
+
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/download_external_binaries.ps1"
+          # Run script
+          pwsh -File $ScriptPath -Platform "${{ matrix.platform }}"
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
         uses: actions/upload-artifact@v4
