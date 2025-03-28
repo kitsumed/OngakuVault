@@ -21,7 +21,7 @@ try {
 $files = Get-ChildItem -Path $dirPath -File
 
 # Table header
-$markdown = "`n<details><summary><strong>Show the checksum table</strong></summary>`n"
+$markdown = "`n`n## Checksum table`n"
 $markdown += "| File Name | MD5 | SHA1 | SHA256 |`n"
 $markdown += "|----------|----|------|-------|`n"
 
@@ -35,7 +35,7 @@ foreach ($file in $files) {
     $sha256 = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash
     $markdown += "| ``$($file.Name)`` | ``$md5`` | ``$sha1`` | ``$sha256`` |`n"
 }
-$markdown += "</details>"
+
 # Write to the checksum file
 $markdown | Set-Content -Path $checksumFileOut
 Write-Host "Checksum file generated at: $checksumFileOut"

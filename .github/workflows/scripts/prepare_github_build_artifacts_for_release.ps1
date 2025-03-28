@@ -60,11 +60,6 @@ foreach ($artifactFolder in $artifacts) {
 
 
         if ($compressOutput) {
-            if (!$IsLinux) {
-                # Prevent users running the script on windows from going farther with -compressOuput on linux builds
-                Write-Warning "Current OS is not linux-based, cannot compress linux-build on non-linux OS due to tar and gzip command usage. Stopping execution..."
-                exit 1
-            }
             # Path of where the compressed tar.gz archive (preserve chmod) will be created, including file name
             $tarFilePath = "$outputDir/$($artifactFolder.Name).tar.gz"
             Write-Host "Recompressing the extracted files into $tarFilePath"
