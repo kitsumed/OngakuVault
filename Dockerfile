@@ -5,7 +5,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy
 WORKDIR /app
 
-# Define a build argument for the target platform-specific architecture
+# Define a build argument for the target platform-specific architecture (format: <os>/<architecture>/<variant> in build CLI) only take architecture value
 ARG TARGETARCH
 
 # Set the default environment variables for ASP.NET Core : Other names can be found on https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host?view=aspnetcore-8.0#host-configuration-values
