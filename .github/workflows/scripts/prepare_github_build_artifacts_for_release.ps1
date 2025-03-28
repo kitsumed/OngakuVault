@@ -37,7 +37,7 @@ foreach ($artifactFolder in $artifacts) {
             Move-Item -Path $artifactFolder.FullName -Destination $outputDir
         }
     }
-    # If the artifact name starts with "linux-", extract, apply chmod, recompress (tar.gz), and calculate hash
+    # If the artifact name starts with "linux-", apply chmod, recompress (tar.gz) or move
     elseif ($artifactFolder.Name -like "linux-*") {
         Write-Host "Detected $artifactFolder as a Linux build."
         if ($IsLinux) {
@@ -70,12 +70,12 @@ foreach ($artifactFolder in $artifacts) {
                 Write-Warning "An error occurred while creating the tar.gz archive. Stopping execution..."
                 exit 1
             }
-            # Remove the zip artifact archive and it's decompression
+            # Remove the artifact archive
             Write-Host "Cleaning up artifact archive : $artifactFolder"
             Remove-Item -Path "$artifactFolder" -Recurse -ErrorAction SilentlyContinue
         }
         else {
-            # Move the extracted folder to the output directory
+            # Move the artifact folder to the output directory
             Move-Item -Path $artifactFolder.FullName -Destination $outputDir
         }
     }
