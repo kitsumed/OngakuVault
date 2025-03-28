@@ -68,9 +68,8 @@ foreach ($artifactFolder in $artifacts) {
             # Path of where the compressed tar.gz archive (preserve chmod) will be created, including file name
             $tarFilePath = "$outputDir/$($artifactFolder.Name).tar.gz"
             Write-Host "Recompressing the extracted files into $tarFilePath"
-            # Create a tar.gz archive (LINUX ONLY COMMAND)
-            # NOTE: Attemp at making this command compatible with windows resulted in failure when running on linux CLI (github workflow). I'm open to feedback / pull request on this one.
-            #tar -cf - -C "$($artifactFolder.FullName)" | gzip -6 > "$tarFilePath"
+            # Create a tar.gz archive
+            # NOTE: For some obscure reasons, we need to have "." here, causing the root folder to be a ".". Multiples source says "*" can work, and it does on Windows, but keep failing on linux as it try to go into the parent directory
             tar cvzf "$tarFilePath" -C "$($artifactFolder.FullName)" .
             # Check if the previous command failed (prevent deleting original files from $artifactDir)
             if (!$?) {
