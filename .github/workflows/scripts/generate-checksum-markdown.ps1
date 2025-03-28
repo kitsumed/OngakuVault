@@ -21,14 +21,19 @@ try {
 $files = Get-ChildItem -Path $dirPath -File
 
 # Table header
-$markdown = "| File Name | MD5 | SHA1 | SHA256 |`n"
+$markdown = "`n# Files Checksum`n"
+$markdown += "| File Name | MD5 | SHA1 | SHA256 |`n"
 $markdown += "|----------|----|------|-------|`n"
 
 foreach ($file in $files) {
+    # Skip checksum.md
+    if ($file.Name -eq "checksum.md") {
+        continue
+    }
     $md5 = (Get-FileHash -Path $file.FullName -Algorithm MD5).Hash
     $sha1 = (Get-FileHash -Path $file.FullName -Algorithm SHA1).Hash
     $sha256 = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash
-    $markdown += "| $($file.Name) | ``$md5`` | ``$sha1`` | ``$sha256`` |`n"
+    $markdown += "| ``$($file.Name)`` | ``$md5`` | ``$sha1`` | ``$sha256`` |`n"
 }
 
 # Write to the checksum file
