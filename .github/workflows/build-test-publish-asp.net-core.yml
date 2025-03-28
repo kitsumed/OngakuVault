@@ -139,7 +139,6 @@ jobs:
     permissions:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
-      #actions: read # Allow to fetch the actions API
     env:
       DOCKER_BUILD_RECORD_UPLOAD: false # Do not upload docker/build-push-action logs as artifacts
       DOCKER_PLATFORMS: "linux/amd64,linux/arm64,linux/arm/v7" # Builds to release to Github Packages. Separated by commas
@@ -199,7 +198,6 @@ jobs:
     # Scopes not defined are set to None as long as one scope is manually set here
     permissions:
       contents: write # This grant the write permission to the job since gh-release need the permission to edit & upload files to releases
-      #actions: read # Allow to fetch the actions API
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -219,22 +217,30 @@ jobs:
           # Run script
           pwsh -File $ScriptPath -artifactDir "$env:GITHUB_WORKSPACE/build-artifacts/" -outputDir "./build" -compressOutput
 
-      - name: Generate archives checksum
+      - name: Generate release body with archives checksum
         shell: pwsh
         run: |
           # Set script path
           $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/generate-checksum-markdown.ps1"
           # Run script
-          pwsh -File $ScriptPath -dirPath "./build" -checksumFileOut "./build/checksum.md"
+          pwsh -File $ScriptPath -dirPath "./build" -checksumFileOut "./build/release-body.md"
+
+      - name: Append external binaries versions to release body
+        shell: pwsh
+        run: |
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/generate_external_binaries_versions_markdown.ps1"
+          # Run script
+          pwsh -File $ScriptPath -mdFileOut "./build/release-body.md"
 
       # Upload zip to the github release
       - name: Publish build to github release
       # Use a pinned hash as a prevention to repojacking, verify changelogs & latest before updating for security
-        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 #v2.1.0 pinned hash
+        uses: softprops/action-gh-release@92dffe6c28ac278510d01d723882bf82bd907f89 #v2.2.1 pinned hash
         with:
           prerelease: false
           files: | # Publish all zip and tar builds archives to github release
             ./build/*.tar.gz
             ./build/*.zip  
           append_body: true
-          body_path: ./build/checksum.md
+          body_path: ./build/release-body.md
