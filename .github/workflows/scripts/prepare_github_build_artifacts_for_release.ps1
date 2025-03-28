@@ -64,7 +64,7 @@ foreach ($artifactFolder in $artifacts) {
             $tarFilePath = "$outputDir/$($artifactFolder.Name).tar.gz"
             Write-Host "Recompressing the extracted files into $tarFilePath"
             # Create a tar.gz archive
-            tar -czf "$tarFilePath" -C "$($artifactFolder.FullName)/" *
+            tar -cf - -C "$outputDir/$($artifactFolder.Name)" . | gzip -6 > "$tarFilePath"
             # Check if the command failed (prevent deleting original files from $artifactDir)
             if (!$?) {
                 Write-Warning "An error occurred while creating the tar.gz archive. Stopping execution..."
