@@ -27,8 +27,8 @@ foreach ($artifactFolder in $artifacts) {
         # If compress output flag is enabled, compress to output, else move directory to output
         if ($compressOutput) {
             # Compress files to output
-            Write-Host "Compressing $artifactFolder to $zipFilePath"
             $zipFilePath = "$outputDir\$($artifactFolder.Name).zip"
+            Write-Host "Compressing $artifactFolder to $zipFilePath"
             Compress-Archive -Path "$($artifactFolder.FullName)\*" -DestinationPath $zipFilePath
             Write-Host "Cleaning up artifact archive : $artifactFolder"
             Remove-Item -Path "$artifactFolder" -Recurse -ErrorAction SilentlyContinue
@@ -60,11 +60,17 @@ foreach ($artifactFolder in $artifacts) {
 
 
         if ($compressOutput) {
-            # Recompress the directory into a tar.gz archive in the outputDir (preserving chmod)
+            if (!$IsLinux) {
+                # Prevent users running the script on windows from going farther with -compressOuput on linux builds
+                Write-Warning "Current OS is not linux-based, cannot compress linux-build on non-linux OS due to tar and gzip command usage. Stopping execution..."
+                exit 1
+            }
+            # Path of where the compressed tar.gz archive (preserve chmod) will be created, including file name
             $tarFilePath = "$outputDir/$($artifactFolder.Name).tar.gz"
             Write-Host "Recompressing the extracted files into $tarFilePath"
-            # Create a tar.gz archive
-            tar -cf - -C "$($artifactFolder.FullName)" . | gzip -6 > "$tarFilePath"
+            # Create a tar.gz archive (LINUX ONLY COMMAND)
+            # NOTE: Attemp at making this command compatible with windows resulted in failure when running on linux CLI (github workflow). I'm open to feedback / pull request on this one.
+            tar -cf - -C "$($artifactFolder.FullName)" * | gzip -6 > "$tarFilePath"
             # Check if the command failed (prevent deleting original files from $artifactDir)
             if (!$?) {
                 Write-Warning "An error occurred while creating the tar.gz archive from: $($artifactFolder.FullName). Stopping execution..."
