@@ -135,7 +135,7 @@ jobs:
     permissions:
       contents: read  # Allow checkout action to get the repo code
       packages: write  # Allow pushing to GitHub Packages
-      actions: read # Allow to fetch the actions API
+      #actions: read # Allow to fetch the actions API
     env:
       DOCKER_BUILD_RECORD_UPLOAD: false # Do not upload docker/build-push-action logs as artifacts
       DOCKER_PLATFORMS: "linux/amd64,linux/arm64,linux/arm" # Builds to release to Github Packages. Separated by commas
@@ -143,45 +143,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install jq to parse JSON responses from GitHub API
-      - name: Install jq
+      - uses: actions/download-artifact@v4
+        with:
+          # Destination path. Default is $GITHUB_WORKSPACE
+          path: "$GITHUB_WORKSPACE/build-artifacts/"
+          # A glob pattern to the artifacts that should be downloaded.
+          pattern: "linux-*-build"
+
+      - name: Prepare build artifacts for docker release (chmod)
+        shell: pwsh
         run: |
-          sudo apt-get install -y jq
-
-      # Fetch all artifacts and download those that start with "linux-" and end with "build-"
-      - name: Download all build artifacts starting with "linux-" and ending with '-build'
-        run: |
-          # Fetch the list of all artifacts for the current workflow using the GitHub API
-          # Only keep linux builds.
-          artifacts=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            | jq -r '.artifacts[] | select(.name | startswith("linux-") and endswith("-build")) | .name + "|" + .archive_download_url')
-
-          # Ensure build directory exist
-          mkdir -p ./build
-
-          echo "Downloading build artifacts..."
-          echo "$artifacts" | while IFS='|' read -r artifactName artifactUrl; do
-            artifactFilePath="./build/$artifactName.zip"
-
-            # Download the artifact
-            echo "Downloading $artifactName..."
-            curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
-            echo "Extracting $artifactName..."
-            unzip "$artifactFilePath" -d "./build/$artifactName/"
-            echo "Adding execution tag to $artifactName third-party binaries..."
-            
-            # Ensure all third-party executables have the read and execution tag
-            for binaryName in yt-dlp ffmpeg ffprobe; do
-              binaryPath="./build/$artifactName/$binaryName"
-              if [[ -f "$binaryPath" ]]; then
-                echo "Adding read and execution permissions to $binaryName..."
-                chmod a+rx "$binaryPath"
-              else
-                echo "WARNING: $binaryName not found, skipping chmod."
-              fi
-            done
-          done
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/prepare_github_build_artifacts_for_release.ps1"
+          # Run script
+          pwsh -File $ScriptPath -artifactDir "$env:GITHUB_WORKSPACE/build-artifacts/" -outputDir "./build"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -220,91 +195,30 @@ jobs:
     # Scopes not defined are set to None as long as one scope is manually set here
     permissions:
       contents: write # This grant the write permission to the job since gh-release need the permission to edit & upload files to releases
-      actions: read # Allow to fetch the actions API
+      #actions: read # Allow to fetch the actions API
     steps:
-      # Install jq to parse JSON responses from GitHub API
-      - name: Install jq
+      - uses: actions/download-artifact@v4
+        with:
+          # Destination path. Default is $GITHUB_WORKSPACE
+          path: "$GITHUB_WORKSPACE/build-artifacts/"
+          # A glob pattern to the artifacts that should be downloaded.
+          pattern: "*-build"
+
+      - name: Prepare build artifacts for archive release
+        shell: pwsh
         run: |
-          sudo apt-get install -y jq
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/prepare_github_build_artifacts_for_release.ps1"
+          # Run script
+          pwsh -File $ScriptPath -artifactDir "$env:GITHUB_WORKSPACE/build-artifacts/" -outputDir "./build" -compressOutput
 
-      # Fetch all artifacts and download those that end with '-build'
-      - name: Download all build artifacts ending with '-build'
+      - name: Generate archives checksum
+        shell: pwsh
         run: |
-          # Fetch the list of all artifacts for the current workflow using the GitHub API
-          # Only keep those ending with -build.
-          artifacts=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            | jq -r '.artifacts[] | select(.name | endswith("-build")) | .name + "|" + .archive_download_url')
-
-          # Ensure build directory exist
-          mkdir -p ./build
-
-          # Create a checksum file
-          echo "Creating SHA256 checksum table..."
-          echo "## SHA256 Checksum Table" > release-checksum.md
-          echo "This table contains the SHA256 hashes for each binary compiled using GitHub Actions." >> release-checksum.md
-          echo "| File Name  | SHA256 |" >> release-checksum.md
-          echo "|------------|--------|" >> release-checksum.md
-
-          # Download the build artifacts and generate SHA256 hashes
-          echo "Downloading build artifacts..."
-          echo "$artifacts" | while IFS='|' read -r artifactName artifactUrl; do
-            artifactFilePath="./build/$artifactName.zip"
-            # Default value for windows builds
-            artifactArchiveExtension=".zip"
-
-            # Download the artifact
-            echo "Downloading $artifactName..."
-            curl -L -o "$artifactFilePath" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$artifactUrl"
-
-            # Check if the artifactName start with "linux-" (the build artifact is for Linux)
-            if [[ "$artifactName" == linux-* ]]; then
-              echo "Detected $artifactName as a Linux build."
-              artifactArchiveExtension=".tar.gz"
-              echo "Extracting $artifactName..."
-              unzip "$artifactFilePath" -d "./build/$artifactName/"
-
-              echo "Adding execution tag to $artifactName third-party binaries..."
-              # Ensure all third-party executables have the read and execution tag
-              for binaryName in yt-dlp ffmpeg ffprobe; do
-                binaryPath="./build/$artifactName/$binaryName"
-                if [[ -f "$binaryPath" ]]; then
-                  echo "Adding read and execution permissions to $binaryName..."
-                  chmod a+rx "$binaryPath"
-                else
-                  echo "WARNING: $binaryName not found, skipping chmod."
-                fi
-              done
-
-              echo "Removing zip archive of $artifactName..."
-              rm "$artifactFilePath"
-              # Compress the linux build folder into a .tar.gz archive to keep the chmod configuration
-              echo "Creating .tar.gz archive of $artifactName..."
-              # Tar to Gzip with compression level of 6
-              tar -cf - -C "./build/$artifactName" . | gzip -6 > "./build/$artifactName.tar.gz"
-              # Change the artifact file path to the new archive
-              artifactFilePath="./build/$artifactName.tar.gz"
-            fi
-            
-
-            # Generate the SHA256 hash for the artifact
-            artifactSHA256=$(shasum -a 256 "$artifactFilePath" | awk '{ print $1 }')
-            # Add the artifact name and checksum to the markdown table
-            echo "| \`$artifactName$artifactArchiveExtension\` | \`$artifactSHA256\` |" >> release-checksum.md
-          done
-
-          # Fetch yt-dlp and FFmpeg latest version name on github
-          yt_dlp_latestReleaseInfo=$(curl -s https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest)
-          FFmpeg_latestReleaseInfo=$(curl -s https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest)
-
-          yt_dlp_version=$(echo $yt_dlp_latestReleaseInfo | jq -r .tag_name)
-          # Since FFmpeg release tag name is always "latest" use "name" insead to get the date of the build
-          FFmpeg_version=$(echo $FFmpeg_latestReleaseInfo | jq -r .name	)
-          yt_dlp_releaseUrl=$(echo $yt_dlp_latestReleaseInfo | jq -r .html_url)
-          FFmpeg_releaseUrl=$(echo $FFmpeg_latestReleaseInfo | jq -r .html_url)
-
-          echo "" >> release-checksum.md
-          echo "Theses builds include [yt-dlp version]($yt_dlp_releaseUrl) \`$yt_dlp_version\` and [FFmpeg version]($FFmpeg_releaseUrl) \`$FFmpeg_version\`.*" >> release-checksum.md
+          # Set script path
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/generate-checksum-markdown.ps1"
+          # Run script
+          pwsh -File $ScriptPath -dirPath "./build" -checksumFileOut "./build/checksum.md"
 
       # Upload zip to the github release
       - name: Publish build to github release
@@ -316,4 +230,4 @@ jobs:
             ./build/*.tar.gz
             ./build/*.zip  
           append_body: true
-          body_path: release-checksum.md
+          body_path: ./build/checksum.md

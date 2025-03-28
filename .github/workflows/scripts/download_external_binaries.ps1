@@ -56,7 +56,7 @@ if ($Platform) {
     }
 
     $OutputDir = "./build/$Platform"
-    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+    New-Item -ItemType Directory -Path $OutputDir -ErrorAction SilentlyContinue 
 
     # Download and extract FFmpeg
     if ($FFmpegURL -ne "") {
@@ -75,8 +75,8 @@ if ($Platform) {
         }
         
         # Cleanup extracted files
-        Remove-Item -Path "$FFmpegExtractPath" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path "$ArchivePath" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$FFmpegExtractPath" -Recurse -ErrorAction SilentlyContinue
+        Remove-Item -Path "$ArchivePath" -ErrorAction SilentlyContinue
     } else {
         Write-Host "No FFmpeg build available for current OS and architecture combination."
     }
