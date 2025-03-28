@@ -61,7 +61,7 @@ foreach ($artifactFolder in $artifacts) {
 
         if ($compressOutput) {
             # Recompress the directory into a tar.gz archive in the outputDir (preserving chmod)
-            $tarFilePath = "$outputDir\$($artifactFolder.Name).tar.gz"
+            $tarFilePath = "$outputDir/$($artifactFolder.Name).tar.gz"
             Write-Host "Recompressing the extracted files into $tarFilePath"
             # Create a tar.gz archive
             tar -czf "$tarFilePath" -C "$($artifactFolder.FullName)/" *
