@@ -70,10 +70,10 @@ foreach ($artifactFolder in $artifacts) {
             Write-Host "Recompressing the extracted files into $tarFilePath"
             # Create a tar.gz archive (LINUX ONLY COMMAND)
             # NOTE: Attemp at making this command compatible with windows resulted in failure when running on linux CLI (github workflow). I'm open to feedback / pull request on this one.
-            tar -cf - -C "$($artifactFolder.FullName)" * | gzip -6 > "$tarFilePath"
-            # Check if the command failed (prevent deleting original files from $artifactDir)
+            tar -cf - -C "$($artifactFolder.FullName)" ./* | gzip -6 > "$tarFilePath"
+            # Check if the previous command failed (prevent deleting original files from $artifactDir)
             if (!$?) {
-                Write-Warning "An error occurred while creating the tar.gz archive from: $($artifactFolder.FullName). Stopping execution..."
+                Write-Warning "An error occurred while creating the tar.gz archive from: $($artifactFolder.FullName) to: $tarFilePath. Stopping execution..."
                 exit 1
             }
             # Remove the artifact archive
