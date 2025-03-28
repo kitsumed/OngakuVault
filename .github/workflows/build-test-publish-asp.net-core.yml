@@ -46,13 +46,10 @@ jobs:
 
           # Workaround for the linux architecture/platform name used by dotnet.
           # Rename the x64 architecture name to it's other name "AMD64". When creating multi-containerized applications, Docker uses "linux/amd64" as the architecture name.
-          # Rename the arm (x32) architecture name to the name "armv7". When creating multi-containerized applications, one of Docker target will be the platform "linux/arm/v7" as the architecture name.
-          # We do this for consistency, as the Dockerfile use TARGETARCH to copy the right build file per platform target, TARGETARCH would give "amd64" or "armv7"
+          # We do this for consistency, as the Dockerfile use TARGETARCH to copy the right build file per platform target, TARGETARCH would give "amd64"
           BUILD_NAME="${{ matrix.platform }}"
           if [ "$BUILD_NAME" == "linux-x64" ]; then
             BUILD_NAME="linux-amd64"
-          elif [ "$BUILD_NAME" == "linux-arm" ]; then
-            BUILD_NAME="linux-armv7"
           fi
           echo "BUILD_NAME=${BUILD_NAME}" >> $GITHUB_ENV  # Set the variable as a environment variable to use inside others steps of the job
 
