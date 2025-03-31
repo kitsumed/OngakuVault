@@ -221,7 +221,7 @@ jobs:
         shell: pwsh
         run: |
           # Set script path
-          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/generate-checksum-markdown.ps1"
+          $ScriptPath = "$env:GITHUB_WORKSPACE/.github/workflows/scripts/generate_checksum_markdown.ps1"
           # Run script
           pwsh -File $ScriptPath -dirPath "./build" -checksumFileOut "./build/release-body.md"
 
