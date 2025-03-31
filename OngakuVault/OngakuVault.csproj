@@ -20,11 +20,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SubtitlesParserV2" Version="2.2.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="8.0.0" />
+    <PackageReference Include="SubtitlesParserV2" Version="2.2.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="8.1.0" />
     <PackageReference Include="YoutubeDLSharp" Version="1.1.1" />
-    <PackageReference Include="z440.atl.core" Version="6.19.0" />
+    <PackageReference Include="z440.atl.core" Version="6.20.0" />
   </ItemGroup>
 
   <ItemGroup>
