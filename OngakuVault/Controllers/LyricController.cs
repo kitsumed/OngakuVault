@@ -27,27 +27,34 @@ namespace OngakuVault.Controllers
 		{
 			string fileExtension = Path.GetExtension(File.FileName).Remove(0, 1); // File extension without the dot
 			SubtitleFormatType? fileFormat = SubtitleFormat.GetFormatTypeByFileExtensionName(fileExtension);
+			// All of the parsers that will be used to try to parse the file
+			List<SubtitleFormatType> supportedFormats = SubtitleFormat.Formats.Keys.ToList();
+
 			if (fileFormat.HasValue) 
 			{
-				using Stream fileStream = File.OpenReadStream();
-				SubtitleParserResultModel? parsedFileResults = SubtitleParser.ParseStream(fileStream, Encoding.UTF8, fileFormat.Value);
-				if (parsedFileResults != null) 
-				{
-					List<MediaLyric> lyrics = new List<MediaLyric>();
-					// Loop trought all of the parsed subtitles
-					foreach (SubtitleModel subtitleContent in parsedFileResults.Subtitles)
-					{
-						lyrics.Add(new MediaLyric()
-						{
-							Content = string.Join(' ', subtitleContent.Lines),
-							Time = subtitleContent.StartTime >= 0 ? subtitleContent.StartTime : null
-						});
-					}
-					return Ok(lyrics);
-				}
-				return StatusCode(StatusCodes.Status422UnprocessableEntity, "The parser was not able to parse your file successfully. This could be because your file is malformed or the parser had a unexpected exception.");
+				// Ensure the detect file format is the first in the list of supported formats.
+				supportedFormats.Remove(fileFormat.Value);
+				supportedFormats.Insert(0, fileFormat.Value);
 			}
-			return StatusCode(StatusCodes.Status415UnsupportedMediaType, $"Files with extension '{fileExtension}' are not supported.");
+
+			using Stream fileStream = File.OpenReadStream();
+			// Try parsing with different parsers type in the order of the list
+			SubtitleParserResultModel? parsedFileResults = SubtitleParser.ParseStream(fileStream, Encoding.UTF8, supportedFormats);
+			if (parsedFileResults != null)
+			{
+				List<MediaLyric> lyrics = new List<MediaLyric>();
+				// Loop trought all of the parsed subtitles
+				foreach (SubtitleModel subtitleContent in parsedFileResults.Subtitles)
+				{
+					lyrics.Add(new MediaLyric()
+					{
+						Content = string.Join(' ', subtitleContent.Lines),
+						Time = subtitleContent.StartTime >= 0 ? subtitleContent.StartTime : null
+					});
+				}
+				return Ok(lyrics);
+			}
+			return StatusCode(StatusCodes.Status422UnprocessableEntity, "The parser was not able to parse your file successfully. This could be because your file not supported, is malformed, or the parser had a unexpected exception.");
 		}
 	}
 }

@@ -153,6 +153,9 @@ namespace OngakuVault.Services
 				*/
 				// Create a temporary yt-dlp proc
 				YoutubeDLProcess temporaryYTDLPProc = new YoutubeDLProcess(MediaDownloader.YoutubeDLPath);
+				// Do not start using cmd on windows
+				temporaryYTDLPProc.UseWindowsEncodingWorkaround = false;
+
 				// Create a event handler to listen to the proc outputs
 				EventHandler<DataReceivedEventArgs>? outputHandler = null;
 				outputHandler = (o, e) =>

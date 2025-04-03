@@ -136,6 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentLyricElement.remove();
             } else {
                 console.log("User cannot remove the last lyric element.");
+                // Remove all lyrics element and add one back, this clear the content of the last lyric element.
+                removeLyricElements();
+                addLyricElement(); // Add one empty lyric element
             }
         } else if (event.target && event.target.id == 'add-lyric') { // Check for add button
             addLyricElement();
