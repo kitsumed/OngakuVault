@@ -14,7 +14,7 @@ Ongakuvault include the following third-patry binary:
 > Please note that some fixes and workarounds specific to the yt-dlp version of FFmpeg may not be included in these alternative builds.
 
 > [!TIP]
-> You can find the powershell script used during the build workflow to download the external binaries [here](https://github.com/kitsumed/OngakuVault/blob/main/.github/workflows/scripts/download_external_binaries.ps1).
+> You can find the PowerShell script used during the build workflow to download the external binaries [here](https://github.com/kitsumed/OngakuVault/blob/main/.github/workflows/scripts/download_external_binaries.ps1).
 > You can run it locally on your machine by using the argument `-LocalBuild`.
 
 ## Replacing a binary
