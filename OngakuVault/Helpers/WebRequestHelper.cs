@@ -13,7 +13,7 @@ namespace OngakuVault.Helpers
 			DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower, // Fall back to HTTP1/1.1 if server does not support
 		};
 
-		private static readonly string DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+		private static readonly string DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
 		/// <summary>
 		/// Make a request to a website and get the response message
