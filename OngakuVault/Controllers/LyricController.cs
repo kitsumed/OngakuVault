@@ -17,7 +17,7 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpPost("getLyricsFromFile")]
-		[EndpointDescription("Convert a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 4MB.")]
+		[EndpointDescription("Parse a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 4MB.")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<MediaLyric>))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]
@@ -54,7 +54,7 @@ namespace OngakuVault.Controllers
 				}
 				return Ok(lyrics);
 			}
-			return StatusCode(StatusCodes.Status422UnprocessableEntity, "The parser was not able to parse your file successfully. This could be because your file not supported, is malformed, or the parser had a unexpected exception.");
+			return StatusCode(StatusCodes.Status422UnprocessableEntity, "The parser was not able to parse your file successfully. This could be because your file is not supported, is malformed, or the parser had a unexpected exception.");
 		}
 	}
 }
