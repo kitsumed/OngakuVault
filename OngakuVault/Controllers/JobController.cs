@@ -17,7 +17,8 @@ namespace OngakuVault.Controllers
         }
 
 		[HttpPost("create")]
-		[EndpointDescription("Uses this endpoint to create a new audio download job. Fields with a non-empty value will be written in the audio metadata")]
+		[EndpointDescription(@"Use this endpoint to create a new audio download job. Fields with non-empty value will be written in the audio metadata.
+						Empty fields will retain the original metadata.")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
@@ -37,7 +38,7 @@ namespace OngakuVault.Controllers
 			}
 			else 
 			{
-				return StatusCode(StatusCodes.Status500InternalServerError, "An unexpected error occurred while adding the job to the Jobs list.");
+				return StatusCode(StatusCodes.Status500InternalServerError, "An unexpected error occurred while adding the job to the JobService queue.");
 			}
 		}
 

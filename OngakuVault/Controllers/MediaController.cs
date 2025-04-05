@@ -54,7 +54,7 @@ namespace OngakuVault.Controllers
 					_logger.LogWarning("Known scraper error was returned by the scraper. Using mediaUrl : '{mediaUrl}'. Error: {message}. Original Scraper Error: {originalError}", mediaUrl, ex.Message, ex.OriginalError);
 					return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
 				}
-				else _logger.LogError("An unexpected scraper error occurred while fetching media information on : '{mediaUrl}'. Error: {message}", mediaUrl, ex.Message);
+				else _logger.LogError("An unexpected scraper error occurred while fetching media information on : '{mediaUrl}'. Scraper Error: {message}", mediaUrl, ex.Message);
 			}
 			catch (Exception ex) // Handle every other errors
 			{

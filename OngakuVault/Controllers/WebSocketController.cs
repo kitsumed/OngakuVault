@@ -64,7 +64,7 @@ namespace OngakuVault.Controllers
 						break;
 					}
 
-					// We don't do anything the the client received data (websocketResult)
+					// We don't do anything with the client received data (websocketResult)
 				}
 			}
 			catch (WebSocketException ex) 
