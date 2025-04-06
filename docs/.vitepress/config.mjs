@@ -2,12 +2,12 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "Ongakuvault",
+  title: "OngakuVault",
   lang: "en-ca",
-  description: "The Ongakuvault documentation website!",
-  base: '/ongakuvault/', // We overwrite the root "/" base for "/repo-name/" due to how github pages work
+  description: "The OngakuVault documentation website!",
+  base: '/OngakuVault/', // We overwrite the root "/" base for "/repo-name/" due to how github pages work. CASE SENSITIVE
   sitemap: { // Optional, create a sitemap.xml file
-    hostname: "https://kitsumed.github.io/ongakuvault/",
+    hostname: "https://kitsumed.github.io/OngakuVault/",
   },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config

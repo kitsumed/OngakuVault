@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-  name: "Ongakuvault"
+  name: "OngakuVault"
   text: "Effortlessly archive audio from almost all website, Anytime!!"
   tagline: Never lose access to your favorites audio again!
   actions:
