@@ -17,10 +17,10 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_Kestrel__Certificates__Default__Path=
 ENV ASPNETCORE_Kestrel__Certificates__Default__Password=
 # App environment
-ENV OUTPUT_DIRECTORY=/home/app/archived-audios/
-ENV ENABLE_SWAGGER_DOC=false
-ENV DISABLE_WEBSITE=false
-ENV ENFORCE_HTTPS=false
+ENV Ongaku__OUTPUT_DIRECTORY=/home/app/archived-audios/
+ENV Ongaku__ENABLE_SWAGGER_DOC=false
+ENV Ongaku__DISABLE_WEBSITE=false
+ENV Ongaku__ENFORCE_HTTPS=false
 
 # Default port to expose
 EXPOSE ${ASPNETCORE_HTTP_PORTS}
