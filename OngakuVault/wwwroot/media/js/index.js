@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Add the job to the results list
                     createJobItem(currentJobModel);
                 })
-            } else showNoResultMessage();
+            } else showNoJobsMessage();
             // Disable the skeleton loading animation on the results element
             resultsDiv.classList.remove("is-skeleton", "is-skeleton-larger");
 
@@ -319,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         case "JobDestroyed": // Here message is a string (the job ID)
                             let removedJobItem = getJobItemByID(message);
                             removedJobItem.remove(); // Remove the job element from DOM
+                            IfEmptyShowNoJobsMessage();
                             break;
                         default:
                             console.warn(`WebSocket: Reiceived a message from server with key: '${messageKey}'. But the client does not know how to handle it.`);
@@ -513,14 +514,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Show the 'There are no results' message in the results container.
+     * Show the 'There are no jobs' message in the results container.
      * *Will clear everything in the results container.
      */
-    function showNoResultMessage() {
+    function showNoJobsMessage() {
         clearResults()
         const resultsElement = document.getElementById("results");
         const newItem = noResultsTemplateHTMLElement.cloneNode(true);
         resultsElement.appendChild(newItem);
+    }
+
+    /**
+     * Show the 'There are no jobs' message in the results container if there isn't any jobs.
+     */
+    function IfEmptyShowNoJobsMessage() {
+        const resultsElement = document.getElementById("results");
+        if (resultsElement.childElementCount === 0) {
+            showNoJobsMessage();
+        } 
     }
 
     /**
