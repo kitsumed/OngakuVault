@@ -12,7 +12,7 @@ Ongakuvault is an ASP.NET application running on .NET Core 8, which enables it t
 > Current showcase is from version ``1.0.0``, your version may differ.
 
 ### Desktop
-![Desktop showcase](showcase_website_desktop.png)
+![Desktop showcase](/showcase_website_desktop.png)
 ::: details See video
 <video autoplay loop controls>
   <source src="/showcase_website_desktop_bigduckbunny.mp4" type="video/mp4">
@@ -20,7 +20,7 @@ Ongakuvault is an ASP.NET application running on .NET Core 8, which enables it t
 :::
 
 ### Mobile
-![Mobile showcase](showcase_website_mobile.png)
+![Mobile showcase](/showcase_website_mobile.png)
 
 ## How do Ongakuvault work?
 
