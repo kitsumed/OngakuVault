@@ -63,7 +63,7 @@ docker run -d \
   -v /my-audio-collection-directory-on-host:/home/app/archived-audios:rw \
   -e ASPNETCORE_HTTP_PORTS=8080 \
   -e ASPNETCORE_HTTPS_PORT=8443 \
-  -e ENFORCE_HTTPS=false \
+  -e Ongaku__ENFORCE_HTTPS=false \
   ghcr.io/kitsumed/ongakuvault:1.0.0
 ```
 #### Docker-compose
@@ -75,7 +75,7 @@ version: '2.4'
 
 services:
   ongakuvault:
-    container_name: ongakuvault
+    container_name: OngakuVault
     image: ghcr.io/kitsumed/ongakuvault:1.0.0 # Replace tag with the version you want / latest version
     restart: unless-stopped
     logging:
@@ -98,5 +98,5 @@ services:
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORT=8443
-      - ENFORCE_HTTPS=false
+      - Ongaku__ENFORCE_HTTPS=false
 ```
