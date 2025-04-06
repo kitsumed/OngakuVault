@@ -202,23 +202,35 @@
 								</div>
 							</article>
 
-							<div class="is-flex is-align-content-center">
-								<p class="mr-1 has-text-white-bis">Search lyrics on:</p>
-								<div class="columns" id="search-lyrics">
-									<div class="column">
-										<button class="button is-small is-text" title="Google" id="search-lyrics-button" prefixUrl="https://www.google.com/search?q=" suffixUrl=' intext:("lyrics"|"subtitles")&udm=14'>
-											<span class="icon is-small">
+							<div class="columns is-gapless mb-2 is-tablet">
+								<div class="column is-one-quarter mb-2">
+									<p class="mt-1 has-text-white-bis">Search lyrics on:</p>
+								</div>
+								<div class="column is-narrow">
+									<div class="buttons has-background-dark has-radius-rounded">
+										<button class="button is-text is-rounded" title="Google" id="search-lyrics-button" prefixUrl="https://www.google.com/search?q=" suffixUrl=' intext:("lyrics"|"subtitles")&udm=14'>
+											<span class="icon">
 												<img src="./media/pictures/icons/google-G.svg" id="search-lyrics-button" />
 											</span>
 										</button>
-										<button class="button is-small is-text" title="Genuis" id="search-lyrics-button" prefixUrl="https://genius.com/search?q=">
-											<span class="icon is-small">
+										<button class="button is-text is-rounded" title="Lrclib" id="search-lyrics-button" prefixUrl="https://lrclib.net/search/">
+											<span class="icon">
+												<img src="./media/pictures/icons/lrclib.svg" id="search-lyrics-button" />
+											</span>
+										</button>
+										<button class="button is-text is-rounded" title="Genuis" id="search-lyrics-button" prefixUrl="https://genius.com/search?q=">
+											<span class="icon">
 												<img src="./media/pictures/icons/genius.svg" id="search-lyrics-button" />
 											</span>
 										</button>
-										<button class="button is-small is-text" title="Musixmatch" id="search-lyrics-button" prefixUrl="https://www.musixmatch.com/search?query=">
-											<span class="icon is-small">
+										<button class="button is-text is-rounded" title="Musixmatch" id="search-lyrics-button" prefixUrl="https://www.musixmatch.com/search?query=">
+											<span class="icon">
 												<img src="./media/pictures/icons/musixmatch.svg" id="search-lyrics-button" />
+											</span>
+										</button>
+										<button class="button is-text is-rounded" title="Lyricsify" id="search-lyrics-button" prefixUrl="https://www.lyricsify.com/search?q=">
+											<span class="icon">
+												<img src="./media/pictures/icons/lyricsify.svg" id="search-lyrics-button" />
 											</span>
 										</button>
 									</div>
@@ -226,7 +238,7 @@
 							</div>
 
 							<div class="control columns is-mobile mb-0" id="lyric">
-								<div class="column is-one-quarter">
+								<div class="column is-4-mobile is-3-tablet is-3-desktop">
 									<input type="text" id="lyric-time" placeholder="MM:SS.xx" class="input">
 								</div>
 								<div class="column">

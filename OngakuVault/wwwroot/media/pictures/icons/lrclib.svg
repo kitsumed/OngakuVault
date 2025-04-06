@@ -1,0 +1,7 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+	<rect width="100%" height="100%" rx="20" ry="20" fill="#00004D"/>
+	<g font-family="Arial, sans-serif" font-weight="bold" fill="white">
+		<text x="25" y="75" font-size="4em" textLength="150" lengthAdjust="spacingAndGlyphs">LRC</text>
+		<text x="25" y="160" font-size="4em" textLength="150" lengthAdjust="spacingAndGlyphs">LIB</text>
+	</g>
+</svg>
