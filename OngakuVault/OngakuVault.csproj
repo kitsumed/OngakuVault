@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SubtitlesParserV2" Version="2.2.2" />
+    <PackageReference Include="SubtitlesParserV2" Version="2.2.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="8.1.0" />
     <PackageReference Include="YoutubeDLSharp" Version="1.1.1" />
