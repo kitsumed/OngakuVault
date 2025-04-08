@@ -14,7 +14,7 @@ of your audio archive. The application also includes an optional web interface (
 # [Showcase](https://kitsumed.github.io/OngakuVault/getting-started.html#showcase)
 You can see a showcase of the desktop & mobile interface along with a video of the web interface [here](https://kitsumed.github.io/OngakuVault/getting-started.html#showcase).
 
-# Platforms / Architectures [![Latest build from main branch](https://github.com/kitsumed/ongakuvault/actions/workflows/build-test-publish-asp.net-core.yml/badge.svg?branch=main)](https://github.com/kitsumed/ongakuvault/actions/workflows/build-test-publish-asp.net-core.yml)
+# Platforms / Architectures [![Latest build from main branch](https://github.com/kitsumed/OngakuVault/actions/workflows/build-test-publish-asp.net-core.yml/badge.svg)](https://github.com/kitsumed/OngakuVault/actions/workflows/build-test-publish-asp.net-core.yml)
 
 | Specificities                                                                                        | win x32 | win x64 | arm (x32)                           | arm64 | amd64 |
 |------------------------------------------------------------------------------------------------------|---------|---------|-------------------------------------|-------|-------|
