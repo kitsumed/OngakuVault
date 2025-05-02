@@ -85,6 +85,8 @@ For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` wi
 | `NOW_YEAR`           | Current year                                                              |
 | `NOW_MONTH`          | Current month                                                             |
 | `NOW_DAY`            | Current day                                                               |
+| `NOW_HOUR`           | Current hour                                                              |
+| `NOW_MINUTE`         | Current minute                                                            |
 | `NOW_SECOND`         | Current seconds                                                           |
 | `NOW_TICKS`          | Current time in ticks (timestamp)                                         |
 
@@ -99,6 +101,11 @@ For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` wi
 | `AUDIO_ALBUM`        | Current track album **OR** ``Unknown``                                    |
 | `AUDIO_YEAR`         | Current track year **OR** ``0``                                           |
 | `AUDIO_TRACK_NUMBER` | Current track number **OR** ``0``                                         |
+| `AUDIO_DISC_NUMBER`  | Current track disc number **OR** ``0``                                    |
+| `AUDIO_ISRC`         | Current track ISRC **OR** ``CC-XXX-YY-NNNNN``                             |
+| `AUDIO_CATALOG_NUMBER`| Current track catalog number **OR** ``CatalogUnknown``                   |
 | `AUDIO_LANGUAGE`     | Current track language **OR** ``Unknown``                                 |
 | `AUDIO_GENRE`        | Current track genre **OR** ``Unknown``                                    |
 | `AUDIO_COMPOSER`     | Current track composer **OR** ``Unknown``                                 |
+| `AUDIO_DURATION`     | Current track duration (seconds) **OR** ``0``                             |
+| `AUDIO_DURATION_MS`  | Current track duration (milliseconds) **OR** ``0``                        |
