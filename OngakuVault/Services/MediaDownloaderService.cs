@@ -153,8 +153,6 @@ namespace OngakuVault.Services
 				*/
 				// Create a temporary yt-dlp proc
 				YoutubeDLProcess temporaryYTDLPProc = new YoutubeDLProcess(MediaDownloader.YoutubeDLPath);
-				// Do not start using cmd on windows
-				temporaryYTDLPProc.UseWindowsEncodingWorkaround = false;
 
 				// Create a event handler to listen to the proc outputs
 				EventHandler<DataReceivedEventArgs>? outputHandler = null;
@@ -206,7 +204,6 @@ namespace OngakuVault.Services
 		public async Task<FileInfo?> DownloadAudio(string mediaUrl, AudioConversionFormat audioConversionFormat = AudioConversionFormat.Best, CancellationToken? cancellationToken = null, IProgress<DownloadProgress>? progressReport = null)
 		{
 			// Sanitize the url to prevent possible command injections on windows & linux
-			// NOTE: The library we use for yt-dlp, YoutubeDLSharp, run by default yt-dlp using a CMD on windows, thus opening the door to commands injections. Binary are run directly on linux.
 			string sanitizedMediaUrl = UrlHelper.SanitizeUrl(mediaUrl) ?? throw new FormatException($"Tried to sanitize the given mediaUrl '{mediaUrl}' to a safe URL Encoded url but failed.");
 
 			// If no cancellation token was given, generate a "None" token
@@ -225,7 +222,6 @@ namespace OngakuVault.Services
 		public async Task<MediaInfoAdvancedModel> GetMediaInformations(string url, bool flatPlaylist = true, bool fetchComments = false, CancellationToken? cancellationToken = null)
 		{
 			// Sanitize the url to prevent possible command injections on windows & linux
-			// NOTE: The library we use for yt-dlp, YoutubeDLSharp, run by default yt-dlp using a CMD on windows, thus opening the door to commands injections. Binary are run directly on linux.
 			string sanitizedUrl = UrlHelper.SanitizeUrl(url) ?? throw new FormatException($"Tried to sanitize the given url '{url}' to a safe URL Encoded url but failed.");
 			
 			// If no cancellation token was given, generate a "None" token
