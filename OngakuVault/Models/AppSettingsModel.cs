@@ -113,6 +113,47 @@
 		/// </remarks>
 		public string[]? OVERWRITE_CORS_ORIGIN_ARRAY => OVERWRITE_CORS_ORIGIN?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 
+		/// <summary>
+		/// List of additional plugin dirs the scraper should look out for.
+		/// Directories are separated by PIPE (|). Ex: (./plugins/|/home/test-user/plugins)
+		/// Empty by default, only looking at the scraper default directories (https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#plugins)
+		/// </summary>
+		public string? SCRAPER_PLUGIN_DIRS { get; set; }
+
+		/// <remarks>
+		/// Array version of <see cref="SCRAPER_PLUGIN_DIRS"/>
+		/// </remarks>
+		public string[]? SCRAPER_PLUGIN_DIRS_ARRAY => SCRAPER_PLUGIN_DIRS?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
+
+		/// <summary>
+		/// List of custom options (arguments) that can will be given to the scraper when making a download request.
+		/// Each options are made of 3 parameters separated by a semicolon (;), each option are separated by PIPE (|).
+		/// Ex: (--test;string;hi|--test-attemp;int;4)
+		/// Prameters order : argument name (including the two "--") ; the type of the value ; the value
+		/// Supported value type : "string","int","boolean"
+		/// Empty by default.
+		/// </summary>
+		public string? SCRAPER_DOWNLOAD_CUSTOM_OPTIONS { get; set; }
+
+		/// <remarks>
+		/// Array version of <see cref="SCRAPER_DOWNLOAD_CUSTOM_OPTIONS"/>
+		/// </remarks>
+		public string[]? SCRAPER_DOWNLOAD_CUSTOM_OPTIONS_ARRAY => SCRAPER_DOWNLOAD_CUSTOM_OPTIONS?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
+
+		/// <summary>
+		/// List of custom options (arguments) that can will be given to the scraper when making a information request.
+		/// Each options are made of 3 parameters separated by a semicolon (;), each option are separated by PIPE (|).
+		/// Ex: (--test;string;hi|--test-attemp;int;4)
+		/// Prameters order : argument name (including the two "--") ; the type of the value ; the value
+		/// Supported value type : "string","int","boolean"
+		/// Empty by default.
+		/// </summary>
+		public string? SCRAPER_INFORMATION_CUSTOM_OPTIONS { get; set; }
+
+		/// <remarks>
+		/// Array version of <see cref="SCRAPER_INFORMATION_CUSTOM_OPTIONS"/>
+		/// </remarks>
+		public string[]? SCRAPER_INFORMATION_CUSTOM_OPTIONS_ARRAY => SCRAPER_INFORMATION_CUSTOM_OPTIONS?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
 
 		/// <summary>
 		/// List, in descending priority order, of allowed lyrics/subtitles

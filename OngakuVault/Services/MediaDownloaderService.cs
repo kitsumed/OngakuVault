@@ -141,6 +141,8 @@ namespace OngakuVault.Services
 			{
 				MediaDownloader.YoutubeDLPath += ".exe";
 				MediaDownloader.FFmpegPath += ".exe";
+				// Update scraper download settings
+				DownloaderOverwriteOptions.WindowsFilenames = true;
 			}
 			_logger.LogInformation("Current temporary download output path is set to : {TMPOutputPath}", TMPOutputPath);
 
@@ -153,7 +155,7 @@ namespace OngakuVault.Services
 				*/
 				// Create a temporary yt-dlp proc
 				YoutubeDLProcess temporaryYTDLPProc = new YoutubeDLProcess(MediaDownloader.YoutubeDLPath);
-
+				
 				// Create a event handler to listen to the proc outputs
 				EventHandler<DataReceivedEventArgs>? outputHandler = null;
 				outputHandler = (o, e) =>
@@ -178,13 +180,73 @@ namespace OngakuVault.Services
 				_logger.LogWarning("MediaDownloaderService could not locate some external binaries. yt-dlp should be in '{YoutubeDLPath}' and FFmpeg in '{FFmpegPath}'.\r\nEnsure both binaries are under their respective paths.", MediaDownloader.YoutubeDLPath, MediaDownloader.FFmpegPath);
 			}
 
+
 			// Overwrite the yt-dlp configuration depending on the defined appSettings
 			if (!string.IsNullOrEmpty(_appSettings.SCRAPER_USERAGENT)) // Apply custom user-agent
 			{
 				DownloaderOverwriteOptions.AddHeaders = new string[] { $"User-Agent:{_appSettings.SCRAPER_USERAGENT}" };
 				InformationOverwriteOptions.AddHeaders = new string[] { $"User-Agent:{_appSettings.SCRAPER_USERAGENT}" };
 			}
+
+			string[]? scraperPluginDirs = _appSettings.SCRAPER_PLUGIN_DIRS_ARRAY;
+			if (scraperPluginDirs != null)
+			{
+				DownloaderOverwriteOptions.PluginDirs = scraperPluginDirs;
+				InformationOverwriteOptions.PluginDirs = scraperPluginDirs;
+			}
+
+			string[]? informationCustomOptions = _appSettings.SCRAPER_INFORMATION_CUSTOM_OPTIONS_ARRAY;
+			if (informationCustomOptions != null) ApplySettingsCustomOptionToScraper(informationCustomOptions, InformationOverwriteOptions);
+			string[]? downloadCustomOptions = _appSettings.SCRAPER_DOWNLOAD_CUSTOM_OPTIONS_ARRAY;
+			if (downloadCustomOptions != null) ApplySettingsCustomOptionToScraper(downloadCustomOptions, DownloaderOverwriteOptions);
 		}
+
+		/// <summary>
+		/// This method will apply the custom options from <see cref="AppSettingsModel"/> to the given scraper OptionSet.
+		/// Allowing user to add custom arguments to the scraper.
+		/// </summary>
+		/// <param name="customOptions">A array of custom options that follows <see cref="AppSettingsModel.SCRAPER_DOWNLOAD_CUSTOM_OPTIONS"/> format.</param>
+		/// <param name="configToOverwrite">The hard-coded scraper settings to overwrite with the additionals arguments</param>
+		private void ApplySettingsCustomOptionToScraper(string[] customOptions, OptionSet configToOverwrite)
+		{
+			foreach (string currCustomOption in customOptions)
+			{
+				string[] currParameters = currCustomOption.Split(';');
+				if (currParameters.Length != 3)
+				{
+					_logger.LogWarning("The custom option '{currCustomOption}' has {paramsLength} parameters but need 3. Ignored custom option.", currCustomOption, currParameters.Length);
+					return; // Next custom option
+				}
+
+				// Follow the format described in AppSettingsModel, Argument name (including the two "--") ; the type of the value ; the value
+				string customOptionKey = currParameters[0];
+				string customOptionValueType = currParameters[1];
+				string customOptionValue = currParameters[2];
+
+				if (customOptionValueType.Equals("string", StringComparison.CurrentCultureIgnoreCase))
+				{
+					configToOverwrite.AddCustomOption(customOptionKey, customOptionValue);
+				}
+				else if (customOptionValueType.Equals("int", StringComparison.CurrentCultureIgnoreCase))
+				{
+					if (!int.TryParse(customOptionValue, out int customOptionValueInt))
+					{
+						_logger.LogWarning("Could not parse '{customOptionValue}' as a value type '{customOptionValueType}' in custom option '{currCustomOption}'. Ignored custom option.", customOptionValue, customOptionValueType, currCustomOption);
+					}
+					configToOverwrite.AddCustomOption(customOptionKey, customOptionValueInt);
+				}
+				else if (customOptionValueType.Equals("boolean", StringComparison.CurrentCultureIgnoreCase))
+				{
+					if (!bool.TryParse(customOptionValue, out bool customOptionValueBool))
+					{
+						_logger.LogWarning("Could not parse '{customOptionValue}' as a value type '{customOptionValueType}' in custom option '{currCustomOption}'. Ignored custom option.", customOptionValue, customOptionValueType, currCustomOption);
+					}
+					configToOverwrite.AddCustomOption(customOptionKey, customOptionValueBool);
+				}
+				else _logger.LogWarning("The value type '{customOptionValueType}' in custom option '{currCustomOption}' is not supported. Ignored custom option.", customOptionValueType, currCustomOption);
+			}
+		}
+
 		/// <summary>
 		/// Called when Disposing of MediaDownaloderService (should only happen at application closure)
 		/// </summary>
