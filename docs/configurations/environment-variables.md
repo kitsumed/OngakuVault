@@ -28,6 +28,9 @@
 | [`Ongaku__LYRICS_LANGUAGE_PRIORITY`](#lyrics-language-priority)  | Lyrics/subtitle languages to prioritize when available. (IETF tags)    | *empty*, lyrics fetching disabled.          | *empty*   |
 | `Ongaku__WEB_REQUEST_USERAGENT`     | Define the user-agent OngakuVault should use for all web requests.        | *empty*                                     | *empty*                             |
 | `Ongaku__SCRAPER_USERAGENT`         | Define the user-agent the scraper (yt-dlp) should use for all web requests.| *empty*                                    | *empty*                             |
+| [`Ongaku__SCRAPER_DOWNLOAD_CUSTOM_OPTIONS`](#scraper-download-custom-options-scraper-information-custom-options)| Define custom arguments that will be used by the scraper on download requests.| *empty*| *empty*|
+| [`Ongaku__SCRAPER_INFORMATION_CUSTOM_OPTIONS`](#scraper-download-custom-options-scraper-information-custom-options)| Define custom arguments that will be used by the scraper on informations requests.| *empty*| *empty*|
+| [`Ongaku__SCRAPER_PLUGIN_DIRS`](https://github.com/yt-dlp/yt-dlp#plugins)| Define additional plugin dirs the scraper should check.| *empty*, uses yt-dlp default dirs.| *empty*                     |
 | `Ongaku__OUTPUT_DIRECTORY`          | Output directory for downloaded audio files.                              | *empty*, defaults to `./archived-audios`    | `/home/app/archived-audios`         |
 | [`Ongaku__OUTPUT_FILE_FORMAT`](#output-file-format)| Downloaded files naming template                           | *empty*                                     | *empty*                             |
 | [`Ongaku__OUTPUT_SUB_DIRECTORY_FORMAT`](#output-sub-directory-format)| Sub directory for downloaded audio files.| *empty*                                     | *empty*                             |
@@ -52,6 +55,22 @@ For example, `en-US|en|fr` would prioritize **en-US** language, fallback to **en
 If left empty, the application will not fetch any lyrics/subtitle, even if yt-dlp found any.
 
 You can find a list of all existing [IETF tags here](https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry).
+
+### SCRAPER_DOWNLOAD_CUSTOM_OPTIONS & SCRAPER_INFORMATION_CUSTOM_OPTIONS
+The `SCRAPER_DOWNLOAD_CUSTOM_OPTIONS` and `SCRAPER_INFORMATION_CUSTOM_OPTIONS` variable allow you to add your own arguments to the command used to perform downloads and informations
+fetching using yt-dlp.
+
+**Theses variable require you to follow a specific format**:
+- Each custom option are made of 3 arguments separated by semicolon (``;``).
+    - Arguments are in this format: `--key/parameter;type of the value;the value`
+- Each custom options are separated by a colon (``|``).
+
+**Supported value types**: ``string``, ``int``, ``boolean``.
+
+**Exemples**: 
+- `--simulate;boolean;true` would add `--simulate` to the yt-dlp arguments.
+- `--myString;string;hi` would add `--myString "hi"` to the yt-dlp arguments.
+- `--maxSomething;int;2|--funny;boolean;true` would add `--maxSomething 2 --funny` to the yt-dlp arguments.
 
 ### OUTPUT_FILE_FORMAT
 The `OUTPUT_FILE_FORMAT` variable allow for the definition of a template that will be used to rename the downloaded file name.
