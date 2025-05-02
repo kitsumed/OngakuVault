@@ -67,7 +67,7 @@ fetching using yt-dlp.
 
 **Supported value types**: ``string``, ``int``, ``boolean``.
 
-**Exemples**: 
+**Examples**: 
 - `--simulate;boolean;true` would add `--simulate` to the yt-dlp arguments.
 - `--myString;string;hi` would add `--myString "hi"` to the yt-dlp arguments.
 - `--maxSomething;int;2|--funny;boolean;true` would add `--maxSomething 2 --funny` to the yt-dlp arguments.
