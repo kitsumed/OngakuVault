@@ -22,6 +22,7 @@
 | Environment Variable        | Description                                                               | Default Value                               | Docker Default Value                        |
 |-----------------------------|---------------------------------------------------------------------------|---------------------------------------------|---------------------------------------------|
 | [`Ongaku__CLEAR_METADATA_NONSTANDARD_FIELDS`](#clear-metadata-nonstandard-fields)| Removes additionals (non-standard) fields from your files metadata.| `false`                                     | `false`                                     |
+| [`Ongaku__CLIENT_SAFE_ERROR`](#client-safe-error) | Control if Ongaku should try returning a customised error message for known scraper error.| `true`| `true`                                      |
 | `Ongaku__DISABLE_WEBSITE`           | Disables the website at root `/`, leaving only the API.                   | `false`                                     | `false`                             |
 | `Ongaku__ENABLE_SWAGGER_DOC`        | Enables Swagger API doc at `/swagger`.                                    | `false`                                     | `false`                             |
 | `Ongaku__ENFORCE_HTTPS`             | If `true`, redirects HTTP to HTTPS.                                       | `false`                                     | `false`                             |
@@ -46,6 +47,12 @@ If you are unsure about the usage of a variable and do not find a detailed descr
 ### CLEAR_METADATA_NONSTANDARD_FIELDS
 The `CLEAR_METADATA_NONSTANDARD_FIELDS` variable allows you to remove every fields that are not part of the metadata specs (like ID3v2) standard format. They are also known as *additionals* fields.
 This project uses [atldotnet](https://github.com/Zeugma440/atldotnet) to edit the files metadata, to learn more about what is considered a non-standard field, read the [ATL wiki about non standard fields](https://github.com/Zeugma440/atldotnet/wiki/Focus-on-non-standard-fields#what-are-non-standard-fields-).
+
+### CLIENT_SAFE_ERROR
+The `CLIENT_SAFE_ERROR` variable control if OngakuVault should try to process the error output of the scraper to return a customised error message with more
+detailed infomation than a generic error message without risking sending sensible information. The variable is ``true`` (try to send safe error) by default.
+You might want to set this to `false` to get the full output of the scraper (**errors and warnings**) in the console, allowing you to debug and report issues on the yt-dlp github
+page. Note that defining this value on ``false`` will make it so clients always get the same generic error message, even for known scraper errors.
 
 ### LYRICS_LANGUAGE_PRIORITY
 The `LYRICS_LANGUAGE_PRIORITY` variable uses [IETF tags](https://wikipedia.org/wiki/IETF_language_tag) returned by the scraper yt-dlp to select, if found, the lyrics language.
