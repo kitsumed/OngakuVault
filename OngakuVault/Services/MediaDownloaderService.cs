@@ -273,7 +273,7 @@ namespace OngakuVault.Services
 			// Download the media audio
 			RunResult<string> audioDownloadResult = await MediaDownloader.RunAudioDownload(sanitizedMediaUrl, audioConversionFormat, cancellationToken.Value, progressReport, default, DownloaderOverwriteOptions);
 			// If succes is false, throw a ScraperErrorOutputException using ProcessScraperErrorOutput
-			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput);
+			if (!audioDownloadResult.Success) ScraperErrorOutputHelper.ProcessScraperErrorOutput(audioDownloadResult.ErrorOutput, _appSettings.CLIENT_SAFE_ERROR);
 			// Ensure file exists, else return null
 			// Some website/url can cause a success result, but without information / formats available, thus, no file are created.
 			if (File.Exists(audioDownloadResult.Data)) return new FileInfo(audioDownloadResult.Data);
@@ -295,7 +295,7 @@ namespace OngakuVault.Services
 			{
 				// Failed to fetch / get media info from a webpage
 				// Throw a error message related to the scraper issue
-				ScraperErrorOutputHelper.ProcessScraperErrorOutput(mediaData.ErrorOutput);
+				ScraperErrorOutputHelper.ProcessScraperErrorOutput(mediaData.ErrorOutput, _appSettings.CLIENT_SAFE_ERROR);
 			}
 
 			// Ensure the scraper results isn't a playlist
