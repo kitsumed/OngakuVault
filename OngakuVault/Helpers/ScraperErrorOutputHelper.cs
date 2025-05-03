@@ -92,17 +92,27 @@ namespace OngakuVault.Helpers
 						// Search for error related to login required
 						// Example: ERROR: This video is only available for registered users
 						// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1242
-						if (errorLine.Contains("This video is only available for registered users"))
+						// NOTE: We uses regex as some extractors returns different messages for the same / similar error
+						if (Regex.IsMatch(errorLine, @"(?i)\b(video|content|download format|site|track)(?:\s*\S*)?.{0,100}available.{0,100}(registered users|members|subscription|premium users|paid accounts?)\b"))
 						{
-							throw new ProcessedScraperErrorOutputException("Scraper reported that the video is only available for registered users.", true, errorLine);
+							throw new ProcessedScraperErrorOutputException("Scraper reported that the requested content is only available for registered users with enough permissions.", true, errorLine);
 						}
 
 						// Search for error related to geo restrictions
 						// Example: ERROR: This video is not available from your location due to geo restriction
-						// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1252
-						if (errorLine.Contains("This video is not available from your location due to geo restriction"))
+						// Example reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1252
+						// NOTE: We uses regex as some extractors returns different messages for the same / similar error
+						if (Regex.IsMatch(errorLine, @"(?i)\b(video|page|content|track).{0,100}(unavailable|not available).{0,100}(region|country|location|geo|licensing)\b"))
 						{
-							throw new ProcessedScraperErrorOutputException("Scraper reported that the video is not available due to geo restriction.", true, errorLine);
+							throw new ProcessedScraperErrorOutputException("Scraper reported that the requested content is not available due to geo restriction.", true, errorLine);
+						}
+
+						// This isn't a error of common.py extracor but try to detect error returned by multiple extractors for unavailable video without reasons.
+						// Example: This video is unavailable    /   vIdEO unavailable
+						// NOTE: This need to be the last verification done (for unavailable messages) as some unavailable messages might contains a reasons
+						if (Regex.IsMatch(errorLine, @"(?i)\b(video|this video).{0,100}unavailable\b")) 
+						{
+							throw new ProcessedScraperErrorOutputException("Scraper reported that the requested content is not available, without giving a clear reason.", true, errorLine);
 						}
 
 					}
