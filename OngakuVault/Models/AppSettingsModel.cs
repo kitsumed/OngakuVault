@@ -86,6 +86,14 @@
 		public bool CLIENT_SAFE_ERROR { get; set; } = true;
 
 		/// <summary>
+		/// If defined, the application will enable basic authentification globally and require the defined credentials.
+		/// If left empty, the application will not require any authentification.
+		/// Basic authentification follow this format: 'username:password'.
+		/// Empty by default, disabled.
+		/// </summary>
+		public string BASIC_AUTH_CREDENTIALS { get; set; } = string.Empty;
+
+		/// <summary>
 		/// If defined, will configure the yt-dlp scraper to use the specified user-agent.
 		/// </summary>
 		public string? SCRAPER_USERAGENT { get; set; } = null;

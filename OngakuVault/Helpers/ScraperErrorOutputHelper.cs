@@ -93,7 +93,7 @@ namespace OngakuVault.Helpers
 						// Example: ERROR: This video is only available for registered users
 						// Reported by https://github.com/yt-dlp/yt-dlp/blob/05c8023a27dd37c49163c0498bf98e3e3c1cb4b9/yt_dlp/extractor/common.py#L1242
 						// NOTE: We uses regex as some extractors returns different messages for the same / similar error
-						if (Regex.IsMatch(errorLine, @"(?i)\b(video|content|download format|site|track)(?:\s*\S*)?.{0,100}available.{0,100}(registered users|members|subscription|premium users|paid accounts?)\b"))
+						if (Regex.IsMatch(errorLine, @"(?i)\b(video|content|download format|site|track)(?:\s*\S*)?.{0,100}available.{0,100}(registered users?|members?|subscription|premium users?|paid accounts?)\b"))
 						{
 							throw new ProcessedScraperErrorOutputException("Scraper reported that the requested content is only available for registered users with enough permissions.", true, errorLine);
 						}

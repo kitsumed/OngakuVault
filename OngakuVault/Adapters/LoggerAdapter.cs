@@ -1,7 +1,4 @@
 ﻿using ATL.Logging;
-using OngakuVault.Services;
-using SubtitlesParserV2.Logger;
-using static ATL.Logging.Log;
 
 namespace OngakuVault.Adapters
 {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.OpenApi.Models;
 using OngakuVault.Adapters;
+using OngakuVault.Middlewares;
 using OngakuVault.Models;
 using OngakuVault.Services;
 using System.Text.Json;
@@ -9,6 +10,22 @@ using System.Text.Json.Serialization;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions {
 	WebRootPath = "wwwroot",
 });
+// Clear default logging providers
+builder.Logging.ClearProviders(); 
+builder.Logging.AddConsole();
+builder.Logging.AddEventSourceLogger();
+#if DEBUG
+builder.Logging.AddDebug();
+#elif RELEASE
+if (OperatingSystem.IsWindows())
+{
+	builder.Logging.AddEventLog(new Microsoft.Extensions.Logging.EventLog.EventLogSettings()
+	{
+		// Save warning and more criticals logs to the Windows Event Log
+		Filter = (_, logLevel) => logLevel >= LogLevel.Warning,
+	});
+}
+#endif
 
 builder.Configuration.AddEnvironmentVariables();
 // Verify the starting command arguments to overwrite app settings
@@ -58,6 +75,14 @@ builder.Services.AddSwaggerGen(options =>
 			Url = new Uri("https://github.com/kitsumed/OngakuVault")
 		},
 	});
+	options.AddSecurityDefinition("basic", new OpenApiSecurityScheme
+	{
+		Description = "Basic Authentication header using the 'Basic' scheme. (Only required if enabled in app settings). Example: \"Basic {base64-encoded-credentials}\"",
+		Type = SecuritySchemeType.Http,
+		Scheme = "basic",
+		In = ParameterLocation.Header,
+		Name = "Authorization"
+	});
 	// Uses code comments as description on swagger for elements that don't have a custom swagger description
 	options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "OngakuVault.xml"));
 	options.EnableAnnotations();
@@ -91,6 +116,8 @@ WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (appSettings.ENFORCE_HTTPS == true) app.UseHttpsRedirection();
+// Add a custom middleware to enforce basic authentication on the whole website
+if (!string.IsNullOrEmpty(appSettings.BASIC_AUTH_CREDENTIALS)) app.UseMiddleware<BasicAuthMiddleware>(appSettings.BASIC_AUTH_CREDENTIALS);
 
 // Enable Swagger API docs
 if (app.Environment.IsDevelopment() || appSettings.ENABLE_SWAGGER_DOC == true)
@@ -100,7 +127,7 @@ if (app.Environment.IsDevelopment() || appSettings.ENABLE_SWAGGER_DOC == true)
 }
 else 
 {
-	// We take the predicate and verify if the request first segment is /swagger
+	// We verify if the request first segment is /swagger
 	app.UseWhen(context => context.Request.Path.StartsWithSegments("/swagger"), appBuilder =>
 	{
 		// Custom middleware to handle the request
