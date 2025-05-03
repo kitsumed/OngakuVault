@@ -10,6 +10,13 @@ using System.Text.Json.Serialization;
 WebApplicationBuilder builder = WebApplication.CreateBuilder(new WebApplicationOptions {
 	WebRootPath = "wwwroot",
 });
+
+builder.WebHost.UseKestrel(options =>
+{
+	// Remove header indicating to clients the server is running on kestrel
+	options.AddServerHeader = false; 
+});
+
 // Clear default logging providers
 builder.Logging.ClearProviders(); 
 builder.Logging.AddConsole();
