@@ -51,8 +51,13 @@ This project uses [atldotnet](https://github.com/Zeugma440/atldotnet) to edit th
 ### CLIENT_SAFE_ERROR
 The `CLIENT_SAFE_ERROR` variable control if OngakuVault should try to process the error output of the scraper to return a customised error message with more
 detailed infomation than a generic error message without risking sending sensible information. The variable is ``true`` (try to send safe error) by default.
-You might want to set this to `false` to get the full output of the scraper (**errors and warnings**) in the console, allowing you to debug and report issues on the yt-dlp github
-page. Note that defining this value on ``false`` will make it so clients always get the same generic error message, even for known scraper errors.
+
+You might want to set this to `false` to see the full output of the scraper (**errors and warnings**) in the console, allowing to debug and report issues on yt-dlp github page.
+Note that defining this value on ``false`` will make it so clients always get the same generic error message. The server will also show all error, *including known scraper errors*, as "unexpected scraper error". This is because only "unexpected scraper error" have all of their errors and warnings printed, known scraper error on the other hand only include the line that was used to confirm what the error is about.
+
+> [!TIP]
+> **If you plan on reporting an issue on yt-dlp github repo, defining CLIENT_SAFE_ERROR on `false` might not give you enough debug logs**. You can get a full verbose logs by
+> using the `--verbose` yt-dlp argument. You can add this custom argument by adding `--verbose;boolean;true` to both [`SCRAPER_DOWNLOAD_CUSTOM_OPTIONS` and `SCRAPER_INFORMATION_CUSTOM_OPTIONS`](#scraper-download-custom-options-scraper-information-custom-options).
 
 ### LYRICS_LANGUAGE_PRIORITY
 The `LYRICS_LANGUAGE_PRIORITY` variable uses [IETF tags](https://wikipedia.org/wiki/IETF_language_tag) returned by the scraper yt-dlp to select, if found, the lyrics language.
