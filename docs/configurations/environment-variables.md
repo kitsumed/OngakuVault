@@ -21,6 +21,7 @@
 ## Advanced configuration
 | Environment Variable        | Description                                                               | Default Value                               | Docker Default Value                        |
 |-----------------------------|---------------------------------------------------------------------------|---------------------------------------------|---------------------------------------------|
+| [`Ongaku__BASIC_AUTH_CREDENTIALS`](#basic-auth-credentials)| Enable basic http authentication.                                     | *empty*, no auth required.                  | *empty*                                     |
 | [`Ongaku__CLEAR_METADATA_NONSTANDARD_FIELDS`](#clear-metadata-nonstandard-fields)| Removes additionals (non-standard) fields from your files metadata.| `false`                                     | `false`                                     |
 | [`Ongaku__CLIENT_SAFE_ERROR`](#client-safe-error) | Control if Ongaku should try returning a customised error message for known scraper error.| `true`| `true`                                      |
 | `Ongaku__DISABLE_WEBSITE`           | Disables the website at root `/`, leaving only the API.                   | `false`                                     | `false`                             |
@@ -39,10 +40,18 @@
 | `Ongaku__PARALLEL_JOBS`             | Set the number of download jobs allowed to run at the same time.<br>(**Should be less than `PARALLEL_SCRAPER_PROC` to leave rooms for information scrapping processes**.)| `4` | `4` |
 | `Ongaku__TMP_OUTPUT_DIRECTORY`      | Temporary directory for downloading audio, ⚠️**deleted at app closure**. | Temp directory created in OS Temp directory | Temp directory created in OS Temp directory |
 
-
+ 
 
 ## Detailed descriptions
 If you are unsure about the usage of a variable and do not find a detailed description here, take a look at the [descriptions in the source code](https://github.com/kitsumed/OngakuVault/blob/main/OngakuVault/Models/AppSettingsModel.cs).
+
+### BASIC_AUTH_CREDENTIALS
+The `BASIC_AUTH_CREDENTIALS` variable allow you to enforce [basic http authentification](https://en.wikipedia.org/wiki/Basic_access_authentication) on the whole website, including the API. This is disabled by default (empty value).
+The usage format is as follow: `username:password`. Where `username` is our username and `password` is the password.
+
+> [!WARNING]
+> Basic http authentification is a old form of authentification that has some security issues. It transmits credentials encoded in Base64 with every request, which can be easily decoded if intercepted.
+> It is strongly recommended to use HTTPS to encrypt the connection when using basic authentication. For a more secure and robust authentication setup, consider using a reverse proxy with modern authentication.
 
 ### CLEAR_METADATA_NONSTANDARD_FIELDS
 The `CLEAR_METADATA_NONSTANDARD_FIELDS` variable allows you to remove every fields that are not part of the metadata specs (like ID3v2) standard format. They are also known as *additionals* fields.
