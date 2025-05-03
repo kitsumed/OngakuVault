@@ -78,7 +78,8 @@
 		/// <summary>
 		/// If true, the application will try to parse the scraper error to return a more user friendly error message without sending the original error
 		/// with potential sensitive stuff. If false, a generic error message will be send to the client and the full original error will be logged
-		/// on the server side, even if the error is part of the "unknowns scraper errors". This can be useful when trying to debug a scraper error, or create
+		/// on the server side, even if the error is part of the "unknowns scraper errors" it will be reported as a "unexpected scraper error".
+		/// This can be useful when trying to debug a scraper error, or create
 		/// a issue on ytdlp github repo.
 		/// Default value is TRUE
 		/// </summary>
