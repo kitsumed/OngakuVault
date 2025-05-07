@@ -5,7 +5,7 @@ param (
 )
 
 if ($mdFileOut.Length -eq 0) {
-    Write-Warning "mdFilePath param is missing."
+    Write-Warning "mdFileOut path param is missing. Cannot known where to write the versions."
     Exit 1
 } # Ensure the directory exists
 elseif (!(Test-Path -Path $mdFileOut -PathType Leaf)) {
@@ -18,6 +18,6 @@ $ytdlpJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/
 $ffmpegJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest"
 # $ytdlpJsonResponse | Get-Member
 
-Add-Content -Path $mdFileOut -Value "`n`nThis build **may contain external binaries** at the following versions:"
+Add-Content -Path $mdFileOut -Value "`n`nSome of the builds **may come with external binaries** at the following versions:"
 Add-Content -Path $mdFileOut -Value "`n- **[yt-dlp]($($ytdlpJsonResponse.html_url))**: ``$($ytdlpJsonResponse.tag_name)``"
 Add-Content -Path $mdFileOut -Value "- **[FFmpeg]($($ffmpegJsonResponse.html_url))**: ``$($ffmpegJsonResponse.name)``"

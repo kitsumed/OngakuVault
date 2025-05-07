@@ -21,7 +21,7 @@ foreach ($artifactFolder in $artifacts) {
     Write-Host "Processing artifact: $artifactFolder"
 
 
-    # If the artifact name starts with "win-", do not extract, just calculate the hash
+    # If the artifact is a windows build
     if ($artifactFolder.Name -like "win-*") {
         Write-Host "Detected $artifactFolder as a Windows build."
         # If compress output flag is enabled, compress to output, else move directory to output

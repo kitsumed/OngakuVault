@@ -29,8 +29,8 @@ $markdown += "| File Name | MD5  | SHA256 |`n"
 $markdown += "|-----------|------|--------|`n"
 
 foreach ($file in $files) {
-    # Skip checksum.md
-    if ($file.Name -eq "checksum.md") {
+    # Skip all files with a .md extension
+    if ($file.Name -eq "*.md") {
         continue
     }
     $md5 = (Get-FileHash -Path $file.FullName -Algorithm MD5).Hash
