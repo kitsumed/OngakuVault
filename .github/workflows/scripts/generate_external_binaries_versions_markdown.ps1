@@ -18,6 +18,6 @@ $ytdlpJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/
 $ffmpegJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest"
 # $ytdlpJsonResponse | Get-Member
 
-Add-Content -Path $mdFileOut -Value "`n`nSome of the builds **may come with external binaries** at the following versions:"
+Add-Content -Path $mdFileOut -Value "`n`nSome of the builds **may be distributed with external binaries** at the following versions:"
 Add-Content -Path $mdFileOut -Value "`n- **[yt-dlp]($($ytdlpJsonResponse.html_url))**: ``$($ytdlpJsonResponse.tag_name)``"
 Add-Content -Path $mdFileOut -Value "- **[FFmpeg]($($ffmpegJsonResponse.html_url))**: ``$($ffmpegJsonResponse.name)``"
