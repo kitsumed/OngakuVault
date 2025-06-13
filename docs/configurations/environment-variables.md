@@ -116,7 +116,7 @@ To set dynamic values, refer yourself to the values supported by the used replac
 
 ## Value Replacing (Dynamic)
 Value replacing is the name given to strings surrounded by two PIPE (`|`) character that get replaced with a specific value during runtime.
-You can see the helper class that manage value replacing in the source code [here](#soon).
+You can see the helper class that manage value replacing in the source code [here](https://github.com/kitsumed/OngakuVault/blob/main/OngakuVault/Helpers/ValueReplacingHelper.cs).
 
 For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` with the current year.
 ### Date Processor
