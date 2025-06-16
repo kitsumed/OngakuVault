@@ -28,7 +28,7 @@ namespace OngakuVault.Helpers
 		///     }
 		///     else
 		///     {
-		///         Console.WriteLine("This is an unknown error, scraper messages.");
+		///         Console.WriteLine("This is an unknown error, all scraper output messages.");
 		///     }
 		/// }
 		/// </code>
@@ -137,14 +137,14 @@ namespace OngakuVault.Helpers
 			public bool IsKnownError { get; }
 
 			/// <summary>
-			/// Only defined when IsKnownError is true, this field contains the original scraper error.
+			/// Only defined when IsKnownError is true, this field contains the original scraper error (line used to define the error as a "known" error).
 			/// </summary>
 			public string? OriginalError { get; }
 
 			/// <summary>
 			/// A exception that represent the proccesed scraper error outputs that can be safely handeled
 			/// </summary>
-			/// <param name="message">The scraper error and warning message(s) or custom message</param>
+			/// <param name="message">The scraper output (error and warning message(s) separated by <see cref="Environment.NewLine"/>) or custom message (client-safe) if it's a known error</param>
 			/// <param name="isKnownError">If the message is a custom message safe to be given to public facing clients or not</param>
 			/// <param name="originalError">The original scraper error message (only defined when isKnownError is true)</param>
 			public ProcessedScraperErrorOutputException(string message, bool isKnownError, string? originalError = null) : base(message)

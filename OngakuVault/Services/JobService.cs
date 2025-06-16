@@ -221,7 +221,7 @@ namespace OngakuVault.Services
 					{
 						// Load the file in ATL
 						Track audioTrack = new Track(downloadedFileInfo.FullName);
-						// Ensure ATL support at least one metadata format for the audio that can be overwriten
+						// Ensure ATL support at least one metadata format for the audio type (mp4,wav,flac,etc) that can be overwriten
 						// (Prevent errors since some metadata formats supported by ATL are read-only)
 						IList<Format> audioTrackSupportedFormats = audioTrack.SupportedMetadataFormats;
 						if (audioTrackSupportedFormats.Any(format => format.Writable == true))
@@ -241,7 +241,6 @@ namespace OngakuVault.Services
 							});
 
 							// Set the new file metadata if the user gived new values
-							
 							audioTrack.Title = string.IsNullOrEmpty(Jobs[jobID].Data.Name) ? audioTrack.Title : Jobs[jobID].Data.Name;
 							audioTrack.Artist = string.IsNullOrEmpty(Jobs[jobID].Data?.ArtistName) ? audioTrack.Artist : Jobs[jobID].Data.ArtistName;
 							audioTrack.Album = string.IsNullOrEmpty(Jobs[jobID].Data?.AlbumName) ? audioTrack.Album : Jobs[jobID].Data.AlbumName;
@@ -250,6 +249,7 @@ namespace OngakuVault.Services
 							audioTrack.TrackNumber = Jobs[jobID].Data?.TrackNumber == null ? audioTrack.TrackNumber : Jobs[jobID].Data.TrackNumber;
 							audioTrack.Description = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Description : Jobs[jobID].Data.Description;
 							audioTrack.Comment = string.IsNullOrEmpty(Jobs[jobID].Data?.Description) ? audioTrack.Comment : Jobs[jobID].Data.Description;
+
 							if (Jobs[jobID].Configuration.Lyrics != null)
 							{
 								// Overwrite media lyrics with empty one / create lyrics
@@ -273,7 +273,7 @@ namespace OngakuVault.Services
 								}
 							}
 
-							// If the used enabled the clear non standards fields (in the file metadata) settings
+							// If the user enabled the clear non standards fields (in the file metadata) settings
 							if (_appSettings.CLEAR_METADATA_NONSTANDARD_FIELDS) audioTrack.AdditionalFields?.Clear();
 
 							bool wasNewMetadataApplyed = await audioTrack.SaveAsync(metadataOverwriteProgress);
@@ -348,12 +348,12 @@ namespace OngakuVault.Services
 						ProcessedScraperErrorOutputException processedEx = (ProcessedScraperErrorOutputException)ex;
 						if (processedEx.IsKnownError)
 						{
-							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}. Original Scraper Error: {}", jobID, processedEx.Message, processedEx.OriginalError);
+							_logger.LogWarning("Known scraper error occurred during during execution of Job ID : '{ID}'. Error: {message}.\nOriginal Scraper Error: {originalError}", jobID, processedEx.Message, processedEx.OriginalError);
 							Jobs[jobID].ReportStatus(JobStatus.Failed, $"Known scraper error occurred: {ex.Message}", 100);
 						}
 						else 
 						{
-							_logger.LogError("An unexpected scraper error occurred during the execution of Job ID : '{ID}'. Scraper Error: {message}", jobID, processedEx.Message);
+							_logger.LogError(ex,"An unexpected scraper error occurred during the execution of Job ID : '{ID}'.\nScraper outputs: --> {message}", jobID, processedEx.Message);
 							Jobs[jobID].ReportStatus(JobStatus.Failed, "An unexpected scraper error occurred", 100);
 						}
 					}

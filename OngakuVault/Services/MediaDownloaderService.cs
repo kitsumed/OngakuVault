@@ -414,7 +414,7 @@ namespace OngakuVault.Services
 									}
 									break; // We found the lyrics, stop execution
 								}
-								else _logger.LogWarning("Fetched lyrics from the source '{url}' as extension '{extensionFormat}' but failed to parser them with the parser '{parser}'.",subtitleData.Url , subtitleData.Ext, Enum.GetName(typeof(SubtitleFormatType), subtitleFormatType));
+								else _logger.LogWarning("Fetched lyrics from the source '{url}' as extension '{extensionFormat}' but failed to parsing using '{parser}' parser.",subtitleData.Url , subtitleData.Ext, Enum.GetName(typeof(SubtitleFormatType), subtitleFormatType));
 							}
 							catch (HttpRequestException requestException)
 							{
