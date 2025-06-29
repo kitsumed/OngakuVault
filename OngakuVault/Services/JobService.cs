@@ -196,7 +196,7 @@ namespace OngakuVault.Services
 						}
 						else if (progress.State == DownloadState.Downloading)
 						{
-							newProgressTaskName = $"Scraper is downloading media... ETA: {progress.ETA ?? "Unknown"}";
+							newProgressTaskName = $"Scraper is downloading media... ETA: {progress.ETA ?? "UnknownETA"} | Download Speed : {progress.DownloadSpeed ?? "UnknownSpeed"}";
 							// 5 to 75 when scraper return downloading at 100%.
 							newProgress = preProcessingPercentage + (int)(downloadingPercentage * progress.Progress);
 						}
@@ -217,6 +217,7 @@ namespace OngakuVault.Services
 					});
 
 					FileInfo? downloadedFileInfo = await _mediaDownloaderService.DownloadAudio(Jobs[jobID].Data.MediaUrl, Jobs[jobID].Configuration.FinalAudioFormat, Jobs[jobID].CancellationTokenSource.Token, downloadProgress);
+					Jobs[jobID].ReportStatus(JobStatus.Running, "Scraper downloaded the media.", 80); // Ensure we show 80% in case the scraper progress bar was not fully working (does happen during tests)
 					if (downloadedFileInfo != null)
 					{
 						// Load the file in ATL
@@ -252,10 +253,12 @@ namespace OngakuVault.Services
 
 							if (Jobs[jobID].Configuration.Lyrics != null)
 							{
-								// Overwrite media lyrics with empty one / create lyrics
-								audioTrack.Lyrics = new LyricsInfo
+								// Overwrite media lyrics with empty one
+								audioTrack.Lyrics = new List<LyricsInfo>();
+								// Create new lyrics data
+								LyricsInfo lyricsInfo = new LyricsInfo()
 								{
-									ContentType = LyricsInfo.LyricsType.LYRICS,
+									ContentType = LyricsInfo.LyricsType.LYRICS
 								};
 
 								// If all lyrics are >= 0, process the lyrics as synced
@@ -263,14 +266,17 @@ namespace OngakuVault.Services
 								if (isSyncLyrics)
 								{
 									// Add synced lyrics
-									Jobs[jobID].Configuration.Lyrics!.ForEach(lyric => audioTrack.Lyrics.SynchronizedLyrics.Add(new LyricsInfo.LyricsPhrase(lyric.Time!.Value, lyric.Content)));
+									Jobs[jobID].Configuration.Lyrics!.ForEach(lyric => lyricsInfo.SynchronizedLyrics.Add(new LyricsInfo.LyricsPhrase(lyric.Time!.Value, lyric.Content)));
 								}
 								else 
 								{
 									// Add lyrics
 									IEnumerable<string> lyrics = Jobs[jobID].Configuration.Lyrics!.Select(lyric => lyric.Content);
-									audioTrack.Lyrics.UnsynchronizedLyrics = string.Join(Environment.NewLine, lyrics);
+									lyricsInfo.UnsynchronizedLyrics = string.Join(Environment.NewLine, lyrics);
 								}
+
+								// Add lyrics data to track
+								audioTrack.Lyrics.Add(lyricsInfo);
 							}
 
 							// If the user enabled the clear non standards fields (in the file metadata) settings
@@ -302,7 +308,8 @@ namespace OngakuVault.Services
 
 							outputDirectory = Path.Combine(outputDirectory, stringBuilder.ToString());
 						}
-						// Apply the file name format if configured
+
+						// Apply the file name format if configured, else we keep the original file name set by the scraper 
 						if (!string.IsNullOrEmpty(_appSettings.OUTPUT_FILE_FORMAT))
 						{
 							// Process & apply the template format
@@ -328,12 +335,12 @@ namespace OngakuVault.Services
 						}
 						// Ensure the final output directory exists
 						Directory.CreateDirectory(outputDirectory);
-						// Move audio file to the output directory (and rename the file to the file name in the path)
+						// Move audio file to the output directory (and rename the file name to the 'fileName' value)
 						downloadedFileInfo.MoveTo(finalAudioPath);
 					}
 					else 
 					{
-						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due to the scraper not finding any formats/media on the target webpage. (the formats key is empty?)", jobID);
+						_logger.LogWarning("Job ID: '{ID}'. The scraper did not return the downloaded file path. Error could be due (this is a guess) to the scraper not finding any formats/media on the target webpage. (the formats key is empty?)", jobID);
 						Jobs[jobID].ReportStatus(JobStatus.Failed, $"Could not locate downloaded file. Did the scraper found any formats? Is the webpage supported?", 100);
 					}
 				}

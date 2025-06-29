@@ -83,6 +83,8 @@ namespace OngakuVault.Services
 			NoPlaylist = true,
 			// Do not load informations about other media if url contains a playlist
 			FlatPlaylist = true,
+			// Always show progress bar
+			Progress = true,
 		};
 
 		/// <summary>
@@ -132,8 +134,8 @@ namespace OngakuVault.Services
 				FFmpegPath = Path.Combine(ExecutableDirectory, "ffmpeg"),
 				// Set the download path
 				OutputFolder = TMPOutputPath,
-				// Restrict files name to ASCII
-				//RestrictFilenames = true,
+				// Restrict files name to ASCII (This is required to prevent "invalid file path" errors when titles have non ASCII chars like japanese or chinese)
+				RestrictFilenames = true,
 			};
 
 			// If OS is Windows, append ".exe" to the executables name
@@ -166,7 +168,7 @@ namespace OngakuVault.Services
 					{
 						_logger.LogInformation("Current yt-dlp version is : {date}", e.Data);
 					}
-					else _logger.LogWarning("Could not detect yt-dlp version. Output is : {output}", e.Data);
+					else _logger.LogWarning("Could not detect yt-dlp version. Output was : {output}", e.Data);
 					// Detach the event handler to allow the GC to free memory
 					temporaryYTDLPProc.OutputReceived -= outputHandler;
 				};
@@ -277,6 +279,7 @@ namespace OngakuVault.Services
 			// Ensure file exists, else return null
 			// Some website/url can cause a success result, but without information / formats available, thus, no file are created.
 			if (File.Exists(audioDownloadResult.Data)) return new FileInfo(audioDownloadResult.Data);
+			_logger.LogWarning("A audio download reported successful, but the file path returned by the parser could not be confirmed --> ('{filePath}').", audioDownloadResult.Data);
 			return null;
 		}
 
