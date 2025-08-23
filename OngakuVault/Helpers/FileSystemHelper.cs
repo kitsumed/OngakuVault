@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -30,7 +32,7 @@ namespace OngakuVault.Helpers
 			// We'll be conservative and handle both platforms
 			char[] illegalChars = { '<', '>', ':', '"', '|', '?', '*', '\\', '/' };
 			
-			var sb = new StringBuilder(fileName.Length);
+			StringBuilder sb = new StringBuilder(fileName.Length);
 			
 			// Replace illegal characters with underscores and remove control characters in one pass
 			foreach (char c in fileName)
@@ -40,7 +42,7 @@ namespace OngakuVault.Helpers
 					// Skip control characters (0-31) and DEL (127)
 					continue;
 				}
-				else if (Array.IndexOf(illegalChars, c) >= 0)
+				else if (illegalChars.Contains(c))
 				{
 					// Replace illegal characters with underscores
 					sb.Append('_');
@@ -66,7 +68,7 @@ namespace OngakuVault.Helpers
 				nameWithoutExtension = "unnamed_file";
 			
 			// Handle Windows reserved names only when running on Windows
-			if (OperatingSystem.IsWindows() && WindowsReservedNames.Contains(nameWithoutExtension.ToUpperInvariant()))
+			if (OperatingSystem.IsWindows() && WindowsReservedNames.Contains(nameWithoutExtension, StringComparer.OrdinalIgnoreCase))
 			{
 				nameWithoutExtension = nameWithoutExtension + "_file";
 			}
@@ -101,7 +103,7 @@ namespace OngakuVault.Helpers
 			}
 			
 			// Use StringBuilder for efficient path joining
-			var sb = new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < pathComponents.Length; i++)
 			{
 				if (i > 0)
