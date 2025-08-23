@@ -306,7 +306,9 @@ namespace OngakuVault.Services
 							// Replace ATL Track values
 							stringBuilder = Helpers.ValueReplacingHelper.ProcessTrack(stringBuilder, audioTrack);
 
-							outputDirectory = Path.Combine(outputDirectory, stringBuilder.ToString());
+							// Sanitize the sub-directory path to remove illegal characters
+							string sanitizedSubPath = Helpers.UrlHelper.SanitizeDirectoryPath(stringBuilder.ToString());
+							outputDirectory = Path.Combine(outputDirectory, sanitizedSubPath);
 						}
 
 						// Apply the file name format if configured, else we keep the original file name set by the scraper 
@@ -325,11 +327,16 @@ namespace OngakuVault.Services
 							fileName = stringBuilder.ToString();
 						}
 
+						// Sanitize the file name to remove illegal characters for both Windows and Linux
+						fileName = Helpers.UrlHelper.SanitizeFileName(fileName);
+
 						// Ensure file name is unique, else add current time in ticks at the end
 						string finalAudioPath = Path.Combine(outputDirectory, fileName);
 						if (File.Exists(finalAudioPath)) 
 						{
 							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
+							// Sanitize the new name as well in case the timestamp concatenation creates issues
+							newAudioName = Helpers.UrlHelper.SanitizeFileName(newAudioName);
 							finalAudioPath = Path.Combine(outputDirectory, newAudioName);
 							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the file name (now '{newAudioName}').", jobID, fileName, newAudioName);
 						}
