@@ -1,17 +1,17 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace OngakuVault.Helpers
 {
 	/// <summary>
-	/// Contains static methods for file system operations including file name sanitization.
+	/// Contains static methods for file system operations like file name sanitization.
 	/// </summary>
 	public static class FileSystemHelper
 	{
-		// Windows reserved names - defined outside method for performance
+		// Windows reserved names
 		private static readonly string[] WindowsReservedNames = { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+		// Characters illegal on Windows: < > : " | ? * \ and control characters (0-31)
+		// Characters illegal on Linux: / and null character
+		private static readonly char[] IllegalChars = { '<', '>', ':', '"', '|', '?', '*', '\\', '/' };
 
 		/// <summary>
 		/// Sanitizes a file name by removing or replacing characters that are illegal on Windows and Linux file systems.
@@ -27,12 +27,7 @@ namespace OngakuVault.Helpers
 			if (string.IsNullOrWhiteSpace(fileName))
 				return "unnamed_file";
 
-			// Characters illegal on Windows: < > : " | ? * \ and control characters (0-31)
-			// Characters illegal on Linux: / and null character
-			// We'll be conservative and handle both platforms
-			char[] illegalChars = { '<', '>', ':', '"', '|', '?', '*', '\\', '/' };
-			
-			StringBuilder sb = new StringBuilder(fileName.Length);
+			StringBuilder stringBuilder = new StringBuilder(fileName.Length);
 			
 			// Replace illegal characters with underscores and remove control characters in one pass
 			foreach (char c in fileName)
@@ -42,25 +37,24 @@ namespace OngakuVault.Helpers
 					// Skip control characters (0-31) and DEL (127)
 					continue;
 				}
-				else if (illegalChars.Contains(c))
+				else if (IllegalChars.Contains(c))
 				{
-					// Replace illegal characters with underscores
-					sb.Append('_');
+					stringBuilder.Append('_');
 				}
 				else
 				{
 					// Keep valid characters
-					sb.Append(c);
+					stringBuilder.Append(c);
 				}
 			}
 			
-			string sanitized = sb.ToString();
+			string sanitizedFilename = stringBuilder.ToString();
 			
 			// Separate name and extension for proper handling
-			string nameWithoutExtension = Path.GetFileNameWithoutExtension(sanitized);
-			string extension = Path.GetExtension(sanitized);
+			string nameWithoutExtension = Path.GetFileNameWithoutExtension(sanitizedFilename);
+			string extension = Path.GetExtension(sanitizedFilename);
 			
-			// Trim leading and trailing spaces from the name part
+			// Trim leading and trailing spaces from the file name part
 			nameWithoutExtension = nameWithoutExtension.Trim(' ');
 			
 			// Handle the case where trimming resulted in an empty name
@@ -68,16 +62,8 @@ namespace OngakuVault.Helpers
 				nameWithoutExtension = "unnamed_file";
 			
 			// Handle Windows reserved names only when running on Windows
-			if (OperatingSystem.IsWindows() && WindowsReservedNames.Contains(nameWithoutExtension, StringComparer.OrdinalIgnoreCase))
-			{
-				nameWithoutExtension = nameWithoutExtension + "_file";
-			}
-			
-			// Reconstruct the file name using StringBuilder
-			sb.Clear();
-			sb.Append(nameWithoutExtension);
-			sb.Append(extension);
-			return sb.ToString();
+			if (OperatingSystem.IsWindows() && WindowsReservedNames.Contains(nameWithoutExtension, StringComparer.OrdinalIgnoreCase)) nameWithoutExtension = nameWithoutExtension + '_';
+			return nameWithoutExtension + extension;
 		}
 
 		/// <summary>
@@ -102,16 +88,7 @@ namespace OngakuVault.Helpers
 				pathComponents[i] = SanitizeFileName(pathComponents[i]);
 			}
 			
-			// Use StringBuilder for efficient path joining
-			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < pathComponents.Length; i++)
-			{
-				if (i > 0)
-					sb.Append(Path.DirectorySeparatorChar);
-				sb.Append(pathComponents[i]);
-			}
-			
-			return sb.ToString();
+			return string.Join(Path.DirectorySeparatorChar, pathComponents);
 		}
 	}
 }
