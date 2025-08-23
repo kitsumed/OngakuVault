@@ -307,7 +307,7 @@ namespace OngakuVault.Services
 							stringBuilder = Helpers.ValueReplacingHelper.ProcessTrack(stringBuilder, audioTrack);
 
 							// Sanitize the sub-directory path to remove illegal characters
-							string sanitizedSubPath = Helpers.UrlHelper.SanitizeDirectoryPath(stringBuilder.ToString());
+							string sanitizedSubPath = Helpers.FileSystemHelper.SanitizeDirectoryPath(stringBuilder.ToString());
 							outputDirectory = Path.Combine(outputDirectory, sanitizedSubPath);
 						}
 
@@ -328,15 +328,13 @@ namespace OngakuVault.Services
 						}
 
 						// Sanitize the file name to remove illegal characters for both Windows and Linux
-						fileName = Helpers.UrlHelper.SanitizeFileName(fileName);
+						fileName = Helpers.FileSystemHelper.SanitizeFileName(fileName);
 
 						// Ensure file name is unique, else add current time in ticks at the end
 						string finalAudioPath = Path.Combine(outputDirectory, fileName);
 						if (File.Exists(finalAudioPath)) 
 						{
 							string newAudioName = $"{Path.GetFileNameWithoutExtension(finalAudioPath)}_{DateTimeOffset.Now.ToUnixTimeSeconds()}{Path.GetExtension(finalAudioPath)}";
-							// Sanitize the new name as well in case the timestamp concatenation creates issues
-							newAudioName = Helpers.UrlHelper.SanitizeFileName(newAudioName);
 							finalAudioPath = Path.Combine(outputDirectory, newAudioName);
 							_logger.LogWarning("Job ID: '{ID}'. A audio file with the same name ('{audioName}') already exist in the output folder. Appended current timestamp to the file name (now '{newAudioName}').", jobID, fileName, newAudioName);
 						}
