@@ -293,8 +293,9 @@ namespace OngakuVault.Services
 						// Set file permission for linux based systems
 						if (OperatingSystem.IsLinux()) downloadedFileInfo.UnixFileMode = (UnixFileMode.OtherRead | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.UserRead | UnixFileMode.UserWrite);
 						
-						// Get base output directory & file name
+						// Get base output directory (root of audio archive dir)
 						string outputDirectory = _appSettings.OUTPUT_DIRECTORY;
+						// Set default file name (created by the scraper)
 						string fileName = downloadedFileInfo.Name;
 
 						// Apply sub directory path format to the output directory if configured
@@ -306,7 +307,9 @@ namespace OngakuVault.Services
 							// Replace ATL Track values
 							stringBuilder = Helpers.ValueReplacingHelper.ProcessTrack(stringBuilder, audioTrack);
 
-							outputDirectory = Path.Combine(outputDirectory, stringBuilder.ToString());
+							// Sanitize the sub-directory path to remove illegal characters
+							string sanitizedSubPath = Helpers.FileSystemHelper.SanitizeDirectoryPath(stringBuilder.ToString());
+							outputDirectory = Path.Combine(outputDirectory, sanitizedSubPath);
 						}
 
 						// Apply the file name format if configured, else we keep the original file name set by the scraper 
@@ -322,7 +325,8 @@ namespace OngakuVault.Services
 							// Add the file extension
 							stringBuilder.Append(fileExtension);
 
-							fileName = stringBuilder.ToString();
+							// Sanitize the file name to remove illegal characters for both Windows and Linux
+							fileName = Helpers.FileSystemHelper.SanitizeFileName(stringBuilder.ToString());
 						}
 
 						// Ensure file name is unique, else add current time in ticks at the end
