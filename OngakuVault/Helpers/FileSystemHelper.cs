@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text;
 
 namespace OngakuVault.Helpers
 {
@@ -29,16 +30,29 @@ namespace OngakuVault.Helpers
 			// We'll be conservative and handle both platforms
 			char[] illegalChars = { '<', '>', ':', '"', '|', '?', '*', '\\', '/' };
 			
-			string sanitized = fileName;
+			var sb = new StringBuilder(fileName.Length);
 			
-			// Replace illegal characters with underscores
-			foreach (char c in illegalChars)
+			// Replace illegal characters with underscores and remove control characters in one pass
+			foreach (char c in fileName)
 			{
-				sanitized = sanitized.Replace(c, '_');
+				if (c < 32 || c == 127)
+				{
+					// Skip control characters (0-31) and DEL (127)
+					continue;
+				}
+				else if (Array.IndexOf(illegalChars, c) >= 0)
+				{
+					// Replace illegal characters with underscores
+					sb.Append('_');
+				}
+				else
+				{
+					// Keep valid characters
+					sb.Append(c);
+				}
 			}
 			
-			// Remove control characters (0-31) and DEL (127)
-			sanitized = new string(sanitized.Where(c => c >= 32 && c != 127).ToArray());
+			string sanitized = sb.ToString();
 			
 			// Separate name and extension for proper handling
 			string nameWithoutExtension = Path.GetFileNameWithoutExtension(sanitized);
@@ -57,8 +71,11 @@ namespace OngakuVault.Helpers
 				nameWithoutExtension = nameWithoutExtension + "_file";
 			}
 			
-			// Reconstruct the file name
-			return nameWithoutExtension + extension;
+			// Reconstruct the file name using StringBuilder
+			sb.Clear();
+			sb.Append(nameWithoutExtension);
+			sb.Append(extension);
+			return sb.ToString();
 		}
 
 		/// <summary>
@@ -83,7 +100,16 @@ namespace OngakuVault.Helpers
 				pathComponents[i] = SanitizeFileName(pathComponents[i]);
 			}
 			
-			return string.Join(Path.DirectorySeparatorChar.ToString(), pathComponents);
+			// Use StringBuilder for efficient path joining
+			var sb = new StringBuilder();
+			for (int i = 0; i < pathComponents.Length; i++)
+			{
+				if (i > 0)
+					sb.Append(Path.DirectorySeparatorChar);
+				sb.Append(pathComponents[i]);
+			}
+			
+			return sb.ToString();
 		}
 	}
 }
