@@ -30,7 +30,7 @@ class DirectoryAutocomplete {
     async initialize() {
         try {
             // Check if directory suggestions are enabled
-            const enabledResponse = await fetch(`${APIEndpoint}/Directory/enabled`);
+            const enabledResponse = await fetch(`${APIEndpoint}/directory/enabled`);
             if (!enabledResponse.ok) {
                 console.debug('Directory autocomplete feature disabled - API not available');
                 return;
@@ -43,7 +43,7 @@ class DirectoryAutocomplete {
             }
 
             // Get the directory schema
-            const schemaResponse = await fetch(`${APIEndpoint}/Directory/schema`);
+            const schemaResponse = await fetch(`${APIEndpoint}/directory/schema`);
             if (schemaResponse.ok) {
                 this.schema = await schemaResponse.json();
                 if (this.schema.length === 0) {
@@ -261,7 +261,7 @@ class DirectoryAutocomplete {
                 filter: filter
             };
 
-            const response = await fetch(`${APIEndpoint}/Directory/suggestions`, {
+            const response = await fetch(`${APIEndpoint}/directory/suggestions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
