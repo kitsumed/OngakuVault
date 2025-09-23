@@ -158,7 +158,7 @@ namespace OngakuVault.Services
 
 		public void RefreshCache()
 		{
-			if (!_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED)
+			if (!_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED || _appSettings.DISABLE_DIRECTORY_SUGGESTIONS)
 			{
 				return;
 			}
@@ -208,6 +208,7 @@ namespace OngakuVault.Services
 					{
 						if (!parentPathParts[i].Equals(suggestionPathParts[i], StringComparison.OrdinalIgnoreCase))
 						{
+							// Stop checking this suggestions as it does not matches, go to next one
 							matches = false;
 							break;
 						}
@@ -215,7 +216,7 @@ namespace OngakuVault.Services
 
 					if (!matches)
 					{
-						continue;
+						continue; // Verify next one
 					}
 				}
 
@@ -272,8 +273,8 @@ namespace OngakuVault.Services
 							allSuggestionsByDepth[depth] = new List<DirectorySuggestionNode>();
 						}
 
-						var pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
-						var suggestion = new DirectorySuggestionNode
+						string pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
+						DirectorySuggestionNode suggestion = new DirectorySuggestionNode
 						{
 							Name = pathParts[depth],
 							TokenType = schema[depth],

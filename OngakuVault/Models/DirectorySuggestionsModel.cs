@@ -59,9 +59,15 @@ namespace OngakuVault.Models
 		public int Depth { get; set; } = 0;
 
 		/// <summary>
-		/// Parent path context for hierarchical filtering
+		/// Parent path context for hierarchical filtering. Hierarchy is based on the order of the OUTPUT SUB_DIRECTORY_FORMAT schema. If null, only depth level is used.
+		/// Can be separated using / or \ character.
+		/// 
+		/// Exemple : SUB_DIRECTORY_FORMAT = |AUDIO_ARTIST|\\|AUDIO_ALBUM|\\|AUDIO_YEAR|
+		/// If whe where to search on the depth 2 (AUDIO_YEAR), assuming we already know the two first values, we would set :
+		/// ArtistName/SuperCoolAlbum
+		/// 
+		/// This allow us to only get results under the ArtistName/SuperCoolAlbum directory (At depth 2) insead of every directory at depth 2 regardless of the two first values.
 		/// </summary>
-		[SwaggerSchema(Description = "Parent directory path for contextual filtering")]
 		public string? ParentPath { get; set; }
 
 		/// <summary>
