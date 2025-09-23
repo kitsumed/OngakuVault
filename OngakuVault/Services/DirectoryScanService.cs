@@ -180,10 +180,7 @@ namespace OngakuVault.Services
 
 		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectoryHierarchyCache hierarchyCache, DirectorySuggestionRequest request)
 		{
-			DirectorySuggestionsModel result = new DirectorySuggestionsModel
-			{
-				Schema = hierarchyCache.Schema
-			};
+			DirectorySuggestionsModel result = new DirectorySuggestionsModel();
 
 			// Get suggestions at the requested depth level
 			if (!hierarchyCache.SuggestionsByDepth.ContainsKey(request.Depth))

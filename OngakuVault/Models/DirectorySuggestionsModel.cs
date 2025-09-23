@@ -5,15 +5,9 @@ namespace OngakuVault.Models
 	/// <summary>
 	/// Model containing directory suggestions based on the OUTPUT_SUB_DIRECTORY_FORMAT schema
 	/// </summary>
-	[SwaggerSchema(Description = "Contains directory suggestions based on existing folder structure and schema")]
+	[SwaggerSchema(Description = "Contains directory suggestions based on existing folder structure")]
 	public class DirectorySuggestionsModel
 	{
-		/// <summary>
-		/// The parsed directory structure schema from OUTPUT_SUB_DIRECTORY_FORMAT
-		/// </summary>
-		[SwaggerSchema(Description = "Ordered list of directory tokens from the format schema")]
-		public List<string> Schema { get; set; } = new List<string>();
-
 		/// <summary>
 		/// Directory suggestions for the requested depth level
 		/// </summary>

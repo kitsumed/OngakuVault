@@ -11,7 +11,7 @@ class DirectoryAutocomplete {
         
         // Client-side caching
         this.suggestionCache = new Map(); // Cache for API responses
-        this.failedQueries = new Set(); // Track queries that returned no results
+        this.failedQueries = new Map(); // Track queries that returned no results with context (depth + parentPath -> failed prefix)
         
         // Mapping from audio tokens to form field IDs
         this.tokenToFieldMapping = {
@@ -154,6 +154,13 @@ class DirectoryAutocomplete {
     handleInput(event, fieldId) {
         const value = event.target.value.trim();
         
+        // If field is completely empty, clear related cache for this field
+        if (value.length === 0) {
+            this.clearFieldCache(fieldId);
+            this.hideSuggestions(fieldId);
+            return;
+        }
+        
         // Clear existing debounce timer
         if (this.debounceTimers[fieldId]) {
             clearTimeout(this.debounceTimers[fieldId]);
@@ -266,25 +273,20 @@ class DirectoryAutocomplete {
                 filter: filter
             });
 
-            // Check if this query previously failed, but only if the current filter is shorter or equal
-            // This prevents clearing failed queries when user is still typing the same failed search
-            const shouldCheckFailedQueries = Array.from(this.failedQueries).some(failedKey => {
-                const failedRequest = JSON.parse(failedKey);
-                return failedRequest.depth === mapping.depth && 
-                       failedRequest.parentPath === (parentPath || null) &&
-                       failedRequest.filter && filter.startsWith(failedRequest.filter) &&
-                       filter.length > failedRequest.filter.length;
-            });
-
-            if (!shouldCheckFailedQueries && this.failedQueries.has(cacheKey)) {
-                console.debug(`Query previously failed, not making request: ${cacheKey}`);
+            // Check failed queries with improved logic
+            const contextKey = `${mapping.depth}:${parentPath || 'null'}`;
+            const failedPrefix = this.failedQueries.get(contextKey);
+            
+            if (failedPrefix && filter.startsWith(failedPrefix) && filter.length >= failedPrefix.length) {
+                console.debug(`Query blocked due to failed prefix "${failedPrefix}" for filter "${filter}"`);
                 this.hideSuggestions(fieldId);
                 return;
             }
 
-            // If user is backspacing (making filter shorter), clear related failed queries
-            if (shouldCheckFailedQueries) {
-                this.clearRelatedFailedQueries(mapping.depth, parentPath, filter);
+            // If user is backspacing (making filter shorter), clear failed query for this context
+            if (failedPrefix && filter.length < failedPrefix.length) {
+                this.failedQueries.delete(contextKey);
+                console.debug(`Cleared failed prefix "${failedPrefix}" due to shorter filter "${filter}"`);
             }
 
             // Check cache first
@@ -311,9 +313,9 @@ class DirectoryAutocomplete {
             });
 
             if (response.status === 204) {
-                // No suggestions available - mark as failed query
-                console.debug(`No suggestions found, marking as failed: ${cacheKey}`);
-                this.failedQueries.add(cacheKey);
+                // No suggestions available - mark as failed query with the exact filter that failed
+                console.debug(`No suggestions found, marking prefix "${filter}" as failed for context ${contextKey}`);
+                this.failedQueries.set(contextKey, filter);
                 this.hideSuggestions(fieldId);
                 return;
             }
@@ -403,35 +405,71 @@ class DirectoryAutocomplete {
         
         keysToRemove.forEach(key => {
             this.suggestionCache.delete(key);
-            this.failedQueries.delete(key);
         });
+
+        // Clear failed queries for deeper levels
+        const failedKeysToRemove = [];
+        for (const [contextKey, failedPrefix] of this.failedQueries) {
+            const [depth, parentPath] = contextKey.split(':', 2);
+            if (parseInt(depth) > changedDepth) {
+                failedKeysToRemove.push(contextKey);
+            }
+        }
+        failedKeysToRemove.forEach(key => this.failedQueries.delete(key));
 
         if (keysToRemove.length > 0) {
             console.debug(`Cleared ${keysToRemove.length} cache entries due to context change at depth ${changedDepth}`);
         }
     }
 
-    clearRelatedFailedQueries(depth, parentPath, currentFilter) {
-        // Clear failed queries for the same context that might now succeed with a shorter filter
+    clearFieldCache(fieldId) {
+        const mapping = this.fieldMappings[fieldId];
+        if (!mapping) return;
+        
+        // Clear successful cache entries for this field (all filters for this depth + context)
         const keysToRemove = [];
-        for (const key of this.failedQueries) {
+        for (const [key, value] of this.suggestionCache) {
             const request = JSON.parse(key);
-            if (request.depth === depth && 
-                request.parentPath === parentPath &&
-                request.filter && 
-                request.filter.startsWith(currentFilter) &&
-                request.filter.length > currentFilter.length) {
-                // If a previously failed query had a longer filter that starts with current filter,
-                // the current shorter filter might now have results
+            if (request.depth === mapping.depth) {
                 keysToRemove.push(key);
             }
         }
         
-        keysToRemove.forEach(key => this.failedQueries.delete(key));
+        keysToRemove.forEach(key => this.suggestionCache.delete(key));
+        
+        // Clear failed queries for this field context
+        const contextKey = `${mapping.depth}:${this.getParentPath(fieldId)}`;
+        this.failedQueries.delete(contextKey);
         
         if (keysToRemove.length > 0) {
-            console.debug(`Cleared ${keysToRemove.length} failed queries due to shorter filter "${currentFilter}"`);
+            console.debug(`Cleared ${keysToRemove.length} cache entries for field ${fieldId} on empty input`);
         }
+    }
+
+    getParentPath(fieldId) {
+        const mapping = this.fieldMappings[fieldId];
+        if (!mapping) return null;
+        
+        // Build the parent path context from previous fields in the schema
+        const parentParts = [];
+        
+        for (let i = 0; i < mapping.depth; i++) {
+            const parentToken = this.schema[i];
+            const parentFieldId = Object.keys(this.fieldMappings).find(id => 
+                this.fieldMappings[id].depth === i && this.fieldMappings[id].token === parentToken
+            );
+            
+            if (parentFieldId) {
+                const parentInput = document.getElementById(parentFieldId);
+                if (parentInput && parentInput.value.trim()) {
+                    parentParts.push(parentInput.value.trim());
+                } else {
+                    return null; // If any parent is empty, context is invalid
+                }
+            }
+        }
+        
+        return parentParts.length > 0 ? parentParts.join('/') : null;
     }
 
     hideSuggestions(fieldId) {
