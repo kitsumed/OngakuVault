@@ -226,6 +226,9 @@ namespace OngakuVault.Services
 				filteredSuggestions.Add(suggestion);
 			}
 
+			// Sort filtered suggestions using natural sorting  
+			filteredSuggestions.Sort((a, b) => NaturalSort(a.Name, b.Name));
+
 			return filteredSuggestions;
 		}
 
@@ -288,10 +291,10 @@ namespace OngakuVault.Services
 					}
 				}
 
-				// Sort all suggestions by name
+				// Sort all suggestions by name using natural sorting (handles numbers properly)
 				foreach (KeyValuePair<int, List<DirectorySuggestionNode>> kvp in allSuggestionsByDepth)
 				{
-					kvp.Value.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+					kvp.Value.Sort((a, b) => NaturalSort(a.Name, b.Name));
 				}
 
 				result.SuggestionsByDepth = allSuggestionsByDepth;
@@ -306,6 +309,66 @@ namespace OngakuVault.Services
 				_logger.LogError(ex, "Error scanning directory structure");
 				return null;
 			}
+		}
+
+		/// <summary>
+		/// Natural sorting that handles numeric portions correctly
+		/// This ensures "File (2)" comes before "File (10)" instead of after it
+		/// </summary>
+		/// <param name="x">First string to compare</param>
+		/// <param name="y">Second string to compare</param>
+		/// <returns>Comparison result</returns>
+		private static int NaturalSort(string x, string y)
+		{
+			if (x == null && y == null) return 0;
+			if (x == null) return -1;
+			if (y == null) return 1;
+
+			int i = 0, j = 0;
+			
+			while (i < x.Length && j < y.Length)
+			{
+				// Check if both characters are digits
+				if (char.IsDigit(x[i]) && char.IsDigit(y[j]))
+				{
+					// Extract numeric portions
+					var numX = ExtractNumber(x, ref i);
+					var numY = ExtractNumber(y, ref j);
+					
+					// Compare numbers numerically
+					int numComparison = numX.CompareTo(numY);
+					if (numComparison != 0) return numComparison;
+				}
+				else
+				{
+					// Compare characters case-insensitively
+					int charComparison = char.ToUpperInvariant(x[i]).CompareTo(char.ToUpperInvariant(y[j]));
+					if (charComparison != 0) return charComparison;
+					
+					i++;
+					j++;
+				}
+			}
+			
+			// Handle remaining characters
+			return x.Length.CompareTo(y.Length);
+		}
+
+		/// <summary>
+		/// Extract a number from string starting at the given index
+		/// </summary>
+		/// <param name="str">Source string</param>
+		/// <param name="index">Starting index, will be updated to point after the number</param>
+		/// <returns>Extracted number</returns>
+		private static long ExtractNumber(string str, ref int index)
+		{
+			long number = 0;
+			while (index < str.Length && char.IsDigit(str[index]))
+			{
+				number = number * 10 + (str[index] - '0');
+				index++;
+			}
+			return number;
 		}
 	}
 }
