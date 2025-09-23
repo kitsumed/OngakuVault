@@ -18,7 +18,7 @@ namespace OngakuVault.Controllers
 		}
 
 		[HttpPost("suggestions")]
-		[EndpointDescription("Get directory suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema and existing folder structure")]
+		[EndpointDescription("Get directory name suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema and existing folder structure, allowing easier typos prevention when filling out inputs to create a audio download job. AKA : autocomplete feature.")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<DirectorySuggestionNode>))]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
@@ -32,14 +32,14 @@ namespace OngakuVault.Controllers
 					return BadRequest("Depth cannot be negative");
 				}
 
-				DirectorySuggestionsModel? suggestions = _directoryScanService.GetDirectorySuggestions(request);
+				List<DirectorySuggestionNode>? suggestions = _directoryScanService.GetDirectorySuggestions(request);
 				
-				if (suggestions == null || !suggestions.Suggestions.Any())
+				if (suggestions == null || !suggestions.Any())
 				{
 					return NoContent();
 				}
 
-				return Ok(suggestions.Suggestions);
+				return Ok(suggestions);
 			}
 			catch (Exception ex)
 			{

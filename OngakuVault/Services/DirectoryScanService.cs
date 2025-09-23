@@ -29,7 +29,8 @@ namespace OngakuVault.Services
 		bool IsDirectorySuggestionsEnabled();
 
 		/// <summary>
-		/// Manually refresh the directory hierarchy cache
+		/// Manually refresh the directory hierarchy cache.
+		/// Get ignored if caching is disabled or directory name autofill feature is disabled.
 		/// </summary>
 		void RefreshCache();
 	}
@@ -252,7 +253,9 @@ namespace OngakuVault.Services
 
 				foreach (string dirPath in allDirectories)
 				{
+					// Get relative part after output directory
 					string relativePath = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dirPath);
+					// Separate each directory level by "parts"
 					string[] pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
 					// Create suggestions for each depth level that corresponds to schema
@@ -264,7 +267,8 @@ namespace OngakuVault.Services
 							allSuggestionsByDepth[depth] = new List<DirectorySuggestionNode>();
 						}
 
-						string pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
+						
+						string pathUpToDepth = string.Join(Path.AltDirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
 						DirectorySuggestionNode suggestion = new DirectorySuggestionNode
 						{
 							Name = pathParts[depth],

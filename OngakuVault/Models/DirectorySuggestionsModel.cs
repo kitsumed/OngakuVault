@@ -3,19 +3,6 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace OngakuVault.Models
 {
 	/// <summary>
-	/// Model containing directory suggestions based on the OUTPUT_SUB_DIRECTORY_FORMAT schema
-	/// </summary>
-	[SwaggerSchema(Description = "Contains directory suggestions based on existing folder structure")]
-	public class DirectorySuggestionsModel
-	{
-		/// <summary>
-		/// Directory suggestions for the requested depth level
-		/// </summary>
-		[SwaggerSchema(Description = "Directory suggestions for the requested depth")]
-		public List<DirectorySuggestionNode> Suggestions { get; set; } = new List<DirectorySuggestionNode>();
-	}
-
-	/// <summary>
 	/// Internal model for caching complete directory hierarchy (not exposed via API)
 	/// </summary>
 	internal class DirectoryHierarchyCache
