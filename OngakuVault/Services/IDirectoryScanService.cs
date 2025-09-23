@@ -3,27 +3,27 @@ using OngakuVault.Models;
 namespace OngakuVault.Services
 {
 	/// <summary>
-	/// Service interface for scanning directories and providing suggestions for artist/album names
+	/// Service interface for scanning directories and providing suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema
 	/// </summary>
 	public interface IDirectoryScanService
 	{
 		/// <summary>
-		/// Get directory suggestions based on existing folder structure
+		/// Get directory suggestions based on existing folder structure and schema
 		/// </summary>
-		/// <param name="artistFilter">Optional filter for artist names</param>
-		/// <param name="albumFilter">Optional filter for album names</param>
-		/// <returns>Directory suggestions model containing artists and albums</returns>
-		DirectorySuggestionsModel? GetDirectorySuggestions(string? artistFilter = null, string? albumFilter = null);
+		/// <param name="request">Request parameters including depth, parent context, and filter</param>
+		/// <returns>Directory suggestions model</returns>
+		DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request);
+
+		/// <summary>
+		/// Get the parsed schema from OUTPUT_SUB_DIRECTORY_FORMAT
+		/// </summary>
+		/// <returns>List of token types in order</returns>
+		List<string> GetDirectorySchema();
 
 		/// <summary>
 		/// Check if directory suggestions feature is enabled based on configuration
 		/// </summary>
 		/// <returns>True if directory suggestions are enabled</returns>
 		bool IsDirectorySuggestionsEnabled();
-
-		/// <summary>
-		/// Refresh the cached directory structure
-		/// </summary>
-		void RefreshCache();
 	}
 }

@@ -1,20 +1,24 @@
 using Microsoft.Extensions.Options;
 using OngakuVault.Models;
-using System.Text;
-using ATL;
+using System.Text.RegularExpressions;
 
 namespace OngakuVault.Services
 {
 	/// <summary>
-	/// Service for scanning directories and providing suggestions for artist/album names
+	/// Service for scanning directories and providing suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema
 	/// </summary>
 	public class DirectoryScanService : IDirectoryScanService
 	{
 		readonly ILogger<DirectoryScanService> _logger;
 		readonly AppSettingsModel _appSettings;
-		private DirectorySuggestionsModel? _cachedSuggestions;
-		private DateTime _cacheTimestamp = DateTime.MinValue;
-		private readonly TimeSpan _cacheExpiry = TimeSpan.FromMinutes(5);
+
+		// All supported audio tokens from the ValueReplacingHelper
+		private static readonly HashSet<string> SupportedAudioTokens = new HashSet<string>
+		{
+			"AUDIO_TITLE", "AUDIO_ARTIST", "AUDIO_ALBUM", "AUDIO_YEAR", "AUDIO_TRACK_NUMBER",
+			"AUDIO_DISC_NUMBER", "AUDIO_LANGUAGE", "AUDIO_GENRE", "AUDIO_COMPOSER",
+			"AUDIO_DURATION", "AUDIO_DURATION_MS", "AUDIO_ISRC", "AUDIO_CATALOG_NUMBER"
+		};
 
 		public DirectoryScanService(ILogger<DirectoryScanService> logger, IOptions<AppSettingsModel> appSettings)
 		{
@@ -24,90 +28,63 @@ namespace OngakuVault.Services
 
 		public bool IsDirectorySuggestionsEnabled()
 		{
-			return !string.IsNullOrEmpty(_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT) &&
-				   (_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT.Contains("|AUDIO_ARTIST|") ||
-				    _appSettings.OUTPUT_SUB_DIRECTORY_FORMAT.Contains("|AUDIO_ALBUM|"));
+			var schema = GetDirectorySchema();
+			return schema.Count > 0;
 		}
 
-		public DirectorySuggestionsModel? GetDirectorySuggestions(string? artistFilter = null, string? albumFilter = null)
+		public List<string> GetDirectorySchema()
 		{
-			if (!IsDirectorySuggestionsEnabled())
+			if (string.IsNullOrEmpty(_appSettings.OUTPUT_SUB_DIRECTORY_FORMAT))
+			{
+				return new List<string>();
+			}
+
+			// Parse the schema to extract audio tokens in order
+			var schema = new List<string>();
+			var format = _appSettings.OUTPUT_SUB_DIRECTORY_FORMAT;
+
+			// Find all tokens in the format string using regex
+			var tokenRegex = new Regex(@"\|([A-Z_]+)\|");
+			var matches = tokenRegex.Matches(format);
+
+			foreach (Match match in matches)
+			{
+				var token = match.Groups[1].Value;
+				if (SupportedAudioTokens.Contains(token))
+				{
+					schema.Add(token);
+				}
+			}
+
+			return schema;
+		}
+
+		public DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request)
+		{
+			var schema = GetDirectorySchema();
+			if (schema.Count == 0)
 			{
 				return null;
 			}
 
-			// Check if we need to refresh cache
-			if (_cachedSuggestions == null || DateTime.Now - _cacheTimestamp > _cacheExpiry)
-			{
-				RefreshCache();
-			}
-
-			if (_cachedSuggestions == null)
+			if (request.Depth >= schema.Count || request.Depth < 0)
 			{
 				return null;
 			}
 
-			// Apply filters if provided
-			var filteredSuggestions = new DirectorySuggestionsModel();
-
-			// Filter artists
-			if (!string.IsNullOrEmpty(artistFilter))
-			{
-				filteredSuggestions.Artists = _cachedSuggestions.Artists
-					.Where(a => a.Contains(artistFilter, StringComparison.OrdinalIgnoreCase))
-					.ToList();
-			}
-			else
-			{
-				filteredSuggestions.Artists = _cachedSuggestions.Artists.ToList();
-			}
-
-			// Filter albums
-			foreach (var artistAlbumPair in _cachedSuggestions.Albums)
-			{
-				var artistName = artistAlbumPair.Key;
-				var albums = artistAlbumPair.Value;
-
-				// If artist filter is provided, only include matching artists
-				if (!string.IsNullOrEmpty(artistFilter) && 
-					!artistName.Contains(artistFilter, StringComparison.OrdinalIgnoreCase))
-				{
-					continue;
-				}
-
-				// Filter albums for this artist
-				var filteredAlbums = albums;
-				if (!string.IsNullOrEmpty(albumFilter))
-				{
-					filteredAlbums = albums.Where(album => 
-						album.Contains(albumFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-				}
-
-				if (filteredAlbums.Any())
-				{
-					filteredSuggestions.Albums[artistName] = filteredAlbums;
-				}
-			}
-
-			return filteredSuggestions;
-		}
-
-		public void RefreshCache()
-		{
 			try
 			{
-				_cachedSuggestions = ScanDirectoryStructure();
-				_cacheTimestamp = DateTime.Now;
-				_logger.LogInformation("Directory suggestions cache refreshed");
+				var suggestions = ScanDirectoryStructure(schema, request);
+				return suggestions;
 			}
 			catch (Exception ex)
 			{
-				_logger.LogError(ex, "Error refreshing directory suggestions cache");
-				_cachedSuggestions = null;
+				_logger.LogError(ex, "Error getting directory suggestions for depth {Depth}", request.Depth);
+				return null;
 			}
 		}
 
-		private DirectorySuggestionsModel? ScanDirectoryStructure()
+		private DirectorySuggestionsModel? ScanDirectoryStructure(List<string> schema, DirectorySuggestionRequest request)
 		{
 			if (!Directory.Exists(_appSettings.OUTPUT_DIRECTORY))
 			{
@@ -115,101 +92,89 @@ namespace OngakuVault.Services
 				return null;
 			}
 
-			var suggestions = new DirectorySuggestionsModel();
-			var format = _appSettings.OUTPUT_SUB_DIRECTORY_FORMAT!;
-
-			// Determine the directory structure pattern
-			var hasArtist = format.Contains("|AUDIO_ARTIST|");
-			var hasAlbum = format.Contains("|AUDIO_ALBUM|");
-
-			if (!hasArtist && !hasAlbum)
+			var result = new DirectorySuggestionsModel
 			{
-				return null;
+				Schema = schema
+			};
+
+			// Get the base directory to scan from
+			var basePath = _appSettings.OUTPUT_DIRECTORY;
+			var currentDepth = 0;
+
+			// If we have a parent path context, navigate to that level first
+			if (!string.IsNullOrEmpty(request.ParentPath))
+			{
+				var parentParts = request.ParentPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, 
+					StringSplitOptions.RemoveEmptyEntries);
+				
+				if (parentParts.Length <= schema.Count)
+				{
+					basePath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, request.ParentPath);
+					currentDepth = parentParts.Length;
+				}
 			}
 
-			try
+			// If the requested depth is not the current depth, we can't provide suggestions
+			if (request.Depth != currentDepth)
 			{
-				// Get all subdirectories in the output directory
-				var subdirectories = Directory.GetDirectories(_appSettings.OUTPUT_DIRECTORY, "*", SearchOption.AllDirectories);
+				return result;
+			}
 
-				foreach (var dirPath in subdirectories)
+			// Get suggestions at the requested depth level
+			if (Directory.Exists(basePath))
+			{
+				var directories = Directory.GetDirectories(basePath);
+				var suggestions = new List<DirectorySuggestionNode>();
+
+				foreach (var dir in directories)
 				{
-					var relativePath = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dirPath);
-					var pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-					// Parse based on the format structure
-					if (hasArtist && hasAlbum)
+					var dirName = Path.GetFileName(dir);
+					
+					// Apply filter if provided
+					if (!string.IsNullOrEmpty(request.Filter) && 
+						!dirName.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
 					{
-						// Format likely contains both artist and album
-						// Try to match the pattern |AUDIO_ARTIST|\|AUDIO_ALBUM|
-						if (pathParts.Length >= 2)
+						continue;
+					}
+
+					var suggestion = new DirectorySuggestionNode
+					{
+						Name = dirName,
+						TokenType = schema[currentDepth],
+						Path = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dir)
+					};
+
+					// If there are more levels in the schema, check for children
+					if (currentDepth + 1 < schema.Count)
+					{
+						var childDirs = Directory.GetDirectories(dir);
+						foreach (var childDir in childDirs)
 						{
-							var artist = pathParts[0];
-							var album = pathParts[1];
-
-							if (!suggestions.Artists.Contains(artist))
+							var childName = Path.GetFileName(childDir);
+							var childSuggestion = new DirectorySuggestionNode
 							{
-								suggestions.Artists.Add(artist);
-							}
-
-							if (!suggestions.Albums.ContainsKey(artist))
-							{
-								suggestions.Albums[artist] = new List<string>();
-							}
-
-							if (!suggestions.Albums[artist].Contains(album))
-							{
-								suggestions.Albums[artist].Add(album);
-							}
+								Name = childName,
+								TokenType = schema[currentDepth + 1],
+								Path = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, childDir)
+							};
+							suggestion.Children.Add(childSuggestion);
 						}
 					}
-					else if (hasArtist)
-					{
-						// Only artist in format
-						if (pathParts.Length >= 1)
-						{
-							var artist = pathParts[0];
-							if (!suggestions.Artists.Contains(artist))
-							{
-								suggestions.Artists.Add(artist);
-							}
-						}
-					}
-					else if (hasAlbum)
-					{
-						// Only album in format
-						if (pathParts.Length >= 1)
-						{
-							var album = pathParts[0];
-							if (!suggestions.Albums.ContainsKey("Unknown"))
-							{
-								suggestions.Albums["Unknown"] = new List<string>();
-							}
-							if (!suggestions.Albums["Unknown"].Contains(album))
-							{
-								suggestions.Albums["Unknown"].Add(album);
-							}
-						}
-					}
+
+					suggestions.Add(suggestion);
 				}
 
-				// Sort the results
-				suggestions.Artists.Sort();
-				foreach (var albumList in suggestions.Albums.Values)
-				{
-					albumList.Sort();
-				}
-
-				_logger.LogInformation("Scanned directory structure: found {ArtistCount} artists and {AlbumCount} album entries", 
-					suggestions.Artists.Count, suggestions.Albums.Count);
-
-				return suggestions;
+				// Sort suggestions by name
+				suggestions.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+				result.Suggestions[currentDepth] = suggestions;
 			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Error scanning directory structure");
-				return null;
-			}
+
+			_logger.LogInformation("Found {Count} suggestions for depth {Depth} with token {Token}", 
+				result.Suggestions.ContainsKey(currentDepth) ? result.Suggestions[currentDepth].Count : 0,
+				currentDepth, 
+				currentDepth < schema.Count ? schema[currentDepth] : "Unknown");
+
+			return result;
 		}
 	}
 }

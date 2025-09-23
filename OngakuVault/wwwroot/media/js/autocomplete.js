@@ -1,34 +1,82 @@
-// Autocomplete functionality for artist and album names
+// Dynamic autocomplete functionality for directory structure based on OUTPUT_SUB_DIRECTORY_FORMAT schema
 // Requires: index.js (for APIEndpoint)
 
 class DirectoryAutocomplete {
     constructor() {
         this.isEnabled = false;
-        this.suggestionCache = null;
-        this.cacheTimestamp = 0;
-        this.cacheExpiry = 5 * 60 * 1000; // 5 minutes in milliseconds
-        this.currentArtistFilter = '';
-        this.currentAlbumFilter = '';
+        this.schema = [];
+        this.fieldMappings = {};
+        this.currentSuggestions = {};
         this.debounceTimers = {};
+        
+        // Mapping from audio tokens to form field IDs
+        this.tokenToFieldMapping = {
+            'AUDIO_TITLE': 'name',
+            'AUDIO_ARTIST': 'artistName', 
+            'AUDIO_ALBUM': 'albumName',
+            'AUDIO_YEAR': 'releaseYear',
+            'AUDIO_TRACK_NUMBER': 'trackNumber',
+            'AUDIO_GENRE': 'genre',
+            'AUDIO_COMPOSER': null, // No field available
+            'AUDIO_LANGUAGE': null, // No field available
+            'AUDIO_DISC_NUMBER': null, // No field available
+            'AUDIO_DURATION': null, // No field available
+            'AUDIO_DURATION_MS': null, // No field available
+            'AUDIO_ISRC': null, // No field available
+            'AUDIO_CATALOG_NUMBER': null // No field available
+        };
     }
 
     async initialize() {
         try {
             // Check if directory suggestions are enabled
-            const response = await fetch(`${APIEndpoint}/Directory/enabled`);
-            if (response.ok) {
-                this.isEnabled = await response.json();
-                if (this.isEnabled) {
-                    this.setupEventListeners();
-                    this.observeModalChanges();
-                    console.log('Directory autocomplete feature enabled');
-                } else {
-                    console.log('Directory autocomplete feature disabled - OUTPUT_SUB_DIRECTORY_FORMAT not configured');
+            const enabledResponse = await fetch(`${APIEndpoint}/Directory/enabled`);
+            if (!enabledResponse.ok) {
+                console.log('Directory autocomplete feature disabled - API not available');
+                return;
+            }
+
+            this.isEnabled = await enabledResponse.json();
+            if (!this.isEnabled) {
+                console.log('Directory autocomplete feature disabled - OUTPUT_SUB_DIRECTORY_FORMAT not configured');
+                return;
+            }
+
+            // Get the directory schema
+            const schemaResponse = await fetch(`${APIEndpoint}/Directory/schema`);
+            if (schemaResponse.ok) {
+                this.schema = await schemaResponse.json();
+                if (this.schema.length === 0) {
+                    console.log('Directory autocomplete feature disabled - no valid tokens in schema');
+                    return;
                 }
+
+                console.log('Directory autocomplete enabled with schema:', this.schema);
+                this.setupFieldMappings();
+                this.setupEventListeners();
+                this.observeModalChanges();
             }
         } catch (error) {
-            console.error('Failed to check if directory suggestions are enabled:', error);
+            console.error('Failed to initialize directory autocomplete:', error);
         }
+    }
+
+    setupFieldMappings() {
+        // Create mappings for schema tokens that have corresponding form fields
+        this.fieldMappings = {};
+        
+        this.schema.forEach((token, index) => {
+            const fieldId = this.tokenToFieldMapping[token];
+            if (fieldId) {
+                this.fieldMappings[fieldId] = {
+                    token: token,
+                    depth: index,
+                    fieldId: fieldId
+                };
+            }
+        });
+
+        console.log('Field mappings established:', this.fieldMappings);
     }
 
     observeModalChanges() {
@@ -58,32 +106,34 @@ class DirectoryAutocomplete {
     }
 
     setupEventListeners() {
-        const artistInput = document.getElementById('artistName');
-        const albumInput = document.getElementById('albumName');
-
-        if (artistInput && !artistInput._autocompleteListeners) {
-            // Mark that we've added listeners to avoid duplicates
-            artistInput._autocompleteListeners = true;
-            
-            artistInput.addEventListener('input', (e) => this.handleArtistInput(e));
-            artistInput.addEventListener('focus', (e) => this.handleArtistFocus(e));
-            artistInput.addEventListener('blur', (e) => this.handleBlur(e));
-            artistInput.addEventListener('keydown', (e) => this.handleKeydown(e));
-            
-            console.log('Attached autocomplete listeners to artist input');
-        }
-
-        if (albumInput && !albumInput._autocompleteListeners) {
-            // Mark that we've added listeners to avoid duplicates
-            albumInput._autocompleteListeners = true;
-            
-            albumInput.addEventListener('input', (e) => this.handleAlbumInput(e));
-            albumInput.addEventListener('focus', (e) => this.handleAlbumFocus(e));
-            albumInput.addEventListener('blur', (e) => this.handleBlur(e));
-            albumInput.addEventListener('keydown', (e) => this.handleKeydown(e));
-            
-            console.log('Attached autocomplete listeners to album input');
-        }
+        // Set up event listeners for each field that has a mapping
+        Object.keys(this.fieldMappings).forEach(fieldId => {
+            const input = document.getElementById(fieldId);
+            if (input && !input._autocompleteListeners) {
+                // Mark that we've added listeners to avoid duplicates
+                input._autocompleteListeners = true;
+                
+                input.addEventListener('input', (e) => this.handleInput(e, fieldId));
+                input.addEventListener('focus', (e) => this.handleFocus(e, fieldId));
+                input.addEventListener('blur', (e) => this.handleBlur(e, fieldId));
+                input.addEventListener('keydown', (e) => this.handleKeydown(e, fieldId));
+                
+                // Add autocomplete attribute and suggestion container if not exists
+                input.setAttribute('autocomplete', 'off');
+                
+                const suggestionsId = `${fieldId}-suggestions`;
+                let suggestionsContainer = document.getElementById(suggestionsId);
+                if (!suggestionsContainer) {
+                    suggestionsContainer = document.createElement('div');
+                    suggestionsContainer.id = suggestionsId;
+                    suggestionsContainer.className = 'dropdown-content';
+                    suggestionsContainer.style.display = 'none';
+                    input.parentNode.appendChild(suggestionsContainer);
+                }
+                
+                console.log(`Attached autocomplete listeners to field: ${fieldId} (token: ${this.fieldMappings[fieldId].token})`);
+            }
+        });
 
         // Close suggestions when clicking outside
         if (!document._autocompleteDocumentListener) {
@@ -96,68 +146,39 @@ class DirectoryAutocomplete {
         }
     }
 
-    handleArtistInput(event) {
+    handleInput(event, fieldId) {
         const value = event.target.value.trim();
-        this.currentArtistFilter = value;
         
         // Clear existing debounce timer
-        if (this.debounceTimers.artist) {
-            clearTimeout(this.debounceTimers.artist);
+        if (this.debounceTimers[fieldId]) {
+            clearTimeout(this.debounceTimers[fieldId]);
         }
 
         // Debounce the API call
-        this.debounceTimers.artist = setTimeout(() => {
+        this.debounceTimers[fieldId] = setTimeout(() => {
             if (value.length >= 1) {
-                this.showArtistSuggestions(value);
+                this.showSuggestions(fieldId, value);
             } else {
-                this.hideSuggestions('artistName');
+                this.hideSuggestions(fieldId);
             }
         }, 300);
     }
 
-    handleArtistFocus(event) {
+    handleFocus(event, fieldId) {
         const value = event.target.value.trim();
         if (value.length >= 1) {
-            this.showArtistSuggestions(value);
+            this.showSuggestions(fieldId, value);
         }
     }
 
-    handleAlbumInput(event) {
-        const value = event.target.value.trim();
-        this.currentAlbumFilter = value;
-        
-        // Clear existing debounce timer
-        if (this.debounceTimers.album) {
-            clearTimeout(this.debounceTimers.album);
-        }
-
-        // Debounce the API call
-        this.debounceTimers.album = setTimeout(() => {
-            if (value.length >= 1) {
-                this.showAlbumSuggestions(value);
-            } else {
-                this.hideSuggestions('albumName');
-            }
-        }, 300);
-    }
-
-    handleAlbumFocus(event) {
-        const value = event.target.value.trim();
-        if (value.length >= 1) {
-            this.showAlbumSuggestions(value);
-        }
-    }
-
-    handleBlur(event) {
+    handleBlur(event, fieldId) {
         // Hide suggestions after a short delay to allow for clicking on suggestions
         setTimeout(() => {
-            const fieldId = event.target.id;
             this.hideSuggestions(fieldId);
         }, 150);
     }
 
-    handleKeydown(event) {
-        const fieldId = event.target.id;
+    handleKeydown(event, fieldId) {
         const suggestionsContainer = document.getElementById(`${fieldId}-suggestions`);
         
         if (!suggestionsContainer || suggestionsContainer.style.display === 'none') {
@@ -198,60 +219,92 @@ class DirectoryAutocomplete {
         }
     }
 
-    async getSuggestions(artistFilter = null, albumFilter = null) {
+    async showSuggestions(fieldId, filter) {
         try {
-            // Check cache first
-            const now = Date.now();
-            if (this.suggestionCache && (now - this.cacheTimestamp) < this.cacheExpiry) {
-                return this.suggestionCache;
+            const mapping = this.fieldMappings[fieldId];
+            if (!mapping) {
+                return;
             }
 
-            // Build query parameters
-            const params = new URLSearchParams();
-            if (artistFilter) params.append('artistFilter', artistFilter);
-            if (albumFilter) params.append('albumFilter', albumFilter);
-
-            const response = await fetch(`${APIEndpoint}/Directory/suggestions?${params.toString()}`);
+            // Build the parent path context from previous fields in the schema
+            let parentPath = '';
+            const parentParts = [];
             
+            for (let i = 0; i < mapping.depth; i++) {
+                const parentToken = this.schema[i];
+                const parentFieldId = Object.keys(this.fieldMappings).find(id => 
+                    this.fieldMappings[id].token === parentToken
+                );
+                
+                if (parentFieldId) {
+                    const parentInput = document.getElementById(parentFieldId);
+                    if (parentInput && parentInput.value.trim()) {
+                        parentParts.push(parentInput.value.trim());
+                    } else {
+                        // If a parent field is empty, we can't provide contextual suggestions
+                        console.log(`Parent field ${parentFieldId} is empty, cannot provide suggestions for ${fieldId}`);
+                        this.hideSuggestions(fieldId);
+                        return;
+                    }
+                }
+            }
+
+            if (parentParts.length > 0) {
+                parentPath = parentParts.join('/');
+            }
+
+            // Make API request for suggestions
+            const request = {
+                depth: mapping.depth,
+                parentPath: parentPath || null,
+                filter: filter
+            };
+
+            const response = await fetch(`${APIEndpoint}/Directory/suggestions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(request)
+            });
+
             if (response.status === 204) {
-                // No content - no suggestions available
-                return null;
+                // No suggestions available
+                this.hideSuggestions(fieldId);
+                return;
             }
-            
+
             if (!response.ok) {
-                console.error('Failed to fetch directory suggestions:', response.status, response.statusText);
-                return null;
+                console.error('Failed to fetch suggestions:', response.status);
+                return;
             }
 
             const suggestions = await response.json();
-            
-            // Cache the results only if no filters were applied
-            if (!artistFilter && !albumFilter) {
-                this.suggestionCache = suggestions;
-                this.cacheTimestamp = now;
-            }
+            this.displaySuggestions(fieldId, suggestions, mapping.depth);
 
-            return suggestions;
         } catch (error) {
-            console.error('Error fetching directory suggestions:', error);
-            return null;
+            console.error('Error fetching suggestions for field:', fieldId, error);
         }
     }
 
-    async showArtistSuggestions(filter) {
-        const suggestions = await this.getSuggestions(filter, null);
-        if (!suggestions || !suggestions.artists || suggestions.artists.length === 0) {
-            this.hideSuggestions('artistName');
+    displaySuggestions(fieldId, suggestionsData, depth) {
+        const suggestionsContainer = document.getElementById(`${fieldId}-suggestions`);
+        if (!suggestionsContainer) {
             return;
         }
 
-        const suggestionsContainer = document.getElementById('artistName-suggestions');
         suggestionsContainer.innerHTML = '';
 
-        suggestions.artists.forEach(artist => {
+        const suggestions = suggestionsData.suggestions[depth] || [];
+        if (suggestions.length === 0) {
+            this.hideSuggestions(fieldId);
+            return;
+        }
+
+        suggestions.forEach(suggestion => {
             const item = document.createElement('div');
             item.className = 'suggestion-item';
-            item.textContent = artist;
+            item.textContent = suggestion.name;
             
             item.addEventListener('mouseenter', () => {
                 // Remove selected class from all items
@@ -260,13 +313,11 @@ class DirectoryAutocomplete {
             });
 
             item.addEventListener('click', () => {
-                document.getElementById('artistName').value = artist;
-                this.hideSuggestions('artistName');
-                // Trigger album suggestions update if there's an album filter
-                const albumInput = document.getElementById('albumName');
-                if (albumInput && albumInput.value.trim()) {
-                    this.showAlbumSuggestions(albumInput.value.trim());
-                }
+                document.getElementById(fieldId).value = suggestion.name;
+                this.hideSuggestions(fieldId);
+                
+                // Clear suggestions for subsequent fields as the context has changed
+                this.clearSubsequentFields(fieldId);
             });
 
             suggestionsContainer.appendChild(item);
@@ -275,61 +326,17 @@ class DirectoryAutocomplete {
         suggestionsContainer.style.display = 'block';
     }
 
-    async showAlbumSuggestions(filter) {
-        const artistName = document.getElementById('artistName').value.trim();
-        const suggestions = await this.getSuggestions(artistName || null, filter);
-        
-        if (!suggestions || !suggestions.albums) {
-            this.hideSuggestions('albumName');
-            return;
-        }
+    clearSubsequentFields(changedFieldId) {
+        const changedMapping = this.fieldMappings[changedFieldId];
+        if (!changedMapping) return;
 
-        const suggestionsContainer = document.getElementById('albumName-suggestions');
-        suggestionsContainer.innerHTML = '';
-
-        let albumsToShow = [];
-
-        // If we have a specific artist selected, show only that artist's albums
-        if (artistName && suggestions.albums[artistName]) {
-            albumsToShow = suggestions.albums[artistName].filter(album => 
-                album.toLowerCase().includes(filter.toLowerCase())
-            );
-        } else {
-            // Show all albums that match the filter
-            Object.values(suggestions.albums).forEach(artistAlbums => {
-                artistAlbums.forEach(album => {
-                    if (album.toLowerCase().includes(filter.toLowerCase()) && !albumsToShow.includes(album)) {
-                        albumsToShow.push(album);
-                    }
-                });
-            });
-        }
-
-        if (albumsToShow.length === 0) {
-            this.hideSuggestions('albumName');
-            return;
-        }
-
-        albumsToShow.forEach(album => {
-            const item = document.createElement('div');
-            item.className = 'suggestion-item';
-            item.textContent = album;
-            
-            item.addEventListener('mouseenter', () => {
-                // Remove selected class from all items
-                suggestionsContainer.querySelectorAll('.suggestion-item').forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-            });
-
-            item.addEventListener('click', () => {
-                document.getElementById('albumName').value = album;
-                this.hideSuggestions('albumName');
-            });
-
-            suggestionsContainer.appendChild(item);
+        // Clear suggestions for fields that come after this one in the schema
+        Object.keys(this.fieldMappings).forEach(fieldId => {
+            const mapping = this.fieldMappings[fieldId];
+            if (mapping.depth > changedMapping.depth) {
+                this.hideSuggestions(fieldId);
+            }
         });
-
-        suggestionsContainer.style.display = 'block';
     }
 
     hideSuggestions(fieldId) {
@@ -340,8 +347,9 @@ class DirectoryAutocomplete {
     }
 
     hideAllSuggestions() {
-        this.hideSuggestions('artistName');
-        this.hideSuggestions('albumName');
+        Object.keys(this.fieldMappings).forEach(fieldId => {
+            this.hideSuggestions(fieldId);
+        });
     }
 }
 

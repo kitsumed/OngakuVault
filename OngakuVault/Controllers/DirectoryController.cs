@@ -19,18 +19,24 @@ namespace OngakuVault.Controllers
 			_directoryScanService = directoryScanService;
 		}
 
-		[HttpGet("suggestions")]
-		[EndpointDescription("Get directory suggestions for artist and album names based on existing folder structure")]
+		[HttpPost("suggestions")]
+		[EndpointDescription("Get directory suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema and existing folder structure")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(DirectorySuggestionsModel))]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
+		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json")]
-		public ActionResult<DirectorySuggestionsModel> GetDirectorySuggestions([FromQuery] string? artistFilter = null, [FromQuery] string? albumFilter = null)
+		public ActionResult<DirectorySuggestionsModel> GetDirectorySuggestions([FromBody] DirectorySuggestionRequest request)
 		{
 			try
 			{
-				var suggestions = _directoryScanService.GetDirectorySuggestions(artistFilter, albumFilter);
+				if (request.Depth < 0)
+				{
+					return BadRequest("Depth cannot be negative");
+				}
+
+				var suggestions = _directoryScanService.GetDirectorySuggestions(request);
 				
-				if (suggestions == null || (!suggestions.Artists.Any() && !suggestions.Albums.Any()))
+				if (suggestions == null || !suggestions.Suggestions.Any())
 				{
 					return NoContent();
 				}
@@ -41,6 +47,24 @@ namespace OngakuVault.Controllers
 			{
 				_logger.LogError(ex, "Error getting directory suggestions");
 				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory suggestions");
+			}
+		}
+
+		[HttpGet("schema")]
+		[EndpointDescription("Get the parsed directory schema from OUTPUT_SUB_DIRECTORY_FORMAT")]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<string>))]
+		[Produces("application/json")]
+		public ActionResult<List<string>> GetDirectorySchema()
+		{
+			try
+			{
+				var schema = _directoryScanService.GetDirectorySchema();
+				return Ok(schema);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error getting directory schema");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory schema");
 			}
 		}
 
