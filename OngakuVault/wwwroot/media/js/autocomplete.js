@@ -344,7 +344,7 @@ class DirectoryAutocomplete {
 
         suggestionsContainer.innerHTML = '';
 
-        const suggestions = suggestionsData.suggestions[depth] || [];
+        const suggestions = suggestionsData.suggestions || [];
         if (suggestions.length === 0) {
             this.hideSuggestions(fieldId);
             return;

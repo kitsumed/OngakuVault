@@ -15,10 +15,26 @@ namespace OngakuVault.Models
 		public List<string> Schema { get; set; } = new List<string>();
 
 		/// <summary>
-		/// Hierarchical directory suggestions organized by depth level
+		/// Directory suggestions for the requested depth level
 		/// </summary>
-		[SwaggerSchema(Description = "Directory suggestions organized by schema depth")]
-		public Dictionary<int, List<DirectorySuggestionNode>> Suggestions { get; set; } = new Dictionary<int, List<DirectorySuggestionNode>>();
+		[SwaggerSchema(Description = "Directory suggestions for the requested depth")]
+		public List<DirectorySuggestionNode> Suggestions { get; set; } = new List<DirectorySuggestionNode>();
+	}
+
+	/// <summary>
+	/// Internal model for caching complete directory hierarchy (not exposed via API)
+	/// </summary>
+	internal class DirectoryHierarchyCache
+	{
+		/// <summary>
+		/// The parsed directory structure schema from OUTPUT_SUB_DIRECTORY_FORMAT
+		/// </summary>
+		public List<string> Schema { get; set; } = new List<string>();
+
+		/// <summary>
+		/// Complete hierarchical directory suggestions organized by depth level
+		/// </summary>
+		public Dictionary<int, List<DirectorySuggestionNode>> SuggestionsByDepth { get; set; } = new Dictionary<int, List<DirectorySuggestionNode>>();
 	}
 
 	/// <summary>

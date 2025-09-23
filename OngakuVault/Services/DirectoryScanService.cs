@@ -43,7 +43,7 @@ namespace OngakuVault.Services
 		readonly AppSettingsModel _appSettings;
 		
 		// Server-side caching
-		private DirectorySuggestionsModel? _cachedHierarchy;
+		private DirectoryHierarchyCache? _cachedHierarchy;
 		private DateTime _cacheTimestamp = DateTime.MinValue;
 		private readonly object _cacheLock = new object();
 
@@ -115,7 +115,7 @@ namespace OngakuVault.Services
 			try
 			{
 				// Use cached hierarchy if caching is enabled and cache is valid
-				DirectorySuggestionsModel? fullHierarchy = null;
+				DirectoryHierarchyCache? hierarchyCache = null;
 
 				if (_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED)
 				{
@@ -128,26 +128,26 @@ namespace OngakuVault.Services
 						if (_cachedHierarchy == null || now - _cacheTimestamp > cacheExpiry)
 						{
 							_logger.LogDebug("Refreshing directory hierarchy cache");
-							_cachedHierarchy = ScanDirectoryStructure(schema);
+							_cachedHierarchy = BuildDirectoryHierarchy(schema);
 							_cacheTimestamp = now;
 						}
 
-						fullHierarchy = _cachedHierarchy;
+						hierarchyCache = _cachedHierarchy;
 					}
 				}
 				else
 				{
 					// No caching, scan directly
-					fullHierarchy = ScanDirectoryStructure(schema);
+					hierarchyCache = BuildDirectoryHierarchy(schema);
 				}
 
-				if (fullHierarchy == null)
+				if (hierarchyCache == null)
 				{
 					return null;
 				}
 
-				// Filter the full hierarchy based on the request
-				return FilterHierarchyForRequest(fullHierarchy, request);
+				// Filter the hierarchy and return simplified response
+				return FilterHierarchyForRequest(hierarchyCache, request);
 			}
 			catch (Exception ex)
 			{
@@ -173,25 +173,25 @@ namespace OngakuVault.Services
 			lock (_cacheLock)
 			{
 				_logger.LogInformation("Manually refreshing directory hierarchy cache");
-				_cachedHierarchy = ScanDirectoryStructure(schema);
+				_cachedHierarchy = BuildDirectoryHierarchy(schema);
 				_cacheTimestamp = DateTime.Now;
 			}
 		}
 
-		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectorySuggestionsModel fullHierarchy, DirectorySuggestionRequest request)
+		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectoryHierarchyCache hierarchyCache, DirectorySuggestionRequest request)
 		{
 			DirectorySuggestionsModel result = new DirectorySuggestionsModel
 			{
-				Schema = fullHierarchy.Schema
+				Schema = hierarchyCache.Schema
 			};
 
 			// Get suggestions at the requested depth level
-			if (!fullHierarchy.Suggestions.ContainsKey(request.Depth))
+			if (!hierarchyCache.SuggestionsByDepth.ContainsKey(request.Depth))
 			{
 				return result;
 			}
 
-			List<DirectorySuggestionNode> allSuggestionsAtDepth = fullHierarchy.Suggestions[request.Depth];
+			List<DirectorySuggestionNode> allSuggestionsAtDepth = hierarchyCache.SuggestionsByDepth[request.Depth];
 			List<DirectorySuggestionNode> filteredSuggestions = new List<DirectorySuggestionNode>();
 
 			foreach (DirectorySuggestionNode? suggestion in allSuggestionsAtDepth)
@@ -229,16 +229,12 @@ namespace OngakuVault.Services
 				filteredSuggestions.Add(suggestion);
 			}
 
-			if (filteredSuggestions.Count > 0)
-			{
-				result.Suggestions[request.Depth] = filteredSuggestions;
-			}
-
+			result.Suggestions = filteredSuggestions;
 			return result;
 		}
 
-		// Overloaded method to scan without request context (for caching full hierarchy)
-		private DirectorySuggestionsModel? ScanDirectoryStructure(List<string> schema)
+		// Method to build complete directory hierarchy for caching
+		private DirectoryHierarchyCache? BuildDirectoryHierarchy(List<string> schema)
 		{
 			if (!Directory.Exists(_appSettings.OUTPUT_DIRECTORY))
 			{
@@ -246,7 +242,7 @@ namespace OngakuVault.Services
 				return null;
 			}
 
-			DirectorySuggestionsModel result = new DirectorySuggestionsModel
+			DirectoryHierarchyCache result = new DirectoryHierarchyCache
 			{
 				Schema = schema
 			};
@@ -299,7 +295,7 @@ namespace OngakuVault.Services
 					kvp.Value.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
 				}
 
-				result.Suggestions = allSuggestionsByDepth;
+				result.SuggestionsByDepth = allSuggestionsByDepth;
 
 				_logger.LogDebug("Scanned complete directory hierarchy: {DepthCount} levels with total {SuggestionCount} suggestions", 
 					allSuggestionsByDepth.Count, allSuggestionsByDepth.Values.Sum(list => list.Count));
