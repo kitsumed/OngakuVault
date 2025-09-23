@@ -5,6 +5,31 @@ using System.Text.RegularExpressions;
 namespace OngakuVault.Services
 {
 	/// <summary>
+	/// Service interface for scanning directories and providing suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema
+	/// </summary>
+	public interface IDirectoryScanService
+	{
+		/// <summary>
+		/// Get directory suggestions based on existing folder structure and schema
+		/// </summary>
+		/// <param name="request">Request parameters including depth, parent context, and filter</param>
+		/// <returns>Directory suggestions model</returns>
+		DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request);
+
+		/// <summary>
+		/// Get the parsed schema from OUTPUT_SUB_DIRECTORY_FORMAT
+		/// </summary>
+		/// <returns>List of token types in order</returns>
+		List<string> GetDirectorySchema();
+
+		/// <summary>
+		/// Check if directory suggestions feature is enabled based on configuration
+		/// </summary>
+		/// <returns>True if directory suggestions are enabled</returns>
+		bool IsDirectorySuggestionsEnabled();
+	}
+
+	/// <summary>
 	/// Service for scanning directories and providing suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema
 	/// </summary>
 	public class DirectoryScanService : IDirectoryScanService
@@ -20,6 +45,9 @@ namespace OngakuVault.Services
 			"AUDIO_DURATION", "AUDIO_DURATION_MS", "AUDIO_ISRC", "AUDIO_CATALOG_NUMBER"
 		};
 
+		// Regex that uses the PIPE separation used by the ValueReplacingHelper to detect tokens
+		private static readonly Regex TokenRegex = new Regex(@"\|([A-Z_]+)\|");
+
 		public DirectoryScanService(ILogger<DirectoryScanService> logger, IOptions<AppSettingsModel> appSettings)
 		{
 			_logger = logger;
@@ -28,7 +56,7 @@ namespace OngakuVault.Services
 
 		public bool IsDirectorySuggestionsEnabled()
 		{
-			var schema = GetDirectorySchema();
+			List<string> schema = GetDirectorySchema();
 			return schema.Count > 0;
 		}
 
@@ -40,16 +68,15 @@ namespace OngakuVault.Services
 			}
 
 			// Parse the schema to extract audio tokens in order
-			var schema = new List<string>();
-			var format = _appSettings.OUTPUT_SUB_DIRECTORY_FORMAT;
+			List<string> schema = new List<string>();
+			string? format = _appSettings.OUTPUT_SUB_DIRECTORY_FORMAT;
 
 			// Find all tokens in the format string using regex
-			var tokenRegex = new Regex(@"\|([A-Z_]+)\|");
-			var matches = tokenRegex.Matches(format);
+			MatchCollection matches = TokenRegex.Matches(format);
 
 			foreach (Match match in matches)
 			{
-				var token = match.Groups[1].Value;
+				string token = match.Groups[1].Value;
 				if (SupportedAudioTokens.Contains(token))
 				{
 					schema.Add(token);
@@ -61,7 +88,7 @@ namespace OngakuVault.Services
 
 		public DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request)
 		{
-			var schema = GetDirectorySchema();
+			List<string> schema = GetDirectorySchema();
 			if (schema.Count == 0)
 			{
 				return null;
@@ -74,7 +101,7 @@ namespace OngakuVault.Services
 
 			try
 			{
-				var suggestions = ScanDirectoryStructure(schema, request);
+				DirectorySuggestionsModel? suggestions = ScanDirectoryStructure(schema, request);
 				return suggestions;
 			}
 			catch (Exception ex)
@@ -88,24 +115,23 @@ namespace OngakuVault.Services
 		{
 			if (!Directory.Exists(_appSettings.OUTPUT_DIRECTORY))
 			{
-				_logger.LogInformation("Output directory does not exist: {OutputDirectory}", _appSettings.OUTPUT_DIRECTORY);
+				_logger.LogWarning("Output directory does not exist: {OutputDirectory}. Cannot scan directory structure.", _appSettings.OUTPUT_DIRECTORY);
 				return null;
 			}
 
-			var result = new DirectorySuggestionsModel
+			DirectorySuggestionsModel result = new DirectorySuggestionsModel
 			{
 				Schema = schema
 			};
 
 			// Get the base directory to scan from
-			var basePath = _appSettings.OUTPUT_DIRECTORY;
-			var currentDepth = 0;
+			string basePath = _appSettings.OUTPUT_DIRECTORY;
+			int currentDepth = 0;
 
 			// If we have a parent path context, navigate to that level first
 			if (!string.IsNullOrEmpty(request.ParentPath))
 			{
-				var parentParts = request.ParentPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, 
-					StringSplitOptions.RemoveEmptyEntries);
+				string[] parentParts = request.ParentPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 				
 				if (parentParts.Length <= schema.Count)
 				{
@@ -123,21 +149,20 @@ namespace OngakuVault.Services
 			// Get suggestions at the requested depth level
 			if (Directory.Exists(basePath))
 			{
-				var directories = Directory.GetDirectories(basePath);
-				var suggestions = new List<DirectorySuggestionNode>();
+				string[] directories = Directory.GetDirectories(basePath);
+				List<DirectorySuggestionNode> suggestions = new List<DirectorySuggestionNode>();
 
-				foreach (var dir in directories)
+				foreach (string dir in directories)
 				{
-					var dirName = Path.GetFileName(dir);
+					string dirName = Path.GetFileName(dir);
 					
 					// Apply filter if provided
-					if (!string.IsNullOrEmpty(request.Filter) && 
-						!dirName.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
+					if (!string.IsNullOrEmpty(request.Filter) && !dirName.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
 					{
 						continue;
 					}
 
-					var suggestion = new DirectorySuggestionNode
+					DirectorySuggestionNode suggestion = new DirectorySuggestionNode
 					{
 						Name = dirName,
 						TokenType = schema[currentDepth],
@@ -145,13 +170,13 @@ namespace OngakuVault.Services
 					};
 
 					// If there are more levels in the schema, check for children
-					if (currentDepth + 1 < schema.Count)
+					if ((currentDepth + 1) < schema.Count)
 					{
-						var childDirs = Directory.GetDirectories(dir);
+						string[] childDirs = Directory.GetDirectories(dir);
 						foreach (var childDir in childDirs)
 						{
-							var childName = Path.GetFileName(childDir);
-							var childSuggestion = new DirectorySuggestionNode
+							string childName = Path.GetFileName(childDir);
+							DirectorySuggestionNode childSuggestion = new DirectorySuggestionNode
 							{
 								Name = childName,
 								TokenType = schema[currentDepth + 1],
@@ -169,7 +194,7 @@ namespace OngakuVault.Services
 				result.Suggestions[currentDepth] = suggestions;
 			}
 
-			_logger.LogInformation("Found {Count} suggestions for depth {Depth} with token {Token}", 
+			_logger.LogDebug("Found {Count} suggestions for depth {Depth} with token {Token}", 
 				result.Suggestions.ContainsKey(currentDepth) ? result.Suggestions[currentDepth].Count : 0,
 				currentDepth, 
 				currentDepth < schema.Count ? schema[currentDepth] : "Unknown");

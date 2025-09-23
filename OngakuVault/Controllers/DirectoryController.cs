@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using OngakuVault.Models;
 using OngakuVault.Services;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace OngakuVault.Controllers
 {
@@ -34,7 +32,7 @@ namespace OngakuVault.Controllers
 					return BadRequest("Depth cannot be negative");
 				}
 
-				var suggestions = _directoryScanService.GetDirectorySuggestions(request);
+				DirectorySuggestionsModel? suggestions = _directoryScanService.GetDirectorySuggestions(request);
 				
 				if (suggestions == null || !suggestions.Suggestions.Any())
 				{
@@ -46,7 +44,7 @@ namespace OngakuVault.Controllers
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error getting directory suggestions");
-				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory suggestions");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory suggestions. More informations in server logs.");
 			}
 		}
 
@@ -58,13 +56,13 @@ namespace OngakuVault.Controllers
 		{
 			try
 			{
-				var schema = _directoryScanService.GetDirectorySchema();
+				List<string> schema = _directoryScanService.GetDirectorySchema();
 				return Ok(schema);
 			}
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error getting directory schema");
-				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory schema");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to retrieve directory schema. More informations in server logs.");
 			}
 		}
 

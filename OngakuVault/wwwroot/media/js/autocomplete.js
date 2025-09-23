@@ -32,13 +32,13 @@ class DirectoryAutocomplete {
             // Check if directory suggestions are enabled
             const enabledResponse = await fetch(`${APIEndpoint}/Directory/enabled`);
             if (!enabledResponse.ok) {
-                console.log('Directory autocomplete feature disabled - API not available');
+                console.debug('Directory autocomplete feature disabled - API not available');
                 return;
             }
 
             this.isEnabled = await enabledResponse.json();
             if (!this.isEnabled) {
-                console.log('Directory autocomplete feature disabled - OUTPUT_SUB_DIRECTORY_FORMAT not configured');
+                console.debug('Directory autocomplete feature disabled - OUTPUT_SUB_DIRECTORY_FORMAT not configured');
                 return;
             }
 
@@ -47,11 +47,11 @@ class DirectoryAutocomplete {
             if (schemaResponse.ok) {
                 this.schema = await schemaResponse.json();
                 if (this.schema.length === 0) {
-                    console.log('Directory autocomplete feature disabled - no valid tokens in schema');
+                    console.debug('Directory autocomplete feature disabled - no valid tokens in schema');
                     return;
                 }
 
-                console.log('Directory autocomplete enabled with schema:', this.schema);
+                console.debug('Directory autocomplete enabled with schema:', this.schema);
                 this.setupFieldMappings();
                 this.setupEventListeners();
                 this.observeModalChanges();
@@ -76,7 +76,7 @@ class DirectoryAutocomplete {
             }
         });
 
-        console.log('Field mappings established:', this.fieldMappings);
+        console.debug('Directory autocomplete field mappings established:', this.fieldMappings);
     }
 
     observeModalChanges() {
@@ -110,7 +110,7 @@ class DirectoryAutocomplete {
         Object.keys(this.fieldMappings).forEach(fieldId => {
             const input = document.getElementById(fieldId);
             if (input && !input._autocompleteListeners) {
-                // Mark that we've added listeners to avoid duplicates
+                // Mark that we've added listeners in the element attributes to avoid duplicates
                 input._autocompleteListeners = true;
                 
                 input.addEventListener('input', (e) => this.handleInput(e, fieldId));
@@ -126,7 +126,7 @@ class DirectoryAutocomplete {
                 if (!suggestionsContainer) {
                     suggestionsContainer = document.createElement('div');
                     suggestionsContainer.id = suggestionsId;
-                    suggestionsContainer.className = 'dropdown-content';
+                    suggestionsContainer.className = 'dropdown-suggestions-content';
                     suggestionsContainer.style.display = 'none';
                     input.parentNode.appendChild(suggestionsContainer);
                 }
@@ -214,6 +214,7 @@ class DirectoryAutocomplete {
                 break;
 
             case 'Escape':
+                event.stopImmediatePropagation(); // Stop further event propagation
                 this.hideSuggestions(fieldId);
                 break;
         }
@@ -242,7 +243,7 @@ class DirectoryAutocomplete {
                         parentParts.push(parentInput.value.trim());
                     } else {
                         // If a parent field is empty, we can't provide contextual suggestions
-                        console.log(`Parent field ${parentFieldId} is empty, cannot provide suggestions for ${fieldId}`);
+                        console.debug(`Parent field ${parentFieldId} is empty, cannot provide suggestions for ${fieldId}`);
                         this.hideSuggestions(fieldId);
                         return;
                     }
