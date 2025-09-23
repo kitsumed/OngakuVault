@@ -291,7 +291,7 @@ class DirectoryAutocomplete {
 
             // Check cache first
             if (this.suggestionCache.has(cacheKey)) {
-                console.debug(`Using cached suggestions for: ${cacheKey}`);
+                console.debug(`Using cached suggestions for:`, cacheKey);
                 const cachedSuggestions = this.suggestionCache.get(cacheKey);
                 this.displaySuggestions(fieldId, cachedSuggestions, mapping.depth);
                 return;
@@ -314,7 +314,7 @@ class DirectoryAutocomplete {
 
             if (response.status === 204) {
                 // No suggestions available - mark as failed query with the exact filter that failed
-                console.debug(`No suggestions found, marking prefix "${filter}" as failed for context ${contextKey}`);
+                console.debug(`No suggestions found, marking prefix "${filter}" as failed for context : ${contextKey}`);
                 this.failedQueries.set(contextKey, filter);
                 this.hideSuggestions(fieldId);
                 return;
