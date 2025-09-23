@@ -36,13 +36,13 @@ class DirectoryAutocomplete {
             // Check if directory suggestions are enabled
             const enabledResponse = await fetch(`${APIEndpoint}/directory/enabled`);
             if (!enabledResponse.ok) {
-                console.debug('Directory autocomplete feature disabled - API not available');
+                console.debug('Directory autocomplete feature disabled. API not available.');
                 return;
             }
 
             this.isEnabled = await enabledResponse.json();
             if (!this.isEnabled) {
-                console.debug('Directory autocomplete feature disabled - OUTPUT_SUB_DIRECTORY_FORMAT not configured');
+                console.debug('Directory autocomplete feature is disabled per server-side request.');
                 return;
             }
 
@@ -51,7 +51,7 @@ class DirectoryAutocomplete {
             if (schemaResponse.ok) {
                 this.schema = await schemaResponse.json();
                 if (this.schema.length === 0) {
-                    console.debug('Directory autocomplete feature disabled - no valid tokens in schema');
+                    console.debug('Directory autocomplete feature disabled. No valid tokens in schema.');
                     return;
                 }
 
