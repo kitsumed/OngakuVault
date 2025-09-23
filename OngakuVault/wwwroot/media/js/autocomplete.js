@@ -154,9 +154,6 @@ class DirectoryAutocomplete {
     handleInput(event, fieldId) {
         const value = event.target.value.trim();
         
-        // Clear failed queries that might now succeed with different input
-        this.clearFailedQueriesForFilter(value);
-        
         // Clear existing debounce timer
         if (this.debounceTimers[fieldId]) {
             clearTimeout(this.debounceTimers[fieldId]);
@@ -269,11 +266,25 @@ class DirectoryAutocomplete {
                 filter: filter
             });
 
-            // Check if this query previously failed
-            if (this.failedQueries.has(cacheKey)) {
+            // Check if this query previously failed, but only if the current filter is shorter or equal
+            // This prevents clearing failed queries when user is still typing the same failed search
+            const shouldCheckFailedQueries = Array.from(this.failedQueries).some(failedKey => {
+                const failedRequest = JSON.parse(failedKey);
+                return failedRequest.depth === mapping.depth && 
+                       failedRequest.parentPath === (parentPath || null) &&
+                       failedRequest.filter && filter.startsWith(failedRequest.filter) &&
+                       filter.length > failedRequest.filter.length;
+            });
+
+            if (!shouldCheckFailedQueries && this.failedQueries.has(cacheKey)) {
                 console.debug(`Query previously failed, not making request: ${cacheKey}`);
                 this.hideSuggestions(fieldId);
                 return;
+            }
+
+            // If user is backspacing (making filter shorter), clear related failed queries
+            if (shouldCheckFailedQueries) {
+                this.clearRelatedFailedQueries(mapping.depth, parentPath, filter);
             }
 
             // Check cache first
@@ -400,14 +411,18 @@ class DirectoryAutocomplete {
         }
     }
 
-    clearFailedQueriesForFilter(currentFilter) {
-        // Clear failed queries that might now succeed with a different filter
+    clearRelatedFailedQueries(depth, parentPath, currentFilter) {
+        // Clear failed queries for the same context that might now succeed with a shorter filter
         const keysToRemove = [];
         for (const key of this.failedQueries) {
             const request = JSON.parse(key);
-            if (request.filter && currentFilter.startsWith(request.filter)) {
-                // If the current filter starts with a previously failed filter,
-                // the failed filter might now have results
+            if (request.depth === depth && 
+                request.parentPath === parentPath &&
+                request.filter && 
+                request.filter.startsWith(currentFilter) &&
+                request.filter.length > currentFilter.length) {
+                // If a previously failed query had a longer filter that starts with current filter,
+                // the current shorter filter might now have results
                 keysToRemove.push(key);
             }
         }
@@ -415,7 +430,7 @@ class DirectoryAutocomplete {
         keysToRemove.forEach(key => this.failedQueries.delete(key));
         
         if (keysToRemove.length > 0) {
-            console.debug(`Cleared ${keysToRemove.length} failed queries that might now succeed`);
+            console.debug(`Cleared ${keysToRemove.length} failed queries due to shorter filter "${currentFilter}"`);
         }
     }
 

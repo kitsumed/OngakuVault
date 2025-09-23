@@ -272,13 +272,12 @@ namespace OngakuVault.Services
 							allSuggestionsByDepth[depth] = new List<DirectorySuggestionNode>();
 						}
 
-						string pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
-						DirectorySuggestionNode suggestion = new DirectorySuggestionNode
+						var pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
+						var suggestion = new DirectorySuggestionNode
 						{
 							Name = pathParts[depth],
 							TokenType = schema[depth],
-							Path = pathUpToDepth,
-							Children = new List<DirectorySuggestionNode>()
+							Path = pathUpToDepth
 						};
 
 						// Check if this suggestion already exists

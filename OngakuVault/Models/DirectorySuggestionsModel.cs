@@ -44,12 +44,6 @@ namespace OngakuVault.Models
 		/// </summary>
 		[SwaggerSchema(Description = "Full path to the directory")]
 		public required string Path { get; set; }
-
-		/// <summary>
-		/// Child directories under this node
-		/// </summary>
-		[SwaggerSchema(Description = "Child directory suggestions")]
-		public List<DirectorySuggestionNode> Children { get; set; } = new List<DirectorySuggestionNode>();
 	}
 
 	/// <summary>
