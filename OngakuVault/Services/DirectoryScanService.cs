@@ -226,9 +226,6 @@ namespace OngakuVault.Services
 				filteredSuggestions.Add(suggestion);
 			}
 
-			// Sort filtered suggestions using natural sorting  
-			filteredSuggestions.Sort((a, b) => NaturalSort(a.Name, b.Name));
-
 			return filteredSuggestions;
 		}
 
@@ -313,7 +310,7 @@ namespace OngakuVault.Services
 
 		/// <summary>
 		/// Natural sorting that handles numeric portions correctly
-		/// This ensures "File (2)" comes before "File (10)" instead of after it
+		/// This ensures "File (2)" comes before "File (10)" instead of after it (this is the behavior of .Order / .OrderBy)
 		/// </summary>
 		/// <param name="x">First string to compare</param>
 		/// <param name="y">Second string to compare</param>
@@ -324,16 +321,16 @@ namespace OngakuVault.Services
 			if (x == null) return -1;
 			if (y == null) return 1;
 
-			int i = 0, j = 0;
+			int xReadingPos = 0, yReadingPos = 0;
 			
-			while (i < x.Length && j < y.Length)
+			while (xReadingPos < x.Length && yReadingPos < y.Length)
 			{
 				// Check if both characters are digits
-				if (char.IsDigit(x[i]) && char.IsDigit(y[j]))
+				if (char.IsDigit(x[xReadingPos]) && char.IsDigit(y[yReadingPos]))
 				{
 					// Extract numeric portions
-					var numX = ExtractNumber(x, ref i);
-					var numY = ExtractNumber(y, ref j);
+					var numX = ExtractNumber(x, ref xReadingPos);
+					var numY = ExtractNumber(y, ref yReadingPos);
 					
 					// Compare numbers numerically
 					int numComparison = numX.CompareTo(numY);
@@ -342,11 +339,11 @@ namespace OngakuVault.Services
 				else
 				{
 					// Compare characters case-insensitively
-					int charComparison = char.ToUpperInvariant(x[i]).CompareTo(char.ToUpperInvariant(y[j]));
+					int charComparison = char.ToUpperInvariant(x[xReadingPos]).CompareTo(char.ToUpperInvariant(y[yReadingPos]));
 					if (charComparison != 0) return charComparison;
 					
-					i++;
-					j++;
+					xReadingPos++;
+					yReadingPos++;
 				}
 			}
 			
@@ -355,7 +352,7 @@ namespace OngakuVault.Services
 		}
 
 		/// <summary>
-		/// Extract a number from string starting at the given index
+		/// Extract a number from string starting at the given index and moves that index forward
 		/// </summary>
 		/// <param name="str">Source string</param>
 		/// <param name="index">Starting index, will be updated to point after the number</param>
@@ -365,7 +362,9 @@ namespace OngakuVault.Services
 			long number = 0;
 			while (index < str.Length && char.IsDigit(str[index]))
 			{
-				number = number * 10 + (str[index] - '0');
+				int charToInt = str[index] - '0';
+				// This shift the new number to the left, we do this since we parse the whole number character by character and store it inside one "long" integer.
+				number = number * 10 + charToInt;
 				index++;
 			}
 			return number;
