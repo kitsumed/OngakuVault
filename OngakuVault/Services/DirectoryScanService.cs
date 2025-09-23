@@ -13,8 +13,8 @@ namespace OngakuVault.Services
 		/// Get directory suggestions based on existing folder structure and schema
 		/// </summary>
 		/// <param name="request">Request parameters including depth, parent context, and filter</param>
-		/// <returns>Directory suggestions model</returns>
-		DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request);
+		/// <returns>List of directory suggestions</returns>
+		List<DirectorySuggestionNode>? GetDirectorySuggestions(DirectorySuggestionRequest request);
 
 		/// <summary>
 		/// Get the parsed schema from OUTPUT_SUB_DIRECTORY_FORMAT
@@ -96,7 +96,7 @@ namespace OngakuVault.Services
 			return schema;
 		}
 
-		public DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request)
+		public List<DirectorySuggestionNode>? GetDirectorySuggestions(DirectorySuggestionRequest request)
 		{
 			// If feature is disabled, return null
 			if (!IsDirectorySuggestionsEnabled()) return null;
@@ -146,7 +146,7 @@ namespace OngakuVault.Services
 					return null;
 				}
 
-				// Filter the hierarchy and return simplified response
+				// Filter the hierarchy and return suggestions directly
 				return FilterHierarchyForRequest(hierarchyCache, request);
 			}
 			catch (Exception ex)
@@ -178,18 +178,17 @@ namespace OngakuVault.Services
 			}
 		}
 
-		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectoryHierarchyCache hierarchyCache, DirectorySuggestionRequest request)
+		private List<DirectorySuggestionNode> FilterHierarchyForRequest(DirectoryHierarchyCache hierarchyCache, DirectorySuggestionRequest request)
 		{
-			DirectorySuggestionsModel result = new DirectorySuggestionsModel();
+			List<DirectorySuggestionNode> filteredSuggestions = new List<DirectorySuggestionNode>();
 
 			// Get suggestions at the requested depth level
 			if (!hierarchyCache.SuggestionsByDepth.ContainsKey(request.Depth))
 			{
-				return result;
+				return filteredSuggestions;
 			}
 
 			List<DirectorySuggestionNode> allSuggestionsAtDepth = hierarchyCache.SuggestionsByDepth[request.Depth];
-			List<DirectorySuggestionNode> filteredSuggestions = new List<DirectorySuggestionNode>();
 
 			foreach (DirectorySuggestionNode? suggestion in allSuggestionsAtDepth)
 			{
@@ -226,8 +225,7 @@ namespace OngakuVault.Services
 				filteredSuggestions.Add(suggestion);
 			}
 
-			result.Suggestions = filteredSuggestions;
-			return result;
+			return filteredSuggestions;
 		}
 
 		// Method to build complete directory hierarchy for caching
