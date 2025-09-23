@@ -15,6 +15,7 @@
 	<script src="./media/js/bulma.js"></script>
 	<script src="./media/js/utils.js"></script>
 	<script src="./media/js/index.js"></script>
+	<script src="./media/js/autocomplete.js"></script>
 	<noscript>
 		<article class="message is-danger">
 			<div class="message-body">
@@ -152,7 +153,8 @@
 								<div class="field">
 									<label class="label" for="mediaAlbumName">Album Name:</label>
 									<div class="control">
-										<input type="text" id="albumName" name="albumName" placeholder="Album Name" class="input">
+										<input type="text" id="albumName" name="albumName" placeholder="Album Name" class="input" autocomplete="off">
+										<div id="albumName-suggestions" class="dropdown-content" style="display: none;"></div>
 									</div>
 								</div>
 								<div class="field">
@@ -166,7 +168,8 @@
 								<div class="field">
 									<label class="label" for="mediaArtistName">Artist Name:</label>
 									<div class="control">
-										<input type="text" id="artistName" name="artistName" placeholder="Artist Name" class="input">
+										<input type="text" id="artistName" name="artistName" placeholder="Artist Name" class="input" autocomplete="off">
+										<div id="artistName-suggestions" class="dropdown-content" style="display: none;"></div>
 									</div>
 								</div>
 								<div class="field">
