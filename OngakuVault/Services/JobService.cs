@@ -60,6 +60,7 @@ namespace OngakuVault.Services
 		private readonly AppSettingsModel _appSettings;
 		private readonly IMediaDownloaderService _mediaDownloaderService;
 		private readonly IWebSocketManagerService _websocketManagerService;
+		private readonly IDirectoryScanService _directoryScanService;
 
 		/// <summary>
 		/// List of Jobs managed by the JobService (waiting for execution, running, completed, etc)
@@ -77,12 +78,13 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly TimeSpan _runCleanupAtEvery = TimeSpan.FromMinutes(30);
 
-		public JobService(ILogger<JobService> logger,IOptions<AppSettingsModel> appSettings, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService)
+		public JobService(ILogger<JobService> logger,IOptions<AppSettingsModel> appSettings, IMediaDownloaderService mediaDownloaderService, IWebSocketManagerService webSocketManagerService, IDirectoryScanService directoryScanService)
         {
             _logger = logger;
 			_appSettings = appSettings.Value;
 			_mediaDownloaderService = mediaDownloaderService;
 			_websocketManagerService = webSocketManagerService;
+			_directoryScanService = directoryScanService;
 
 			JobsSemaphore = new SemaphoreSlim(_appSettings.PARALLEL_JOBS, _appSettings.PARALLEL_JOBS);
 			// Init jobs cleanup async task
@@ -341,6 +343,8 @@ namespace OngakuVault.Services
 						Directory.CreateDirectory(outputDirectory);
 						// Move audio file to the output directory (and rename the file name to the 'fileName' value)
 						downloadedFileInfo.MoveTo(finalAudioPath);
+						// Trigger a Directory Scan for the autocomplete API feature
+						_directoryScanService.RefreshCache();
 					}
 					else 
 					{

@@ -67,7 +67,7 @@ namespace OngakuVault.Services
 		public bool IsDirectorySuggestionsEnabled()
 		{
 			List<string> schema = GetDirectorySchema();
-			return schema.Count > 0;
+			return schema.Count > 0 && !_appSettings.DISABLE_DIRECTORY_SUGGESTIONS;
 		}
 
 		public List<string> GetDirectorySchema()
@@ -98,6 +98,9 @@ namespace OngakuVault.Services
 
 		public DirectorySuggestionsModel? GetDirectorySuggestions(DirectorySuggestionRequest request)
 		{
+			// If feature is disabled, return null
+			if (!IsDirectorySuggestionsEnabled()) return null;
+
 			List<string> schema = GetDirectorySchema();
 			if (schema.Count == 0)
 			{
@@ -116,10 +119,11 @@ namespace OngakuVault.Services
 
 				if (_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED)
 				{
+					// Prevent concurrent access to the cache, other access requests will wait until the lock is released
 					lock (_cacheLock)
 					{
-						var cacheExpiry = TimeSpan.FromMinutes(_appSettings.DIRECTORY_SUGGESTIONS_CACHE_REFRESH_MINUTES);
-						var now = DateTime.Now;
+						TimeSpan cacheExpiry = TimeSpan.FromMinutes(_appSettings.DIRECTORY_SUGGESTIONS_CACHE_REFRESH_MINUTES);
+						DateTime now = DateTime.Now;
 
 						if (_cachedHierarchy == null || now - _cacheTimestamp > cacheExpiry)
 						{
@@ -133,7 +137,7 @@ namespace OngakuVault.Services
 				}
 				else
 				{
-					// No caching - scan directly
+					// No caching, scan directly
 					fullHierarchy = ScanDirectoryStructure(schema);
 				}
 
@@ -159,12 +163,13 @@ namespace OngakuVault.Services
 				return;
 			}
 
-			var schema = GetDirectorySchema();
+			List<string> schema = GetDirectorySchema();
 			if (schema.Count == 0)
 			{
 				return;
 			}
 
+			// Prevent concurrent access to the cache, other access requests will wait until the lock is released
 			lock (_cacheLock)
 			{
 				_logger.LogInformation("Manually refreshing directory hierarchy cache");
@@ -175,7 +180,7 @@ namespace OngakuVault.Services
 
 		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectorySuggestionsModel fullHierarchy, DirectorySuggestionRequest request)
 		{
-			var result = new DirectorySuggestionsModel
+			DirectorySuggestionsModel result = new DirectorySuggestionsModel
 			{
 				Schema = fullHierarchy.Schema
 			};
@@ -186,19 +191,19 @@ namespace OngakuVault.Services
 				return result;
 			}
 
-			var allSuggestionsAtDepth = fullHierarchy.Suggestions[request.Depth];
-			var filteredSuggestions = new List<DirectorySuggestionNode>();
+			List<DirectorySuggestionNode> allSuggestionsAtDepth = fullHierarchy.Suggestions[request.Depth];
+			List<DirectorySuggestionNode> filteredSuggestions = new List<DirectorySuggestionNode>();
 
-			foreach (var suggestion in allSuggestionsAtDepth)
+			foreach (DirectorySuggestionNode? suggestion in allSuggestionsAtDepth)
 			{
 				// Apply parent path filter
 				if (!string.IsNullOrEmpty(request.ParentPath))
 				{
-					var parentPathParts = request.ParentPath.Split('/', '\\');
-					var suggestionPathParts = suggestion.Path.Split('/', '\\');
+					string[] parentPathParts = request.ParentPath.Split('/', '\\');
+					string[] suggestionPathParts = suggestion.Path.Split('/', '\\');
 
 					// Check if this suggestion matches the parent path context
-					var matches = true;
+					bool matches = true;
 					for (int i = 0; i < parentPathParts.Length && i < suggestionPathParts.Length - 1; i++)
 					{
 						if (!parentPathParts[i].Equals(suggestionPathParts[i], StringComparison.OrdinalIgnoreCase))
@@ -215,8 +220,7 @@ namespace OngakuVault.Services
 				}
 
 				// Apply text filter
-				if (!string.IsNullOrEmpty(request.Filter) && 
-					!suggestion.Name.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
+				if (!string.IsNullOrEmpty(request.Filter) && !suggestion.Name.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
 				{
 					continue;
 				}
@@ -241,7 +245,7 @@ namespace OngakuVault.Services
 				return null;
 			}
 
-			var result = new DirectorySuggestionsModel
+			DirectorySuggestionsModel result = new DirectorySuggestionsModel
 			{
 				Schema = schema
 			};
@@ -249,26 +253,27 @@ namespace OngakuVault.Services
 			try
 			{
 				// Build the complete directory hierarchy
-				var allSuggestionsByDepth = new Dictionary<int, List<DirectorySuggestionNode>>();
+				Dictionary<int, List<DirectorySuggestionNode>> allSuggestionsByDepth = new Dictionary<int, List<DirectorySuggestionNode>>();
 
 				// Get all subdirectories recursively
-				var allDirectories = Directory.GetDirectories(_appSettings.OUTPUT_DIRECTORY, "*", SearchOption.AllDirectories);
+				string[] allDirectories = Directory.GetDirectories(_appSettings.OUTPUT_DIRECTORY, "*", SearchOption.AllDirectories);
 
-				foreach (var dirPath in allDirectories)
+				foreach (string dirPath in allDirectories)
 				{
-					var relativePath = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dirPath);
-					var pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+					string relativePath = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dirPath);
+					string[] pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
 					// Create suggestions for each depth level that corresponds to schema
 					for (int depth = 0; depth < Math.Min(pathParts.Length, schema.Count); depth++)
 					{
+						// Initialise each depths list (0,1,2,etc) if not already
 						if (!allSuggestionsByDepth.ContainsKey(depth))
 						{
 							allSuggestionsByDepth[depth] = new List<DirectorySuggestionNode>();
 						}
 
-						var pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
-						var suggestion = new DirectorySuggestionNode
+						string pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
+						DirectorySuggestionNode suggestion = new DirectorySuggestionNode
 						{
 							Name = pathParts[depth],
 							TokenType = schema[depth],
@@ -277,7 +282,7 @@ namespace OngakuVault.Services
 						};
 
 						// Check if this suggestion already exists
-						var existingSuggestion = allSuggestionsByDepth[depth].FirstOrDefault(s => 
+						DirectorySuggestionNode? existingSuggestion = allSuggestionsByDepth[depth].FirstOrDefault(s => 
 							s.Name.Equals(suggestion.Name, StringComparison.OrdinalIgnoreCase) &&
 							s.Path.Equals(suggestion.Path, StringComparison.OrdinalIgnoreCase));
 
@@ -289,7 +294,7 @@ namespace OngakuVault.Services
 				}
 
 				// Sort all suggestions by name
-				foreach (var kvp in allSuggestionsByDepth)
+				foreach (KeyValuePair<int, List<DirectorySuggestionNode>> kvp in allSuggestionsByDepth)
 				{
 					kvp.Value.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
 				}
@@ -306,97 +311,6 @@ namespace OngakuVault.Services
 				_logger.LogError(ex, "Error scanning directory structure");
 				return null;
 			}
-		}
-
-		private DirectorySuggestionsModel? ScanDirectoryStructure(List<string> schema, DirectorySuggestionRequest request)
-		{
-			if (!Directory.Exists(_appSettings.OUTPUT_DIRECTORY))
-			{
-				_logger.LogWarning("Output directory does not exist: {OutputDirectory}. Cannot scan directory structure.", _appSettings.OUTPUT_DIRECTORY);
-				return null;
-			}
-
-			DirectorySuggestionsModel result = new DirectorySuggestionsModel
-			{
-				Schema = schema
-			};
-
-			// Get the base directory to scan from
-			string basePath = _appSettings.OUTPUT_DIRECTORY;
-			int currentDepth = 0;
-
-			// If we have a parent path context, navigate to that level first
-			if (!string.IsNullOrEmpty(request.ParentPath))
-			{
-				string[] parentParts = request.ParentPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-				
-				if (parentParts.Length <= schema.Count)
-				{
-					basePath = Path.Combine(_appSettings.OUTPUT_DIRECTORY, request.ParentPath);
-					currentDepth = parentParts.Length;
-				}
-			}
-
-			// If the requested depth is not the current depth, we can't provide suggestions
-			if (request.Depth != currentDepth)
-			{
-				return result;
-			}
-
-			// Get suggestions at the requested depth level
-			if (Directory.Exists(basePath))
-			{
-				string[] directories = Directory.GetDirectories(basePath);
-				List<DirectorySuggestionNode> suggestions = new List<DirectorySuggestionNode>();
-
-				foreach (string dir in directories)
-				{
-					string dirName = Path.GetFileName(dir);
-					
-					// Apply filter if provided
-					if (!string.IsNullOrEmpty(request.Filter) && !dirName.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
-					{
-						continue;
-					}
-
-					DirectorySuggestionNode suggestion = new DirectorySuggestionNode
-					{
-						Name = dirName,
-						TokenType = schema[currentDepth],
-						Path = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dir)
-					};
-
-					// If there are more levels in the schema, check for children
-					if ((currentDepth + 1) < schema.Count)
-					{
-						string[] childDirs = Directory.GetDirectories(dir);
-						foreach (var childDir in childDirs)
-						{
-							string childName = Path.GetFileName(childDir);
-							DirectorySuggestionNode childSuggestion = new DirectorySuggestionNode
-							{
-								Name = childName,
-								TokenType = schema[currentDepth + 1],
-								Path = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, childDir)
-							};
-							suggestion.Children.Add(childSuggestion);
-						}
-					}
-
-					suggestions.Add(suggestion);
-				}
-
-				// Sort suggestions by name
-				suggestions.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-				result.Suggestions[currentDepth] = suggestions;
-			}
-
-			_logger.LogDebug("Found {Count} suggestions for depth {Depth} with token {Token}", 
-				result.Suggestions.ContainsKey(currentDepth) ? result.Suggestions[currentDepth].Count : 0,
-				currentDepth, 
-				currentDepth < schema.Count ? schema[currentDepth] : "Unknown");
-
-			return result;
 		}
 	}
 }

@@ -67,30 +67,12 @@ namespace OngakuVault.Controllers
 		}
 
 		[HttpGet("enabled")]
-		[EndpointDescription("Check if directory suggestions feature is enabled based on OUTPUT_SUB_DIRECTORY_FORMAT configuration")]
+		[EndpointDescription("Check if directory suggestions feature is enabled based on OUTPUT_SUB_DIRECTORY_FORMAT and DISABLE_DIRECTORY_SUGGESTIONS configuration")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
 		[Produces("application/json")]
 		public ActionResult<bool> IsDirectorySuggestionsEnabled()
 		{
 			return Ok(_directoryScanService.IsDirectorySuggestionsEnabled());
-		}
-
-		[HttpPost("refresh-cache")]
-		[EndpointDescription("Manually refresh the directory hierarchy cache")]
-		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
-		[Produces("application/json")]
-		public ActionResult RefreshCache()
-		{
-			try
-			{
-				_directoryScanService.RefreshCache();
-				return Ok("Cache refreshed successfully");
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Error refreshing directory cache");
-				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to refresh cache");
-			}
 		}
 	}
 }
