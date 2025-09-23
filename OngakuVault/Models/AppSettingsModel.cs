@@ -190,5 +190,22 @@
 		/// Array version of <see cref="LYRICS_LANGUAGE_PRIORITY"/>
 		/// </remarks>
 		public string[]? LYRICS_LANGUAGE_PRIORITY_ARRAY => LYRICS_LANGUAGE_PRIORITY?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? null;
+
+		/// <summary>
+		/// Enable server-side caching of directory hierarchy for autocomplete suggestions.
+		/// True by default.
+		/// </summary>
+		public bool DIRECTORY_SUGGESTIONS_CACHE_ENABLED { get; set; } = true;
+
+		/// <summary>
+		/// Directory suggestions cache refresh interval in minutes.
+		/// 5 minutes by default, minimum 1 minute.
+		/// </summary>
+		public int DIRECTORY_SUGGESTIONS_CACHE_REFRESH_MINUTES
+		{
+			get => _directorySuggestionsCacheRefreshMinutes;
+			set => _directorySuggestionsCacheRefreshMinutes = value < 1 ? 1 : value;
+		}
+		private int _directorySuggestionsCacheRefreshMinutes = 5;
 	}
 }

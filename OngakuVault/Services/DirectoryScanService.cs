@@ -27,6 +27,11 @@ namespace OngakuVault.Services
 		/// </summary>
 		/// <returns>True if directory suggestions are enabled</returns>
 		bool IsDirectorySuggestionsEnabled();
+
+		/// <summary>
+		/// Manually refresh the directory hierarchy cache
+		/// </summary>
+		void RefreshCache();
 	}
 
 	/// <summary>
@@ -36,6 +41,11 @@ namespace OngakuVault.Services
 	{
 		readonly ILogger<DirectoryScanService> _logger;
 		readonly AppSettingsModel _appSettings;
+		
+		// Server-side caching
+		private DirectorySuggestionsModel? _cachedHierarchy;
+		private DateTime _cacheTimestamp = DateTime.MinValue;
+		private readonly object _cacheLock = new object();
 
 		// All supported audio tokens from the ValueReplacingHelper
 		private static readonly HashSet<string> SupportedAudioTokens = new HashSet<string>
@@ -101,12 +111,199 @@ namespace OngakuVault.Services
 
 			try
 			{
-				DirectorySuggestionsModel? suggestions = ScanDirectoryStructure(schema, request);
-				return suggestions;
+				// Use cached hierarchy if caching is enabled and cache is valid
+				DirectorySuggestionsModel? fullHierarchy = null;
+
+				if (_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED)
+				{
+					lock (_cacheLock)
+					{
+						var cacheExpiry = TimeSpan.FromMinutes(_appSettings.DIRECTORY_SUGGESTIONS_CACHE_REFRESH_MINUTES);
+						var now = DateTime.Now;
+
+						if (_cachedHierarchy == null || now - _cacheTimestamp > cacheExpiry)
+						{
+							_logger.LogDebug("Refreshing directory hierarchy cache");
+							_cachedHierarchy = ScanDirectoryStructure(schema);
+							_cacheTimestamp = now;
+						}
+
+						fullHierarchy = _cachedHierarchy;
+					}
+				}
+				else
+				{
+					// No caching - scan directly
+					fullHierarchy = ScanDirectoryStructure(schema);
+				}
+
+				if (fullHierarchy == null)
+				{
+					return null;
+				}
+
+				// Filter the full hierarchy based on the request
+				return FilterHierarchyForRequest(fullHierarchy, request);
 			}
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Error getting directory suggestions for depth {Depth}", request.Depth);
+				return null;
+			}
+		}
+
+		public void RefreshCache()
+		{
+			if (!_appSettings.DIRECTORY_SUGGESTIONS_CACHE_ENABLED)
+			{
+				return;
+			}
+
+			var schema = GetDirectorySchema();
+			if (schema.Count == 0)
+			{
+				return;
+			}
+
+			lock (_cacheLock)
+			{
+				_logger.LogInformation("Manually refreshing directory hierarchy cache");
+				_cachedHierarchy = ScanDirectoryStructure(schema);
+				_cacheTimestamp = DateTime.Now;
+			}
+		}
+
+		private DirectorySuggestionsModel FilterHierarchyForRequest(DirectorySuggestionsModel fullHierarchy, DirectorySuggestionRequest request)
+		{
+			var result = new DirectorySuggestionsModel
+			{
+				Schema = fullHierarchy.Schema
+			};
+
+			// Get suggestions at the requested depth level
+			if (!fullHierarchy.Suggestions.ContainsKey(request.Depth))
+			{
+				return result;
+			}
+
+			var allSuggestionsAtDepth = fullHierarchy.Suggestions[request.Depth];
+			var filteredSuggestions = new List<DirectorySuggestionNode>();
+
+			foreach (var suggestion in allSuggestionsAtDepth)
+			{
+				// Apply parent path filter
+				if (!string.IsNullOrEmpty(request.ParentPath))
+				{
+					var parentPathParts = request.ParentPath.Split('/', '\\');
+					var suggestionPathParts = suggestion.Path.Split('/', '\\');
+
+					// Check if this suggestion matches the parent path context
+					var matches = true;
+					for (int i = 0; i < parentPathParts.Length && i < suggestionPathParts.Length - 1; i++)
+					{
+						if (!parentPathParts[i].Equals(suggestionPathParts[i], StringComparison.OrdinalIgnoreCase))
+						{
+							matches = false;
+							break;
+						}
+					}
+
+					if (!matches)
+					{
+						continue;
+					}
+				}
+
+				// Apply text filter
+				if (!string.IsNullOrEmpty(request.Filter) && 
+					!suggestion.Name.Contains(request.Filter, StringComparison.OrdinalIgnoreCase))
+				{
+					continue;
+				}
+
+				filteredSuggestions.Add(suggestion);
+			}
+
+			if (filteredSuggestions.Count > 0)
+			{
+				result.Suggestions[request.Depth] = filteredSuggestions;
+			}
+
+			return result;
+		}
+
+		// Overloaded method to scan without request context (for caching full hierarchy)
+		private DirectorySuggestionsModel? ScanDirectoryStructure(List<string> schema)
+		{
+			if (!Directory.Exists(_appSettings.OUTPUT_DIRECTORY))
+			{
+				_logger.LogWarning("Output directory does not exist: {OutputDirectory}. Cannot scan directory structure.", _appSettings.OUTPUT_DIRECTORY);
+				return null;
+			}
+
+			var result = new DirectorySuggestionsModel
+			{
+				Schema = schema
+			};
+
+			try
+			{
+				// Build the complete directory hierarchy
+				var allSuggestionsByDepth = new Dictionary<int, List<DirectorySuggestionNode>>();
+
+				// Get all subdirectories recursively
+				var allDirectories = Directory.GetDirectories(_appSettings.OUTPUT_DIRECTORY, "*", SearchOption.AllDirectories);
+
+				foreach (var dirPath in allDirectories)
+				{
+					var relativePath = Path.GetRelativePath(_appSettings.OUTPUT_DIRECTORY, dirPath);
+					var pathParts = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+					// Create suggestions for each depth level that corresponds to schema
+					for (int depth = 0; depth < Math.Min(pathParts.Length, schema.Count); depth++)
+					{
+						if (!allSuggestionsByDepth.ContainsKey(depth))
+						{
+							allSuggestionsByDepth[depth] = new List<DirectorySuggestionNode>();
+						}
+
+						var pathUpToDepth = string.Join(Path.DirectorySeparatorChar.ToString(), pathParts.Take(depth + 1));
+						var suggestion = new DirectorySuggestionNode
+						{
+							Name = pathParts[depth],
+							TokenType = schema[depth],
+							Path = pathUpToDepth,
+							Children = new List<DirectorySuggestionNode>()
+						};
+
+						// Check if this suggestion already exists
+						var existingSuggestion = allSuggestionsByDepth[depth].FirstOrDefault(s => 
+							s.Name.Equals(suggestion.Name, StringComparison.OrdinalIgnoreCase) &&
+							s.Path.Equals(suggestion.Path, StringComparison.OrdinalIgnoreCase));
+
+						if (existingSuggestion == null)
+						{
+							allSuggestionsByDepth[depth].Add(suggestion);
+						}
+					}
+				}
+
+				// Sort all suggestions by name
+				foreach (var kvp in allSuggestionsByDepth)
+				{
+					kvp.Value.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+				}
+
+				result.Suggestions = allSuggestionsByDepth;
+
+				_logger.LogDebug("Scanned complete directory hierarchy: {DepthCount} levels with total {SuggestionCount} suggestions", 
+					allSuggestionsByDepth.Count, allSuggestionsByDepth.Values.Sum(list => list.Count));
+
+				return result;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error scanning directory structure");
 				return null;
 			}
 		}

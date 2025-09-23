@@ -74,5 +74,23 @@ namespace OngakuVault.Controllers
 		{
 			return Ok(_directoryScanService.IsDirectorySuggestionsEnabled());
 		}
+
+		[HttpPost("refresh-cache")]
+		[EndpointDescription("Manually refresh the directory hierarchy cache")]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+		[Produces("application/json")]
+		public ActionResult RefreshCache()
+		{
+			try
+			{
+				_directoryScanService.RefreshCache();
+				return Ok("Cache refreshed successfully");
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error refreshing directory cache");
+				return StatusCode(StatusCodes.Status500InternalServerError, "Failed to refresh cache");
+			}
+		}
 	}
 }
