@@ -346,7 +346,8 @@ class DirectoryAutocomplete {
 
         suggestionsContainer.innerHTML = '';
 
-        const suggestions = suggestionsData.suggestions || [];
+        // API now returns array directly instead of {suggestions: [...]}
+        const suggestions = Array.isArray(suggestionsData) ? suggestionsData : [];
         if (suggestions.length === 0) {
             this.hideSuggestions(fieldId);
             return;

@@ -19,11 +19,11 @@ namespace OngakuVault.Controllers
 
 		[HttpPost("suggestions")]
 		[EndpointDescription("Get directory suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema and existing folder structure")]
-		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(DirectorySuggestionsModel))]
+		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<DirectorySuggestionNode>))]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json")]
-		public ActionResult<DirectorySuggestionsModel> GetDirectorySuggestions([FromBody] DirectorySuggestionRequest request)
+		public ActionResult<List<DirectorySuggestionNode>> GetDirectorySuggestions([FromBody] DirectorySuggestionRequest request)
 		{
 			try
 			{
@@ -39,7 +39,7 @@ namespace OngakuVault.Controllers
 					return NoContent();
 				}
 
-				return Ok(suggestions);
+				return Ok(suggestions.Suggestions);
 			}
 			catch (Exception ex)
 			{
