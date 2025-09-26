@@ -3,10 +3,11 @@ If you're using a build of Ongakuvault that is several months old or that exclud
 As long as the yt-dlp binary arguments haven't changed significantly, Ongakuvault should be compatible with more recent versions.
 
 ## Installation
-Ongakuvault include the following third-patry binary:
+Ongakuvault may include the following third-patry binary:
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest)
 - [yt-dlp version of FFmpeg & FFprobe](https://github.com/yt-dlp/FFmpeg-Builds/releases/latest)
+- [Deno](https://github.com/denoland/deno/releases)
 
 > [!NOTE]  
 > The build workflow for the yt-dlp version of FFmpeg and FFprobe does not include pre-built binaries for `linux arm32` (also referred to as `ARM`). However,
@@ -27,6 +28,7 @@ If you downloaded Ongakuvault from GitHub releases or built it yourself, you nee
 | yt-dlp             | /app/yt-dlp              |
 | FFmpeg             | /app/ffmpeg              |
 | FFprobe            | /app/ffprobe             |
+| Deno               | /app/deno                |
 
 1. Run ``chmod a+rx file_name`` on every new binary
 2. On your docker configuration, add a read-only binding to the new binary
