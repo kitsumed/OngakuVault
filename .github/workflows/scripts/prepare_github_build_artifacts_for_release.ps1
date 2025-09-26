@@ -42,7 +42,7 @@ foreach ($artifactFolder in $artifacts) {
         Write-Host "Detected $artifactFolder as a Linux build."
         if ($IsLinux) {
             # The name of the binaries to apply chmod to
-            $binariesToChmod = @("yt-dlp", "ffmpeg", "ffprobe")
+            $binariesToChmod = @("yt-dlp", "ffmpeg", "ffprobe", "deno")
             foreach ($binaryName in $binariesToChmod) {
                 $binaryPath = Join-Path -Path $artifactFolder.FullName -ChildPath $binaryName
                 if (Test-Path -Path $binaryPath) {

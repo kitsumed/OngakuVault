@@ -16,8 +16,11 @@ elseif (!(Test-Path -Path $mdFileOut -PathType Leaf)) {
 # Invoke-RestMethod parses json by default
 $ytdlpJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
 $ffmpegJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/yt-dlp/FFmpeg-Builds/releases/latest"
+$denoJsonResponse = Invoke-RestMethod -Method Get -Uri "https://api.github.com/repos/denoland/deno/releases/latest"
 # $ytdlpJsonResponse | Get-Member
 
 Add-Content -Path $mdFileOut -Value "`n`nSome of the builds **may be distributed with external binaries** at the following versions:"
 Add-Content -Path $mdFileOut -Value "`n- **[yt-dlp]($($ytdlpJsonResponse.html_url))**: ``$($ytdlpJsonResponse.tag_name)``"
 Add-Content -Path $mdFileOut -Value "- **[FFmpeg]($($ffmpegJsonResponse.html_url))**: ``$($ffmpegJsonResponse.name)``"
+Add-Content -Path $mdFileOut -Value "- **[Deno]($($denoJsonResponse.html_url))**: ``$($denoJsonResponse.tag_name)``"
+Add-Content -Path $mdFileOut -Value "`n*You are free to replace them with more recent or older versions.*"

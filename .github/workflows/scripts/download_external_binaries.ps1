@@ -32,6 +32,7 @@ if ($LocalBuild) {
 # Define download URLs based on platform
 $FFmpegURL = ""
 $YtDlpURL = ""
+$DenoUrl = ""
 
 # Ensure a valid OS and architecture was found
 if ($Platform) {
@@ -39,19 +40,24 @@ if ($Platform) {
         if ($Platform -eq "linux-x64") { # Also known as amd64
             $FFmpegURL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+            $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip"
         } elseif ($Platform -eq "linux-arm64") {
             $FFmpegURL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
+            $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip"
         } elseif ($Platform -eq "linux-arm") {
+            # TODO : Remove support for included ARM third-aprty
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l"
         }
     } elseif ($IsWindows) {
         if ($Platform -eq "win-x64") {
             $FFmpegURL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+            $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
         } elseif ($Platform -eq "win-x86") {
             $FFmpegURL = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win32-gpl.zip"
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_x86.exe"
+            $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip"
         }
     }
 
@@ -89,6 +95,27 @@ if ($Platform) {
         Invoke-WebRequest -Uri $YtDlpURL -OutFile "$YtDlpPath"
     } else {
         Write-Host "No yt-dlp build available for current OS and architecture combination."
+    }
+
+    # Download and extract Deno
+    if ($DenoUrl -ne "") {
+        Write-Host "Downloading Deno..."
+        $DenoExtractPath = "$OutputDir/DenoExtract"
+        $ArchivePath = "$OutputDir/DenoArchive"
+        Invoke-WebRequest -Uri $DenoUrl -OutFile "$ArchivePath"
+
+        if ($IsWindows) {
+            Expand-Archive -Path "$ArchivePath" -DestinationPath "$DenoExtractPath"
+            Move-Item -Path "$DenoExtractPath\deno.exe" -Destination "$OutputDir\deno.exe"
+        } else {
+            tar -xf "$ArchivePath" -C "$OutputDir"
+        }
+        
+        # Cleanup extracted files
+        Remove-Item -Path "$DenoExtractPath" -Recurse -ErrorAction SilentlyContinue
+        Remove-Item -Path "$ArchivePath" -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "No Deno build available for current OS and architecture combination."
     }
 
     Write-Host "Download and extraction complete."
