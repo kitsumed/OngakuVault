@@ -1,4 +1,4 @@
-﻿OngakuVault includes additional software components that are either used by the application or utilized by third-party components, under the following licenses:
+OngakuVault may include or be distributed with additional software components that are either used by the application or utilized by third-party components, under the following licenses:
 
 1. YoutubeDLSharp (Copyright (c) 2020-2024, Bluegrams) is licensed under the BSD 3-Clause License.
 2. Newtonsoft.Json (Copyright (c) 2007 James Newton-King) is licensed under MIT License.
