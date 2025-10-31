@@ -61,6 +61,8 @@ builder.Services.AddSingleton<IWebSocketManagerService, WebSocketManagerService>
 builder.Services.AddSingleton<IMediaDownloaderService, MediaDownloaderService>();
 // Add a JobService as a Singleton (Parallel Method Execution Queue Service)
 builder.Services.AddSingleton<IJobService, JobService>();
+// Add DirectoryScanService as a Singleton (Service for directory scanning and autocomplete suggestions)
+builder.Services.AddSingleton<IDirectoryScanService, DirectoryScanService>();
 
 // Add Swagger to the service collection. Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
