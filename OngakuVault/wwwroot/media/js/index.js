@@ -751,45 +751,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const multiValueInputs = document.querySelectorAll('.multi-value-input');
         
         multiValueInputs.forEach(input => {
-            // Create preview container using Bulma tags
-            const previewContainer = document.createElement('div');
-            previewContainer.className = 'tags mt-2';
-            previewContainer.id = `${input.id}-preview`;
-            
-            // Insert preview after the help text
             const helpText = input.closest('.field').querySelector('.multi-value-help');
-            if (helpText) {
-                helpText.after(previewContainer);
-            }
+            
+            // Add focus event listener to show help text with animation
+            input.addEventListener('focus', () => {
+                if (helpText && helpText.classList.contains('is-hidden')) {
+                    helpText.classList.remove('is-hidden');
+                    animateCSS(helpText, 'fadeInLeft');
+                }
+            });
 
-            // Add change event listener for preview (triggered on blur or value change)
-            input.addEventListener('change', () => updateMultiValuePreview(input, previewContainer));
+            // Add change event listener for updating help text content
+            input.addEventListener('change', () => updateMultiValueHelp(input, helpText));
         });
     }
 
     /**
-     * Update the visual preview for a multi-value input field.
+     * Update the help text for a multi-value input field.
      * @param {HTMLInputElement} input The input element
-     * @param {HTMLElement} previewContainer The preview container element
+     * @param {HTMLElement} helpText The help text paragraph element
      */
-    function updateMultiValuePreview(input, previewContainer) {
+    function updateMultiValueHelp(input, helpText) {
         const value = input.value.trim();
-        const helpText = input.closest('.field').querySelector('.multi-value-help');
         const fieldType = input.dataset.fieldType || 'value'; // 'artist' or 'genre'
         
-        // Clear previous preview
-        previewContainer.innerHTML = '';
-        
-        if (!value) {
-            // Reset to default help text when empty
-            resetHelpText(helpText, fieldType);
-            return;
-        }
-
-        // Check if separator exists before splitting
-        if (!value.includes(metadataValueSeparator)) {
-            // Single value - show default help text
-            resetHelpText(helpText, fieldType);
+        if (!value || !value.includes(metadataValueSeparator)) {
+            // No value or single value - show default help text
+            resetHelpText(helpText);
             return;
         }
 
@@ -801,38 +789,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (values.length > 1) {
-            // Update help text to show primary value
+            // Update help text to show primary value with ellipsis support
             if (helpText) {
-                helpText.innerHTML = `Primary ${fieldType} is <span class="tag is-success">${values[0]}</span>`;
+                helpText.innerHTML = `Primary ${fieldType} is <span class="tag is-success is-text-ellipsis" style="max-width: 150px; display: inline-block; vertical-align: middle;">${values[0]}</span>`;
             }
-            
-            // Create Bulma tags for each value
-            values.forEach((val, index) => {
-                const tag = document.createElement('span');
-                if (index === 0) {
-                    tag.className = 'tag is-success';
-                    tag.innerHTML = `<span class="icon is-small mr-1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg></span>${val}`;
-                } else {
-                    tag.className = 'tag is-dark';
-                    tag.textContent = val;
-                }
-                previewContainer.appendChild(tag);
-            });
         } else {
             // Single value - show default help text
-            resetHelpText(helpText, fieldType);
+            resetHelpText(helpText);
         }
     }
 
     /**
      * Reset the help text to its default state.
      * @param {HTMLElement} helpText The help text element
-     * @param {string} fieldType The type of field ('artist' or 'genre')
      */
-    function resetHelpText(helpText, fieldType) {
+    function resetHelpText(helpText) {
         if (helpText) {
-            const pluralType = fieldType === 'artist' ? 'artists' : 'genres';
-            helpText.innerHTML = `Use <span class="tag is-link separator-char">${metadataValueSeparator}</span> to separate multiple ${pluralType}. <span class="has-text-success has-text-weight-bold">First is primary</span>.`;
+            helpText.innerHTML = `Use <span class="tag is-link separator-char">${metadataValueSeparator}</span> to separate entries. <span class="has-text-success has-text-weight-bold">First one is primary</span>.`;
         }
     }
 });
