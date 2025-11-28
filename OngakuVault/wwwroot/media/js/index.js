@@ -747,17 +747,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const separatorChars = document.querySelectorAll('.separator-char');
         separatorChars.forEach(el => el.textContent = metadataValueSeparator);
 
-        // Get all multi-value input fields
-        const multiValueInputs = document.querySelectorAll('.multi-value-input');
+        // Get all multi-value input fields by data attribute
+        const multiValueInputs = document.querySelectorAll('[data-multi-value-field="true"]');
         
         multiValueInputs.forEach(input => {
-            const helpText = input.closest('.field').querySelector('.multi-value-help');
+            // Get the help text element by ID pattern: {inputId}-separator-help
+            const helpText = document.getElementById(`${input.id}-separator-help`);
             
             // Add focus event listener to show help text with animation
             input.addEventListener('focus', () => {
                 if (helpText && helpText.classList.contains('is-hidden')) {
                     helpText.classList.remove('is-hidden');
                     animateCSS(helpText, 'fadeInLeft');
+                }
+            });
+
+            // Add blur event listener to hide default help text
+            input.addEventListener('blur', () => {
+                if (helpText && !helpText.dataset.hasMultipleValues) {
+                    helpText.classList.add('is-hidden');
                 }
             });
 
@@ -776,8 +784,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const fieldType = input.dataset.fieldType || 'value'; // 'artist' or 'genre'
         
         if (!value || !value.includes(metadataValueSeparator)) {
-            // No value or single value - show default help text
+            // No value or single value - show default help text and mark as not having multiple values
             resetHelpText(helpText);
+            if (helpText) helpText.dataset.hasMultipleValues = '';
             return;
         }
 
@@ -789,13 +798,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (values.length > 1) {
-            // Update help text to show primary value with ellipsis support
+            // Mark as having multiple values (prevents hiding on blur)
             if (helpText) {
-                helpText.innerHTML = `Primary ${fieldType} is <span class="tag is-success is-text-ellipsis" style="max-width: 150px; display: inline-block; vertical-align: middle;">${values[0]}</span>`;
+                helpText.dataset.hasMultipleValues = 'true';
+                // Update help text to show primary value with ellipsis support using span
+                helpText.innerHTML = `Primary ${fieldType} is <span class="has-text-success has-text-weight-bold is-text-ellipsis" style="max-width: 150px; display: inline-block; vertical-align: middle;">${values[0]}</span>`;
             }
         } else {
             // Single value - show default help text
             resetHelpText(helpText);
+            if (helpText) helpText.dataset.hasMultipleValues = '';
         }
     }
 
