@@ -316,6 +316,15 @@ namespace OngakuVault.Services
 				Description = mediaData.Data.Description,
 			};
 
+			// Populate multiple values indicators and primary values for artist and genre
+			string? artistValue = returnedMediaInformations.ArtistName;
+			returnedMediaInformations.HasMultipleArtists = Helpers.ValueReplacingHelper.HasMultipleValues(artistValue);
+			returnedMediaInformations.PrimaryArtistName = Helpers.ValueReplacingHelper.GetPrimaryValueOrNull(artistValue);
+
+			string? genreValue = returnedMediaInformations.Genre;
+			returnedMediaInformations.HasMultipleGenres = Helpers.ValueReplacingHelper.HasMultipleValues(genreValue);
+			returnedMediaInformations.PrimaryGenre = Helpers.ValueReplacingHelper.GetPrimaryValueOrNull(genreValue);
+
 			// Ensure formats where found for the current media
 			// NOTE: While formats in the library are set as not nullable, it can be null when no formats are found
 			if (mediaData.Data?.Formats?.Length >= 1)
