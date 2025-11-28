@@ -66,7 +66,7 @@ namespace OngakuVault.Services
 		/// </summary>
 		private readonly OptionSet DownloaderOverwriteOptions = new OptionSet()
 		{
-			// Keep the best file quality possible
+			// Keep the best VBR file quality possible when doing conversions to another file format, for example webm > mp3
 			AudioQuality = 0,
 			// Prefer bestaudio, fallback to best (may be a video)
 			Format = "bestaudio/best",
