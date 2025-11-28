@@ -17,8 +17,12 @@ namespace OngakuVault.Controllers
 			_directoryScanService = directoryScanService;
 		}
 
+		/// <response code="200">Return a list of suggestions nodes</response>
+		/// <response code="204">No suggestions found</response>
+		/// <response code="400">Return the BadRequest reason as a string</response>
 		[HttpPost("suggestions")]
 		[EndpointDescription("Get directory name suggestions based on OUTPUT_SUB_DIRECTORY_FORMAT schema and existing folder structure, allowing easier typos prevention when filling out inputs to create a audio download job. AKA : autocomplete feature.")]
+		[EndpointSummary("Get directory name suggestions based on the folder structure schema")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<DirectorySuggestionNode>))]
 		[ProducesResponseType(StatusCodes.Status204NoContent)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
@@ -48,8 +52,10 @@ namespace OngakuVault.Controllers
 			}
 		}
 
+		/// <response code="200">Return a string containing the OUTPUT_SUB_DIRECTORY_FORMAT schema</response>
 		[HttpGet("schema")]
 		[EndpointDescription("Get the parsed directory schema from OUTPUT_SUB_DIRECTORY_FORMAT")]
+		[EndpointSummary("Get the directory schema")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<string>))]
 		[Produces("application/json")]
 		public ActionResult<List<string>> GetDirectorySchema()
@@ -66,8 +72,11 @@ namespace OngakuVault.Controllers
 			}
 		}
 
+
+		/// <response code="200">Return a boolean</response>
 		[HttpGet("enabled")]
 		[EndpointDescription("Check if directory suggestions feature is enabled based on OUTPUT_SUB_DIRECTORY_FORMAT and DISABLE_DIRECTORY_SUGGESTIONS configuration")]
+		[EndpointSummary("Check if directory suggestions are available")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(bool))]
 		[Produces("application/json")]
 		public ActionResult<bool> IsDirectorySuggestionsEnabled()

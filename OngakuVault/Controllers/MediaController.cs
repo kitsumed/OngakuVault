@@ -19,8 +19,13 @@ namespace OngakuVault.Controllers
 			_mediaDownloaderService = mediaDownloaderService;
         }
 
+		/// <response code="200">Contains advanced informations about the media</response>
+		/// <response code="500">Thrown at unexpected server error, known and unknown scrapper related errors. Should often include a string with informations</response>
+		/// <response code="400">Returned when parameters are invalid. May include a string</response>
+		/// <response code="415">Thrown when a exception happened while processing the fetched informations. May happen when the scrapper do not support that media / extractor.</response>
 		[HttpGet("info")]
 		[EndpointDescription("Use the scraper to get advanced informations about a media")]
+		[EndpointSummary("Fetch advanced informations about a media")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MediaInfoAdvancedModel))]
 		[ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]

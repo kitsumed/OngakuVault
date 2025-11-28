@@ -16,11 +16,15 @@ namespace OngakuVault.Controllers
             _logger = logger;
         }
 
+		/// <response code="200">Return the parsed lyrics</response>
+		/// <response code="400">Returned when parameters are invalid or if file size is over 4MB</response>
+		/// <response code="422">Returned when the parser was not able to successfully parse the file. Include a string.</response>
 		[HttpPost("getLyricsFromFile")]
 		[EndpointDescription("Parse a lyrics file encoded in UTF8 into a valid list of MediaLyric items. Size limit of 4MB.")]
+		[EndpointSummary("Parse lyrics file into json")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<MediaLyric>))]
-		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
-		[ProducesResponseType(StatusCodes.Status415UnsupportedMediaType, Type = typeof(string))]
+		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(Nullable))]
+		[ProducesResponseType(StatusCodes.Status422UnprocessableEntity, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
 		[RequestSizeLimit(4194304)] // 4MB in bytes
 		public ActionResult GetLyricsFromFile(IFormFile File)

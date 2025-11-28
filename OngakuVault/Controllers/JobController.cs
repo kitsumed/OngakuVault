@@ -16,9 +16,12 @@ namespace OngakuVault.Controllers
 			_jobService = jobService;
         }
 
+		/// <response code="202">Returned when the Job was succesfully created and added to the JobService execution queue.</response>
+		/// <response code="400">Return a string that explain what parameter was invalid.</response>
 		[HttpPost("create")]
 		[EndpointDescription(@"Use this endpoint to create a new audio download job. Fields with non-empty value will be written in the audio metadata.
 						Empty fields will retain the original metadata.")]
+		[EndpointSummary("Create new download requests / jobs")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
@@ -42,9 +45,11 @@ namespace OngakuVault.Controllers
 			}
 		}
 
+		/// <response code="200">Return a json list of all jobs.</response>
 		[HttpGet("all")]
 		[EndpointDescription(@"Return a list of all jobs that have been queued in the JobService.
 					NOTE: You can also register to the websocket endpoint at '/ws' to get live jobs report.")]
+		[EndpointSummary("List all jobs in the server memory")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ICollection<JobModel>))]
 		[Produces("application/json")]
 		public ActionResult GetJobs()
@@ -52,8 +57,11 @@ namespace OngakuVault.Controllers
 			return Ok(_jobService.GetJobs());
 		}
 
+		/// <response code="200">Return informations about the specified job.</response>
+		/// <response code="404">Returned when no Job in memory match that ID. Include a string.</response>
 		[HttpGet("info/{ID}")]
 		[EndpointDescription("Get informations about a specific Job using its ID")]
+		[EndpointSummary("Get informations about a specific Job")]
 		[ProducesResponseType(StatusCodes.Status200OK, Type = typeof(JobModel))]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
 		[Produces("application/json", "text/plain")]
@@ -67,9 +75,13 @@ namespace OngakuVault.Controllers
 			return NotFound("Failed to find a job with the requested ID.");
 		}
 
+		/// <response code="202">Return along with a string that tell if the job was cancelled or removed from server memory.</response>
+		/// <response code="404">Returned when no Job in memory match that ID. Include a string.</response>
+		/// <response code="409">Returned when the Job cancellation was already fired and is on-going OR if JobService cannot remove the Job from memory yet.</response>
 		[HttpDelete("cancel/{ID}")]
 		[EndpointDescription(@"If the job is waiting execution or executing, this will send a cancel signal to the job matching a ID.
 			If the job is no longer waiting to be executed and finished running, this will remove the job from the server memory (JobService).")]
+		[EndpointSummary("Cancel an ongoing and/or remove a job from the server memory.")]
 		[ProducesResponseType(StatusCodes.Status202Accepted, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(string))]
 		[ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]

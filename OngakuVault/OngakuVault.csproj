@@ -21,8 +21,8 @@
 
   <ItemGroup>
     <PackageReference Include="SubtitlesParserV2" Version="2.3.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.0.1" />
     <PackageReference Include="YoutubeDLSharp" Version="1.1.2" />
     <PackageReference Include="z440.atl.core" Version="7.0.0" />
   </ItemGroup>
