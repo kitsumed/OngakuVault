@@ -136,6 +136,17 @@ class DirectoryAutocomplete {
                     input.parentNode.appendChild(suggestionsContainer);
                 }
                 
+                // Create the match indicator icon (hidden by default)
+                const matchIndicatorId = `${fieldId}-match-indicator`;
+                if (!document.getElementById(matchIndicatorId)) {
+                    const matchIndicator = document.createElement('span');
+                    matchIndicator.id = matchIndicatorId;
+                    matchIndicator.className = 'icon is-small is-right autocomplete-match-indicator';
+                    matchIndicator.style.display = 'none';
+                    matchIndicator.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: #48c78e;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    input.parentNode.appendChild(matchIndicator);
+                }
+                
                 console.log(`Attached autocomplete listeners to field: ${fieldId} (token: ${this.fieldMappings[fieldId].token})`);
             }
         });
@@ -154,10 +165,11 @@ class DirectoryAutocomplete {
     handleInput(event, fieldId) {
         const value = event.target.value.trim();
         
-        // If field is completely empty, clear related cache for this field
+        // If field is completely empty, clear related cache for this field and hide match indicator
         if (value.length === 0) {
             this.clearFieldCache(fieldId);
             this.hideSuggestions(fieldId);
+            this.updateMatchIndicator(fieldId, false);
             return;
         }
         
@@ -353,6 +365,14 @@ class DirectoryAutocomplete {
             return;
         }
 
+        // Check for exact match with current input value
+        const input = document.getElementById(fieldId);
+        const currentValue = input ? input.value.trim() : '';
+        const hasExactMatch = suggestions.some(s => s.name.toLowerCase() === currentValue.toLowerCase());
+        
+        // Update match indicator
+        this.updateMatchIndicator(fieldId, hasExactMatch);
+
         suggestions.forEach(suggestion => {
             const item = document.createElement('div');
             item.className = 'suggestion-item';
@@ -368,6 +388,9 @@ class DirectoryAutocomplete {
                 document.getElementById(fieldId).value = suggestion.name;
                 this.hideSuggestions(fieldId);
                 
+                // Show match indicator when user selects a suggestion
+                this.updateMatchIndicator(fieldId, true);
+                
                 // Clear suggestions for subsequent fields as the context has changed
                 this.clearSubsequentFields(fieldId);
             });
@@ -376,6 +399,34 @@ class DirectoryAutocomplete {
         });
 
         suggestionsContainer.style.display = 'block';
+    }
+
+    updateMatchIndicator(fieldId, showMatch) {
+        const input = document.getElementById(fieldId);
+        const matchIndicator = document.getElementById(`${fieldId}-match-indicator`);
+        const control = input ? input.parentNode : null;
+        
+        if (!input || !matchIndicator || !control) {
+            return;
+        }
+
+        if (showMatch) {
+            // Add has-icons-right class to the control div for proper Bulma icon positioning
+            control.classList.add('has-icons-right');
+            
+            // Only animate if the indicator was previously hidden
+            const wasHidden = matchIndicator.style.display === 'none';
+            matchIndicator.style.display = '';
+            
+            if (wasHidden && typeof animateCSS === 'function') {
+                // Use the animateCSS helper from utils.js
+                animateCSS(matchIndicator, 'bounceIn');
+            }
+        } else {
+            // Hide the match indicator
+            matchIndicator.style.display = 'none';
+            control.classList.remove('has-icons-right');
+        }
     }
 
     clearSubsequentFields(changedFieldId) {
