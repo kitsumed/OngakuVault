@@ -401,7 +401,21 @@ class DirectoryAutocomplete {
                 console.debug(`No suggestions found, marking prefix "${filter}" as failed for context : ${contextKey}`);
                 this.failedQueries.set(contextKey, filter);
                 this.hideSuggestions(fieldId);
-                this.updateMatchIndicator(fieldId, false);
+                
+                // For multi-value fields, only update match indicator if this search was for the primary value
+                // Don't invalidate the match indicator when searching for secondary values
+                const input = document.getElementById(fieldId);
+                const isMultiValueField = input && input.dataset.multiValueField === 'true';
+                const primaryValue = this.getPrimaryValueFromInput(input);
+                
+                if (isMultiValueField && filter.toLowerCase() !== primaryValue.toLowerCase()) {
+                    // This search was for a secondary value, keep the match indicator based on validated primary
+                    const isValid = this.isPrimaryValueValid(fieldId);
+                    this.updateMatchIndicator(fieldId, isValid);
+                } else {
+                    // This search was for the primary value (or non-multi-value field), no match
+                    this.updateMatchIndicator(fieldId, false);
+                }
                 return;
             }
 
