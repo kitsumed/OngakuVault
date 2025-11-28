@@ -520,15 +520,21 @@ class DirectoryAutocomplete {
         
         if (!primaryValue) return false;
         
-        // For multi-value fields, check against validated primary values
+        // For multi-value fields, prioritize the validated primary value
+        // This ensures the check stays valid when adding more artists/genres
         if (isMultiValueField) {
             const validatedValue = this.validatedPrimaryValues.get(fieldId);
             if (validatedValue && validatedValue.toLowerCase() === primaryValue.toLowerCase()) {
                 return true;
             }
+            // If we have a validated value but it doesn't match, primary has changed
+            // Don't fall through to check currentSuggestions as those are for secondary values
+            if (validatedValue) {
+                return false;
+            }
         }
         
-        // Also check against current suggestions if available
+        // For non-multi-value fields or when no validated value exists, check current suggestions
         const suggestions = this.currentSuggestions[fieldId];
         if (suggestions && Array.isArray(suggestions)) {
             return suggestions.some(s => s.name.toLowerCase() === primaryValue.toLowerCase());
