@@ -751,9 +751,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const multiValueInputs = document.querySelectorAll('.multi-value-input');
         
         multiValueInputs.forEach(input => {
-            // Create preview container
+            // Create preview container using Bulma tags
             const previewContainer = document.createElement('div');
-            previewContainer.className = 'multi-value-preview';
+            previewContainer.className = 'tags mt-2';
             previewContainer.id = `${input.id}-preview`;
             
             // Insert preview after the help text
@@ -775,20 +775,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMultiValuePreview(input, previewContainer) {
         const value = input.value.trim();
         const helpText = input.closest('.field').querySelector('.multi-value-help');
+        const fieldType = input.dataset.fieldType || 'value'; // 'artist' or 'genre'
         
         // Clear previous preview
         previewContainer.innerHTML = '';
         
         if (!value) {
-            // Hide help text and preview when empty
-            if (helpText) helpText.classList.add('is-hidden');
+            // Reset to default help text when empty
+            resetHelpText(helpText, fieldType);
             return;
         }
 
         // Check if separator exists before splitting
         if (!value.includes(metadataValueSeparator)) {
-            // Single value - hide help text
-            if (helpText) helpText.classList.add('is-hidden');
+            // Single value - show default help text
+            resetHelpText(helpText, fieldType);
             return;
         }
 
@@ -800,22 +801,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (values.length > 1) {
-            // Show help text when multiple values detected
-            if (helpText) helpText.classList.remove('is-hidden');
+            // Update help text to show primary value
+            if (helpText) {
+                helpText.innerHTML = `Primary ${fieldType} is <span class="tag is-success">${values[0]}</span>`;
+            }
             
-            // Create tags for each value
+            // Create Bulma tags for each value
             values.forEach((val, index) => {
                 const tag = document.createElement('span');
-                tag.className = 'multi-value-tag';
                 if (index === 0) {
-                    tag.classList.add('is-primary');
+                    tag.className = 'tag is-success';
+                    tag.innerHTML = `<span class="icon is-small mr-1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg></span>${val}`;
+                } else {
+                    tag.className = 'tag is-dark';
+                    tag.textContent = val;
                 }
-                tag.textContent = val;
                 previewContainer.appendChild(tag);
             });
         } else {
-            // Single value - hide help text
-            if (helpText) helpText.classList.add('is-hidden');
+            // Single value - show default help text
+            resetHelpText(helpText, fieldType);
+        }
+    }
+
+    /**
+     * Reset the help text to its default state.
+     * @param {HTMLElement} helpText The help text element
+     * @param {string} fieldType The type of field ('artist' or 'genre')
+     */
+    function resetHelpText(helpText, fieldType) {
+        if (helpText) {
+            const pluralType = fieldType === 'artist' ? 'artists' : 'genres';
+            helpText.innerHTML = `Use <span class="tag is-link separator-char">${metadataValueSeparator}</span> to separate multiple ${pluralType}. <span class="has-text-success has-text-weight-bold">First is primary</span>.`;
         }
     }
 });
