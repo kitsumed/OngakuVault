@@ -80,7 +80,7 @@ namespace OngakuVault.Helpers
 				return artist.Substring(0, separatorIndex).Trim();
 			}
 
-			return artist;
+			return artist.Trim();
 		}
 	}
 }
