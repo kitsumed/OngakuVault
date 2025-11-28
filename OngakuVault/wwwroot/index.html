@@ -160,16 +160,18 @@
 								<div class="field">
 									<label class="label" for="mediaGenre">Media Genre:</label>
 									<div class="control">
-										<input type="text" id="genre" name="genre" placeholder="Media Genre" class="input">
+										<input type="text" id="genre" name="genre" placeholder="Media Genre" class="input multi-value-input" data-multi-value-field="true">
 									</div>
+									<p class="help multi-value-help is-hidden">Use <code class="separator-char">;</code> to separate multiple genres. <span class="primary-indicator">First genre is primary</span>.</p>
 								</div>
 							</div>
 							<div class="column is-half">
 								<div class="field">
 									<label class="label" for="mediaArtistName">Artist Name:</label>
 									<div class="control">
-										<input type="text" id="artistName" name="artistName" placeholder="Artist Name" class="input">
+										<input type="text" id="artistName" name="artistName" placeholder="Artist Name" class="input multi-value-input" data-multi-value-field="true">
 									</div>
+									<p class="help multi-value-help is-hidden">Use <code class="separator-char">;</code> to separate multiple artists. <span class="primary-indicator">First artist is primary</span>.</p>
 								</div>
 								<div class="field">
 									<label class="label" for="mediaReleaseYear">Release Year:</label>

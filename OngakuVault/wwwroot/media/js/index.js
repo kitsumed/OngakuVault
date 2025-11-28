@@ -13,6 +13,7 @@ const WebSocketEndpoint = `${WebSocketEndpointProtocol}${window.location.host}/w
 let noResultsTemplateHTMLElement; // Contains the noResults HTML Element
 let jobItemTemplateHTMLElement; // Contains a job item template HTML Element;
 let lyricElementTemplateHTMLElement; // Contains a lyric element template
+let metadataValueSeparator = ';'; // Default separator for multiple values (artist, genre)
 
 // Run when DOM finished loading
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make a copy of a job item (to use as a template)
     jobItemTemplateHTMLElement = document.getElementById("job-item-template").cloneNode(true)
     jobItemTemplateHTMLElement.classList.remove("is-hidden")
+
+    // Fetch the metadata separator from the server and initialize multi-value field support
+    initializeMultiValueFields();
 
     // == REGISTER EVENTS ==
 
@@ -714,6 +718,104 @@ document.addEventListener('DOMContentLoaded', () => {
             newLyricElement.querySelector("#lyric-content").value = lyricContentValue;
             // Put the new lyric before the all of the lyrics related buttons
             jobCreationModalLyrics.insertBefore(newLyricElement, lyricsButtonsContainer);
+        }
+    }
+
+    /**
+     * Initialize multi-value field support by fetching the separator from the server
+     * and setting up event listeners for visual preview.
+     */
+    async function initializeMultiValueFields() {
+        try {
+            // Fetch the metadata separator from server
+            const response = await fetch(`${APIEndpoint}/Settings/metadata-separator`);
+            if (response.ok) {
+                const separator = await response.json();
+                // Validate the response is a single character string
+                if (typeof separator === 'string' && separator.length === 1) {
+                    metadataValueSeparator = separator;
+                    console.log(`Metadata value separator loaded: '${metadataValueSeparator}'`);
+                } else {
+                    console.warn("Invalid separator received from server, using default:", metadataValueSeparator);
+                }
+            }
+        } catch (error) {
+            console.warn("Failed to fetch metadata separator from server, using default:", metadataValueSeparator);
+        }
+
+        // Update the separator character display in help text
+        const separatorChars = document.querySelectorAll('.separator-char');
+        separatorChars.forEach(el => el.textContent = metadataValueSeparator);
+
+        // Get all multi-value input fields
+        const multiValueInputs = document.querySelectorAll('.multi-value-input');
+        
+        multiValueInputs.forEach(input => {
+            // Create preview container
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'multi-value-preview';
+            previewContainer.id = `${input.id}-preview`;
+            
+            // Insert preview after the help text
+            const helpText = input.closest('.field').querySelector('.multi-value-help');
+            if (helpText) {
+                helpText.after(previewContainer);
+            }
+
+            // Add change event listener for preview (triggered on blur or value change)
+            input.addEventListener('change', () => updateMultiValuePreview(input, previewContainer));
+        });
+    }
+
+    /**
+     * Update the visual preview for a multi-value input field.
+     * @param {HTMLInputElement} input The input element
+     * @param {HTMLElement} previewContainer The preview container element
+     */
+    function updateMultiValuePreview(input, previewContainer) {
+        const value = input.value.trim();
+        const helpText = input.closest('.field').querySelector('.multi-value-help');
+        
+        // Clear previous preview
+        previewContainer.innerHTML = '';
+        
+        if (!value) {
+            // Hide help text and preview when empty
+            if (helpText) helpText.classList.add('is-hidden');
+            return;
+        }
+
+        // Check if separator exists before splitting
+        if (!value.includes(metadataValueSeparator)) {
+            // Single value - hide help text
+            if (helpText) helpText.classList.add('is-hidden');
+            return;
+        }
+
+        // Split by separator and filter empty values
+        const values = [];
+        for (const part of value.split(metadataValueSeparator)) {
+            const trimmed = part.trim();
+            if (trimmed) values.push(trimmed);
+        }
+        
+        if (values.length > 1) {
+            // Show help text when multiple values detected
+            if (helpText) helpText.classList.remove('is-hidden');
+            
+            // Create tags for each value
+            values.forEach((val, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'multi-value-tag';
+                if (index === 0) {
+                    tag.classList.add('is-primary');
+                }
+                tag.textContent = val;
+                previewContainer.appendChild(tag);
+            });
+        } else {
+            // Single value - hide help text
+            if (helpText) helpText.classList.add('is-hidden');
         }
     }
 });
