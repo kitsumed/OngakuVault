@@ -36,13 +36,16 @@ namespace OngakuVault.Helpers
 		/// <remarks>
 		/// <strong>Supports: AUDIO_TITLE,AUDIO_ARTIST,AUDIO_ALBUM,AUDIO_YEAR,AUDIO_TRACK_NUMBER,
 		/// AUDIO_DISC_NUMBER,AUDIO_LANGUAGE,AUDIO_GENRE,AUDIO_COMPOSER,AUDIO_DURATION,AUDIO_DURATION_MS</strong>
+		/// <br/>
+		/// Note: For AUDIO_ARTIST, only the primary (first) artist is used when multiple artists are present,
+		/// separated by ATL.Settings.DisplayValueSeparator.
 		/// </remarks>
 		/// <param name="input">Input to process</param>
 		/// <param name="track">The Track informations</param>
 		/// <returns>The processed input with ATL Track values</returns>
 		public static StringBuilder ProcessTrack(StringBuilder input, Track track) => input
 			.Replace("|AUDIO_TITLE|", track?.Title ?? "Unknown")
-			.Replace("|AUDIO_ARTIST|", track?.Artist ?? "Unknown")
+			.Replace("|AUDIO_ARTIST|", GetPrimaryArtist(track?.Artist))
 			.Replace("|AUDIO_ALBUM|", track?.Album ?? "Unknown")
 			.Replace("|AUDIO_YEAR|", (track?.Year ?? 0).ToString())
 			.Replace("|AUDIO_TRACK_NUMBER|", (track?.TrackNumber ?? 0).ToString())
@@ -54,5 +57,30 @@ namespace OngakuVault.Helpers
 			.Replace("|AUDIO_COMPOSER|", track?.Composer ?? "Unknown")
 			.Replace("|AUDIO_DURATION|", (track?.Duration ?? 0).ToString())
 			.Replace("|AUDIO_DURATION_MS|", (track?.DurationMs ?? 0.0).ToString());
+
+		/// <summary>
+		/// Extracts the primary (first) artist from a string that may contain multiple artists
+		/// separated by ATL.Settings.DisplayValueSeparator.
+		/// </summary>
+		/// <param name="artist">The artist string, which may contain multiple artists</param>
+		/// <returns>The primary (first) artist, or "Unknown" if the input is null or empty</returns>
+		public static string GetPrimaryArtist(string? artist)
+		{
+			if (string.IsNullOrEmpty(artist))
+			{
+				return "Unknown";
+			}
+
+			// Split by the ATL DisplayValueSeparator and return the first artist (trimmed)
+			char separator = ATL.Settings.DisplayValueSeparator;
+			int separatorIndex = artist.IndexOf(separator);
+			
+			if (separatorIndex >= 0)
+			{
+				return artist.Substring(0, separatorIndex).Trim();
+			}
+
+			return artist;
+		}
 	}
 }
