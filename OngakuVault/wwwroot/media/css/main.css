@@ -8,6 +8,42 @@
     text-overflow: ellipsis;
 }
 
+/* AUTOCOMPLETE SUGGESTIONS */
+.field .dropdown-suggestions-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    background: hsl(220, 4%, 13%);
+    border: 1px solid hsl(233, 100%, 63%);
+    border-top: none;
+    border-radius: 4px;
+}
+
+.suggestion-item {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid hsl(232, 61%, 47%);
+    color: white;
+    transition: background-color 0.1s ease;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover,
+.suggestion-item.selected {
+    background-color: hsl(0, 0%, 20%);
+}
+
+.suggestion-item.selected {
+    color: hsl(217, 71%, 60%);
+}
+
 /* Keep the footer at the end of the page*/
 body {
     min-height: 100vh;
