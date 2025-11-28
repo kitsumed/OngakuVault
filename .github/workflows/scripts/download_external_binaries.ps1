@@ -46,8 +46,8 @@ if ($Platform) {
             $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
             $DenoUrl = "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip"
         } elseif ($Platform -eq "linux-arm") {
-            # TODO : Remove support for included ARM third-aprty
-            $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l"
+            # Support for 32bits variant has been discontinued in yt-dlp, due to already low avaibility with other third-party binaries, we no longer include them.
+            # $YtDlpURL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_armv7l"
         }
     } elseif ($IsWindows) {
         if ($Platform -eq "win-x64") {
