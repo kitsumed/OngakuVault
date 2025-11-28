@@ -31,6 +31,7 @@
 | `Ongaku__ENABLE_SWAGGER_DOC`        | Enables Swagger API doc at `/swagger`.                                    | `false`                                     | `false`                             |
 | `Ongaku__ENFORCE_HTTPS`             | If `true`, redirects HTTP to HTTPS.                                       | `false`                                     | `false`                             |
 | [`Ongaku__LYRICS_LANGUAGE_PRIORITY`](#lyrics-language-priority)  | Lyrics/subtitle languages to prioritize when available. (IETF tags)    | *empty*, lyrics fetching disabled.          | *empty*   |
+| `Ongaku__METADATA_VALUE_SEPARATOR`  | The character used as separator for multiple values in metadata fields like Artist or Genre. This value is applied to [``ATL.Settings.DisplayValueSeparator``](https://github.com/Zeugma440/atldotnet/issues/89#issuecomment-812873406).                                                            | `;`                                         | `;`                                 |
 | `Ongaku__WEB_REQUEST_USERAGENT`     | Define the user-agent OngakuVault should use for all web requests.        | *empty*                                     | *empty*                             |
 | `Ongaku__SCRAPER_USERAGENT`         | Define the user-agent the scraper (yt-dlp) should use for all web requests.| *empty*                                    | *empty*                             |
 | [`Ongaku__SCRAPER_DOWNLOAD_CUSTOM_OPTIONS`](#scraper-download-custom-options-scraper-information-custom-options)| Define custom arguments that will be used by the scraper on download requests.| *empty*| *empty*|
@@ -126,6 +127,12 @@ Value replacing is the name given to strings surrounded by two PIPE (`|`) charac
 You can see the helper class that manage value replacing in the source code [here](https://github.com/kitsumed/OngakuVault/blob/main/OngakuVault/Helpers/ValueReplacingHelper.cs).
 
 For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` with the current year.
+
+>[!IMPORTANT]
+>Dynamic Value that ends with a ``*`` supports multiple values for file metadata reasons, **only the primary (first) value is used** when multiple values are present, separated by the configured **METADATA_VALUE_SEPARATOR**.
+>
+>Example: If artist metadata is "``Artist1; Artist2; Artist3``", the ``|AUDIO_ARTIST|`` token will resolve to "``Artist1``".
+
 ### Date Processor
 | Dynamic Value        | Description                                                               |
 |----------------------|---------------------------------------------------------------------------|
@@ -144,7 +151,7 @@ For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` wi
 | Dynamic Value        | Description                                                               |
 |----------------------|---------------------------------------------------------------------------|
 | `AUDIO_TITLE`        | Current track title **OR** ``Unknown``                                    |
-| `AUDIO_ARTIST`       | Current track artist **OR** ``Unknown``                                   |
+| `AUDIO_ARTIST`*      | Current track artist **OR** ``Unknown``                                   |
 | `AUDIO_ALBUM`        | Current track album **OR** ``Unknown``                                    |
 | `AUDIO_YEAR`         | Current track year **OR** ``0``                                           |
 | `AUDIO_TRACK_NUMBER` | Current track number **OR** ``0``                                         |
@@ -152,7 +159,7 @@ For example, the [Date Processor](#date-processor) would replace `|NOW_YEAR|` wi
 | `AUDIO_ISRC`         | Current track ISRC **OR** ``CC-XXX-YY-NNNNN``                             |
 | `AUDIO_CATALOG_NUMBER`| Current track catalog number **OR** ``CatalogUnknown``                   |
 | `AUDIO_LANGUAGE`     | Current track language **OR** ``Unknown``                                 |
-| `AUDIO_GENRE`        | Current track genre **OR** ``Unknown``                                    |
+| `AUDIO_GENRE`*       | Current track genre **OR** ``Unknown``                                    |
 | `AUDIO_COMPOSER`     | Current track composer **OR** ``Unknown``                                 |
 | `AUDIO_DURATION`     | Current track duration (seconds) **OR** ``0``                             |
 | `AUDIO_DURATION_MS`  | Current track duration (milliseconds) **OR** ``0``                        |
