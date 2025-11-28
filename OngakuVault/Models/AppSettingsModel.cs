@@ -213,5 +213,12 @@
 			set => _directorySuggestionsCacheRefreshMinutes = value < 1 ? 1 : value;
 		}
 		private int _directorySuggestionsCacheRefreshMinutes = 60;
+
+		/// <summary>
+		/// The character used as separator for multiple values in metadata fields like Artist or Genre.
+		/// This value is applied to ATL.Settings.DisplayValueSeparator at application startup.
+		/// Defaults to ';' (semicolon).
+		/// </summary>
+		public char METADATA_VALUE_SEPARATOR { get; set; } = ';';
 	}
 }

@@ -16,9 +16,9 @@ namespace OngakuVault.Models
 		public required string Name { get; set; }
 
 		/// <summary>
-		/// Atrist name
+		/// Artist name
 		/// </summary>
-		[SwaggerSchema(Description = "The artist name of the media")]
+		[SwaggerSchema(Description = "The artist name of the media. Supports multiple artists separated by the configured separator character (default: ';')")]
 		public string? ArtistName { get; set; }
 
 		/// <summary>
@@ -40,7 +40,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The main genre of the song
 		/// </summary>
-		[SwaggerSchema(Description = "The genre of the media")]
+		[SwaggerSchema(Description = "The genre of the media. Supports multiple genres separated by the configured separator character (default: ';')")]
 		public string? Genre { get; set; }
 		/// <summary>
 		/// The number (position) of the song in a Album

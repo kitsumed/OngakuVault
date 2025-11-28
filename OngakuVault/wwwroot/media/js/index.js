@@ -13,6 +13,7 @@ const WebSocketEndpoint = `${WebSocketEndpointProtocol}${window.location.host}/w
 let noResultsTemplateHTMLElement; // Contains the noResults HTML Element
 let jobItemTemplateHTMLElement; // Contains a job item template HTML Element;
 let lyricElementTemplateHTMLElement; // Contains a lyric element template
+let metadataValueSeparator = ';'; // Default separator for multiple values (artist, genre)
 
 // Run when DOM finished loading
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Make a copy of a job item (to use as a template)
     jobItemTemplateHTMLElement = document.getElementById("job-item-template").cloneNode(true)
     jobItemTemplateHTMLElement.classList.remove("is-hidden")
+
+    // Fetch the metadata separator from the server and initialize multi-value field support
+    initializeMultiValueFields();
 
     // == REGISTER EVENTS ==
 
@@ -714,6 +718,110 @@ document.addEventListener('DOMContentLoaded', () => {
             newLyricElement.querySelector("#lyric-content").value = lyricContentValue;
             // Put the new lyric before the all of the lyrics related buttons
             jobCreationModalLyrics.insertBefore(newLyricElement, lyricsButtonsContainer);
+        }
+    }
+
+    /**
+     * Initialize multi-value field support by fetching the separator from the server
+     * and setting up event listeners for visual preview.
+     */
+    async function initializeMultiValueFields() {
+        try {
+            // Fetch the metadata separator from server
+            const response = await fetch(`${APIEndpoint}/Settings/metadata-separator`);
+            if (response.ok) {
+                const separator = await response.json();
+                // Validate the response is a single character string
+                if (typeof separator === 'string' && separator.length === 1) {
+                    metadataValueSeparator = separator;
+                    console.log(`Metadata value separator loaded: '${metadataValueSeparator}'`);
+                } else {
+                    console.warn("Invalid separator received from server, using default:", metadataValueSeparator);
+                }
+            }
+        } catch (error) {
+            console.warn("Failed to fetch metadata separator from server, using default:", metadataValueSeparator);
+        }
+
+        // Update the separator character display in help text
+        const separatorChars = document.querySelectorAll('.separator-char');
+        separatorChars.forEach(el => el.textContent = metadataValueSeparator);
+
+        // Get all multi-value input fields by data attribute
+        const multiValueInputs = document.querySelectorAll('[data-multi-value-field="true"]');
+        
+        multiValueInputs.forEach(input => {
+            // Get the help text element by ID pattern: {inputId}-separator-help
+            const helpText = document.getElementById(`${input.id}-separator-help`);
+            
+            // Add focus event listener to show help text with animation
+            input.addEventListener('focus', () => {
+                if (helpText && helpText.classList.contains('is-hidden')) {
+                    helpText.classList.remove('is-hidden');
+                    animateCSS(helpText, 'fadeInLeft');
+                }
+            });
+
+            // Add blur event listener to hide default help text with animation
+            input.addEventListener('blur', () => {
+                if (helpText && !helpText.dataset.hasMultipleValues) {
+                    animateCSS(helpText, 'fadeOutLeft').then(() => {
+                        helpText.classList.add('is-hidden');
+                    });
+                }
+            });
+
+            // Add change event listener for updating help text content
+            input.addEventListener('change', () => updateMultiValueHelp(input, helpText));
+        });
+    }
+
+    /**
+     * Update the help text for a multi-value input field.
+     * @param {HTMLInputElement} input The input element
+     * @param {HTMLElement} helpText The help text paragraph element
+     */
+    function updateMultiValueHelp(input, helpText) {
+        const value = input.value.trim();
+        const fieldType = input.dataset.fieldType || 'value'; // 'artist' or 'genre'
+        
+        if (!value || !value.includes(metadataValueSeparator)) {
+            // No value or single value - show default help text and mark as not having multiple values
+            resetHelpText(helpText);
+            if (helpText) helpText.dataset.hasMultipleValues = '';
+            return;
+        }
+
+        // Split by separator and filter empty values
+        const values = [];
+        for (const part of value.split(metadataValueSeparator)) {
+            const trimmed = part.trim();
+            if (trimmed) values.push(trimmed);
+        }
+        
+        if (values.length > 1) {
+            // Mark as having multiple values (prevents hiding on blur)
+            if (helpText) {
+                helpText.dataset.hasMultipleValues = 'true';
+                // Update help text to show primary value with ellipsis support using span
+                helpText.classList.add("is-flex","is-align-items-center")
+                helpText.innerHTML = `Primary ${fieldType} is <span class="has-text-success has-text-weight-bold is-text-ellipsis" style="max-width: 150px; margin-left: 0.25em;">${values[0]}</span>`;
+            }
+        } else {
+            // Single value - show default help text
+            resetHelpText(helpText);
+            if (helpText) helpText.dataset.hasMultipleValues = '';
+        }
+    }
+
+    /**
+     * Reset the help text to its default state.
+     * @param {HTMLElement} helpText The help text element
+     */
+    function resetHelpText(helpText) {
+        if (helpText) {
+            helpText.classList.remove("is-flex", "is-align-items-center")
+            helpText.innerHTML = `Use <span class="tag is-link separator-char">${metadataValueSeparator}</span> to separate entries. <span class="has-text-success has-text-weight-bold">First one is primary</span>.`;
         }
     }
 });

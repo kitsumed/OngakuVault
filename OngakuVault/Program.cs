@@ -42,6 +42,9 @@ AppSettingsModel appSettings = builder.Configuration.GetSection("Ongaku").Get<Ap
 // User defined allowed origins, if null, no origins where set
 string[]? customCorsOrigins = appSettings.OVERWRITE_CORS_ORIGIN_ARRAY;
 
+// Configure ATL library settings for metadata value separator
+ATL.Settings.DisplayValueSeparator = appSettings.METADATA_VALUE_SEPARATOR;
+
 // Add services to the container & configure json options
 builder.Services.AddControllers().AddJsonOptions(options => {
 	// Ensure json serializer use "camelCase" for keys name
