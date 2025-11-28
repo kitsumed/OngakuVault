@@ -16,9 +16,9 @@ namespace OngakuVault.Models
 		public required string Name { get; set; }
 
 		/// <summary>
-		/// Atrist name
+		/// Artist name
 		/// </summary>
-		[SwaggerSchema(Description = "The artist name of the media")]
+		[SwaggerSchema(Description = "The artist name of the media. Supports multiple artists separated by the configured separator character (default: ';')")]
 		public string? ArtistName { get; set; }
 
 		/// <summary>
@@ -40,7 +40,7 @@ namespace OngakuVault.Models
 		/// <summary>
 		/// The main genre of the song
 		/// </summary>
-		[SwaggerSchema(Description = "The genre of the media")]
+		[SwaggerSchema(Description = "The genre of the media. Supports multiple genres separated by the configured separator character (default: ';')")]
 		public string? Genre { get; set; }
 		/// <summary>
 		/// The number (position) of the song in a Album
@@ -76,31 +76,5 @@ namespace OngakuVault.Models
 		/// </summary>
 		[SwaggerSchema(ReadOnly = true, Description = "Contains the media lyrics/subtitles")]
 		public List<MediaLyric> Lyrics { get; set; } = new List<MediaLyric>();
-
-		/// <summary>
-		/// Indicates whether the ArtistName field contains multiple artists separated by the configured separator.
-		/// </summary>
-		[SwaggerSchema(ReadOnly = true, Description = "Indicates whether the ArtistName field contains multiple artists")]
-		public bool HasMultipleArtists { get; set; } = false;
-
-		/// <summary>
-		/// The primary (first) artist when multiple artists are present.
-		/// Returns the same value as ArtistName if only one artist exists.
-		/// </summary>
-		[SwaggerSchema(ReadOnly = true, Description = "The primary (first) artist when multiple artists are present")]
-		public string? PrimaryArtistName { get; set; }
-
-		/// <summary>
-		/// Indicates whether the Genre field contains multiple genres separated by the configured separator.
-		/// </summary>
-		[SwaggerSchema(ReadOnly = true, Description = "Indicates whether the Genre field contains multiple genres")]
-		public bool HasMultipleGenres { get; set; } = false;
-
-		/// <summary>
-		/// The primary (first) genre when multiple genres are present.
-		/// Returns the same value as Genre if only one genre exists.
-		/// </summary>
-		[SwaggerSchema(ReadOnly = true, Description = "The primary (first) genre when multiple genres are present")]
-		public string? PrimaryGenre { get; set; }
 	}
 }
