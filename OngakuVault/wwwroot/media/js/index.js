@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add blur event listener to hide default help text with animation
             input.addEventListener('blur', () => {
                 if (helpText && !helpText.dataset.hasMultipleValues) {
-                    animateCSS(helpText, 'bounceOutRight').then(() => {
+                    animateCSS(helpText, 'fadeOutLeft').then(() => {
                         helpText.classList.add('is-hidden');
                     });
                 }
@@ -804,8 +804,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (helpText) {
                 helpText.dataset.hasMultipleValues = 'true';
                 // Update help text to show primary value with ellipsis support using span
-                // Use vertical-align: text-bottom for proper text alignment
-                helpText.innerHTML = `Primary ${fieldType} is <span class="has-text-success has-text-weight-bold is-text-ellipsis" style="max-width: 150px; display: inline-block; vertical-align: text-bottom;">${values[0]}</span>`;
+                helpText.classList.add("is-flex","is-align-items-center")
+                helpText.innerHTML = `Primary ${fieldType} is <span class="has-text-success has-text-weight-bold is-text-ellipsis" style="max-width: 150px; margin-left: 0.25em;">${values[0]}</span>`;
             }
         } else {
             // Single value - show default help text
@@ -820,6 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function resetHelpText(helpText) {
         if (helpText) {
+            helpText.classList.remove("is-flex", "is-align-items-center")
             helpText.innerHTML = `Use <span class="tag is-link separator-char">${metadataValueSeparator}</span> to separate entries. <span class="has-text-success has-text-weight-bold">First one is primary</span>.`;
         }
     }

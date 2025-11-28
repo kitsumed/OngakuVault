@@ -15,7 +15,7 @@ namespace OngakuVault.Controllers
 			_appSettings = appSettings.Value;
 		}
 
-		/// <returns>The character used as separator for multiple metadata values</returns>
+		/// <response code="200">The character used as separator for multiple metadata values</response>
 		[HttpGet("metadata-separator")]
 		[EndpointDescription("Get the character used as separator for multiple values in metadata fields like Artist or Genre. This is configured via METADATA_VALUE_SEPARATOR setting.")]
 		[EndpointSummary("Get the metadata value separator character")]
