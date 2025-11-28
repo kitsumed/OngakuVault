@@ -12,6 +12,7 @@ class DirectoryAutocomplete {
         // Client-side caching
         this.suggestionCache = new Map(); // Cache for API responses
         this.failedQueries = new Map(); // Track queries that returned no results with context (depth + parentPath -> failed prefix)
+        this.validatedPrimaryValues = new Map(); // Store validated primary values for multi-value fields (fieldId -> validatedValue)
         
         // Mapping from audio tokens to form field IDs
         this.tokenToFieldMapping = {
@@ -29,6 +30,23 @@ class DirectoryAutocomplete {
             'AUDIO_ISRC': null, // No field available
             'AUDIO_CATALOG_NUMBER': null // No field available
         };
+    }
+
+    /**
+     * Get the primary (first) value from an input field, handling multi-value fields.
+     * @param {HTMLInputElement} input The input element
+     * @returns {string} The primary value (trimmed)
+     */
+    getPrimaryValueFromInput(input) {
+        if (!input) return '';
+        const fullValue = input.value;
+        const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+        const isMultiValueField = input.dataset.multiValueField === 'true';
+        
+        if (isMultiValueField && fullValue.includes(separator)) {
+            return fullValue.split(separator)[0].trim();
+        }
+        return fullValue.trim();
     }
 
     async initialize() {
@@ -189,12 +207,26 @@ class DirectoryAutocomplete {
             value = fullValue.trim();
         }
         
-        // If field is completely empty, clear related cache for this field and hide match indicator
+        // If field is completely empty, clear related cache for this field, validated values and hide match indicator
         if (fullValue.length === 0) {
             this.clearFieldCache(fieldId);
+            this.validatedPrimaryValues.delete(fieldId);
             this.hideSuggestions(fieldId);
             this.updateMatchIndicator(fieldId, false);
             return;
+        }
+        
+        // For multi-value fields, check if primary value has changed - if so, clear validated value
+        if (isMultiValueField) {
+            const primaryValue = this.getPrimaryValueFromInput(event.target);
+            const validatedValue = this.validatedPrimaryValues.get(fieldId);
+            if (validatedValue && validatedValue.toLowerCase() !== primaryValue.toLowerCase()) {
+                // Primary value changed, clear validated value
+                this.validatedPrimaryValues.delete(fieldId);
+            }
+            // Update match indicator based on validated primary value
+            const isValid = this.isPrimaryValueValid(fieldId);
+            this.updateMatchIndicator(fieldId, isValid);
         }
         
         // Clear existing debounce timer
@@ -289,6 +321,7 @@ class DirectoryAutocomplete {
             }
 
             // Build the parent path context from previous fields in the schema
+            // For multi-value fields (artist, genre), use only the PRIMARY (first) value
             let parentPath = '';
             const parentParts = [];
             
@@ -300,8 +333,10 @@ class DirectoryAutocomplete {
                 
                 if (parentFieldId) {
                     const parentInput = document.getElementById(parentFieldId);
-                    if (parentInput && parentInput.value.trim()) {
-                        parentParts.push(parentInput.value.trim());
+                    // Use getPrimaryValueFromInput to handle multi-value fields
+                    const primaryValue = this.getPrimaryValueFromInput(parentInput);
+                    if (primaryValue) {
+                        parentParts.push(primaryValue);
                     } else {
                         // If a parent field is empty, we can't provide contextual suggestions
                         console.debug(`Parent field ${parentFieldId} is empty, cannot provide suggestions for ${fieldId}`);
@@ -396,6 +431,9 @@ class DirectoryAutocomplete {
 
         suggestionsContainer.innerHTML = '';
 
+        // Store suggestions for this field for later validation
+        this.currentSuggestions[fieldId] = suggestionsData;
+
         // Get the suggestions returned by the API
         const suggestions = Array.isArray(suggestionsData) ? suggestionsData : [];
         if (suggestions.length === 0) {
@@ -406,22 +444,19 @@ class DirectoryAutocomplete {
         // Check for exact match with current input value
         // For multi-value fields, only check the PRIMARY (first) value
         const input = document.getElementById(fieldId);
-        const fullValue = input ? input.value : '';
-        const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+        const primaryValue = this.getPrimaryValueFromInput(input);
         const isMultiValueField = input && input.dataset.multiValueField === 'true';
         
-        let valueToCheck;
-        if (isMultiValueField && fullValue.includes(separator)) {
-            // For multi-value fields, check only the primary (first) value for match indicator
-            valueToCheck = fullValue.split(separator)[0].trim();
-        } else {
-            valueToCheck = fullValue.trim();
+        const hasExactMatch = suggestions.some(s => s.name.toLowerCase() === primaryValue.toLowerCase());
+        
+        // Store validated primary value if it matches
+        if (hasExactMatch && isMultiValueField) {
+            this.validatedPrimaryValues.set(fieldId, primaryValue);
         }
         
-        const hasExactMatch = suggestions.some(s => s.name.toLowerCase() === valueToCheck.toLowerCase());
-        
-        // Update match indicator
-        this.updateMatchIndicator(fieldId, hasExactMatch);
+        // Update match indicator - check if current primary matches validated value
+        const isValid = this.isPrimaryValueValid(fieldId);
+        this.updateMatchIndicator(fieldId, isValid);
 
         suggestions.forEach(suggestion => {
             const item = document.createElement('div');
@@ -448,19 +483,17 @@ class DirectoryAutocomplete {
                     input.value = parts.join(separator);
                 } else {
                     input.value = suggestion.name;
+                    // Store the selected suggestion as validated primary value
+                    if (isMultiValueField) {
+                        this.validatedPrimaryValues.set(fieldId, suggestion.name);
+                    }
                 }
                 
                 this.hideSuggestions(fieldId);
                 
-                // For multi-value fields, only show match indicator if PRIMARY matches
-                if (isMultiValueField && input.value.includes(separator)) {
-                    const primaryValue = input.value.split(separator)[0].trim();
-                    const primaryMatch = suggestions.some(s => s.name.toLowerCase() === primaryValue.toLowerCase());
-                    this.updateMatchIndicator(fieldId, primaryMatch);
-                } else {
-                    // Show match indicator when user selects a suggestion
-                    this.updateMatchIndicator(fieldId, true);
-                }
+                // Update match indicator based on validated primary value
+                const isValid = this.isPrimaryValueValid(fieldId);
+                this.updateMatchIndicator(fieldId, isValid);
                 
                 // Clear suggestions for subsequent fields as the context has changed
                 this.clearSubsequentFields(fieldId);
@@ -470,6 +503,38 @@ class DirectoryAutocomplete {
         });
 
         suggestionsContainer.style.display = 'block';
+    }
+
+    /**
+     * Check if the primary value for a field is valid (matches a validated suggestion).
+     * For multi-value fields, this checks if the primary (first) value matches a previously validated value.
+     * @param {string} fieldId The field ID to check
+     * @returns {boolean} True if the primary value is valid
+     */
+    isPrimaryValueValid(fieldId) {
+        const input = document.getElementById(fieldId);
+        if (!input) return false;
+        
+        const isMultiValueField = input.dataset.multiValueField === 'true';
+        const primaryValue = this.getPrimaryValueFromInput(input);
+        
+        if (!primaryValue) return false;
+        
+        // For multi-value fields, check against validated primary values
+        if (isMultiValueField) {
+            const validatedValue = this.validatedPrimaryValues.get(fieldId);
+            if (validatedValue && validatedValue.toLowerCase() === primaryValue.toLowerCase()) {
+                return true;
+            }
+        }
+        
+        // Also check against current suggestions if available
+        const suggestions = this.currentSuggestions[fieldId];
+        if (suggestions && Array.isArray(suggestions)) {
+            return suggestions.some(s => s.name.toLowerCase() === primaryValue.toLowerCase());
+        }
+        
+        return false;
     }
 
     updateMatchIndicator(fieldId, showMatch) {
