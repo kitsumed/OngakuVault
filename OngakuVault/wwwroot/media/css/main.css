@@ -44,11 +44,6 @@
     color: hsl(217, 71%, 60%);
 }
 
-/* AUTOCOMPLETE MATCH INDICATOR */
-.autocomplete-match-indicator {
-    pointer-events: none;
-}
-
 /* Keep the footer at the end of the page*/
 body {
     min-height: 100vh;

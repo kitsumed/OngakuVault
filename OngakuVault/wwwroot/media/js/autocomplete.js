@@ -141,9 +141,19 @@ class DirectoryAutocomplete {
                 if (!document.getElementById(matchIndicatorId)) {
                     const matchIndicator = document.createElement('span');
                     matchIndicator.id = matchIndicatorId;
-                    matchIndicator.className = 'icon is-small is-right autocomplete-match-indicator';
+                    matchIndicator.className = 'icon is-small is-right';
                     matchIndicator.style.display = 'none';
-                    matchIndicator.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: #48c78e;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    matchIndicator.style.pointerEvents = 'none';
+                    
+                    // Use img element with the uploaded SVG file
+                    const checkImg = document.createElement('img');
+                    checkImg.src = '/media/pictures/icons/white-check.svg';
+                    checkImg.alt = 'Match';
+                    checkImg.style.width = '20px';
+                    checkImg.style.height = '20px';
+                    checkImg.style.filter = 'brightness(0) saturate(100%) invert(77%) sepia(61%) saturate(425%) hue-rotate(95deg) brightness(88%) contrast(87%)'; // Makes white SVG appear as green (#48c78e)
+                    matchIndicator.appendChild(checkImg);
+                    
                     input.parentNode.appendChild(matchIndicator);
                 }
                 
