@@ -20,12 +20,10 @@ You can see a showcase of the desktop & mobile interface along with a video of t
 |------------------------------------------------------------------------------------------------------|---------|---------|-------------------------------------|-------|-------|
 | [Available as binary](https://kitsumed.github.io/OngakuVault/installation.html#from-binary-releases) | ✅      | ✅      | ✅                                | ✅    | ✅    |
 | [Available as docker image](https://kitsumed.github.io/OngakuVault/installation.html#from-docker)    | ❌      | ❌      | ✅                                | ✅    | ✅    |
-| All third-party binaries included                                                                    | ✅      | ✅      | ⚠️ (only includes **yt-dlp**[^1]) | ✅    | ✅    |
+| All third-party binaries included                                                                    | ✅      | ✅      | ❌                                | ✅    | ✅    |
 
 > [!NOTE]
 > All builds are made using Github actions.
-
-[^1]: [See **IMPORTANT** note in documentation](https://kitsumed.github.io/OngakuVault/installation.html#installation-methods).
 
 # TODO
 - [X] Add support for `lyrics` and `synced lyrics` metadata.

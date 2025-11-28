@@ -9,15 +9,13 @@ Additionally, you can build the project yourself. We also strongly recommend rea
 |------------------------------------------------------------------------------------------------------|---------|---------|-------------------------------------|-------|-------|
 | [Available as binary](#from-binary-releases)                                                         | ✅      | ✅      | ✅                                | ✅    | ✅    |
 | [Available as docker image](#from-docker)                                                            | ❌      | ❌      | ✅                                | ✅    | ✅    |
-| All third-party binaries included                                                                    | ✅      | ✅      | ⚠️ (only includes **yt-dlp**)     | ✅    | ✅    |
+| All third-party binaries included                                                                    | ✅      | ✅      | ❌                                | ✅    | ✅    |
 
 ## Installation Methods
 Before installing Ongakuvault, please take note of the following: 
 > [!IMPORTANT]
-> The binary and Docker release for `linux arm32` (also referred to as `ARM`), only includes the `yt-dlp` third-party library. This is because Ongakuvault
-> includes [yt-dlp version of FFmpeg and FFprobe](https://github.com/yt-dlp/FFmpeg-Builds), versions that do not have builds for the `ARM` architecture. If you plan to use Ongakuvault on an `ARM`
-> architecture, you need to download a `ARM` version of FFmpeg and FFprobe from a third-party source. Both FFmpeg and FFprobe should be placed in the same
-> directory as the Ongakuvault binaries. [Learn more here](./configurations/replacing-third-party-binary). **Note that this does not apply to ARM64 builds.**
+> The binary and Docker release for `linux arm32` (also referred to as `ARM`), no longer include any third-party library. If you plan to use OngakuVault on an `ARM`
+> architecture, you need to download a `ARM` version of all third-party libraries from third-party source. [Learn more here](./configurations/replacing-third-party-binary). **Note that this does not apply to ARM64 builds.**
 
 > [!TIP]
 > You can find all of the application configuration environment variables [here](./configurations/environment-variables).
@@ -44,7 +42,7 @@ Docker images are available on the github packages registry, you can pull a spec
 
 Docker images are currently available for the following platforms : `linux arm32`, `linux arm64`, `linux amd64`.
 > [!NOTE]
-> As previously mentionned, docker release for `linux arm32` (also referred to as `ARM`), only includes `yt-dlp`. If you plan on using `ARM`, you need to create a read-only binding
+> As previously mentionned, docker release for `linux arm32` (also referred to as `ARM`), do not include any third-party libraries. If you plan on using `ARM`, you need to create a read-only binding
 > to the binary you want to replace. [Learn more here](./configurations/replacing-third-party-binary)
 
 #### Docker Run
