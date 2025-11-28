@@ -25,6 +25,9 @@
 | [`Ongaku__CLEAR_METADATA_NONSTANDARD_FIELDS`](#clear-metadata-nonstandard-fields)| Removes additionals (non-standard) fields from your files metadata.| `false`                                     | `false`                                     |
 | [`Ongaku__CLIENT_SAFE_ERROR`](#client-safe-error) | Control if Ongaku should try returning a customised error message for known scraper error.| `true`| `true`                                      |
 | `Ongaku__DISABLE_WEBSITE`           | Disables the website at root `/`, leaving only the API.                   | `false`                                     | `false`                             |
+| `Ongaku__DISABLE_DIRECTORY_SUGGESTIONS`| Disables the autocomplete suggestions API for the archive directory hierarchy. | `false`                             | `false`                             |
+| `Ongaku__DISABLE_DIRECTORY_SUGGESTIONS_CACHE`| Enable server-side in-memory caching of directory hierarchy for autocomplete suggestions. | `true`             | `true`                              |
+| `Ongaku__DIRECTORY_SUGGESTIONS_CACHE_REFRESH_MINUTES`| Directory suggestions cache refresh interval **in minutes**, minimum of `1`.  | `60`                   | `60`                                |
 | `Ongaku__ENABLE_SWAGGER_DOC`        | Enables Swagger API doc at `/swagger`.                                    | `false`                                     | `false`                             |
 | `Ongaku__ENFORCE_HTTPS`             | If `true`, redirects HTTP to HTTPS.                                       | `false`                                     | `false`                             |
 | [`Ongaku__LYRICS_LANGUAGE_PRIORITY`](#lyrics-language-priority)  | Lyrics/subtitle languages to prioritize when available. (IETF tags)    | *empty*, lyrics fetching disabled.          | *empty*   |
@@ -100,13 +103,17 @@ To set dynamic values, refer yourself to the values supported by the used replac
 **Values processors used with this parameter**: [DATE](#date-processor), [TRACK](#track-processor)
 
 **Example**: `|AUDIO_TITLE|-|AUDIO_YEAR|` would result to **``My_Title-2020``**.
->[!WARNING]
+>[!NOTE]
 > The file format only concerns the file name, if you include a file extension it will only results in a file with "two" file extension.
 > **Example:** `processorsResults.mp3.mp3`
 
 ### OUTPUT_SUB_DIRECTORY_FORMAT
 The `OUTPUT_SUB_DIRECTORY_FORMAT` variable allow for downloaded files to be organised by sub directory insead of beeing directly added to the base output directory.
 To set dynamic values, refer yourself to the values supported by the used replacing processors.
+
+>[!WARNING]
+> The **Directory Suggestions feature** uses this variable to determine how it should handle suggestions.
+> **Defining this field will enable suggestions** and **allow users to list all your subdirectories through the API**. You can disable the suggestion API with **DISABLE_DIRECTORY_SUGGESTIONS**.
 
 **Values processors used with this parameter**: [DATE](#date-processor), [TRACK](#track-processor)
 
