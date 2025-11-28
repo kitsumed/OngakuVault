@@ -173,10 +173,24 @@ class DirectoryAutocomplete {
     }
 
     handleInput(event, fieldId) {
-        const value = event.target.value.trim();
+        const fullValue = event.target.value;
+        const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+        
+        // Check if this is a multi-value field (artist or genre)
+        const isMultiValueField = event.target.dataset.multiValueField === 'true';
+        
+        // Determine the value to use for autocomplete
+        let value;
+        if (isMultiValueField && fullValue.includes(separator)) {
+            // For multi-value fields, get the text after the last separator for autocomplete
+            const parts = fullValue.split(separator);
+            value = parts[parts.length - 1].trim();
+        } else {
+            value = fullValue.trim();
+        }
         
         // If field is completely empty, clear related cache for this field and hide match indicator
-        if (value.length === 0) {
+        if (fullValue.length === 0) {
             this.clearFieldCache(fieldId);
             this.hideSuggestions(fieldId);
             this.updateMatchIndicator(fieldId, false);
@@ -199,7 +213,20 @@ class DirectoryAutocomplete {
     }
 
     handleFocus(event, fieldId) {
-        const value = event.target.value.trim();
+        const fullValue = event.target.value;
+        const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+        const isMultiValueField = event.target.dataset.multiValueField === 'true';
+        
+        // Determine the value to use for autocomplete
+        let value;
+        if (isMultiValueField && fullValue.includes(separator)) {
+            // For multi-value fields, get the text after the last separator for autocomplete
+            const parts = fullValue.split(separator);
+            value = parts[parts.length - 1].trim();
+        } else {
+            value = fullValue.trim();
+        }
+        
         if (value.length >= 1) {
             this.showSuggestions(fieldId, value);
         }
@@ -377,9 +404,21 @@ class DirectoryAutocomplete {
         }
 
         // Check for exact match with current input value
+        // For multi-value fields, only check the PRIMARY (first) value
         const input = document.getElementById(fieldId);
-        const currentValue = input ? input.value.trim() : '';
-        const hasExactMatch = suggestions.some(s => s.name.toLowerCase() === currentValue.toLowerCase());
+        const fullValue = input ? input.value : '';
+        const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+        const isMultiValueField = input && input.dataset.multiValueField === 'true';
+        
+        let valueToCheck;
+        if (isMultiValueField && fullValue.includes(separator)) {
+            // For multi-value fields, check only the primary (first) value for match indicator
+            valueToCheck = fullValue.split(separator)[0].trim();
+        } else {
+            valueToCheck = fullValue.trim();
+        }
+        
+        const hasExactMatch = suggestions.some(s => s.name.toLowerCase() === valueToCheck.toLowerCase());
         
         // Update match indicator
         this.updateMatchIndicator(fieldId, hasExactMatch);
@@ -396,11 +435,32 @@ class DirectoryAutocomplete {
             });
 
             item.addEventListener('click', () => {
-                document.getElementById(fieldId).value = suggestion.name;
+                // For multi-value fields, append the suggestion after the separator
+                const input = document.getElementById(fieldId);
+                const currentValue = input.value;
+                const separator = typeof metadataValueSeparator !== 'undefined' ? metadataValueSeparator : ';';
+                const isMultiValueField = input.dataset.multiValueField === 'true';
+                
+                if (isMultiValueField && currentValue.includes(separator)) {
+                    // Replace only the last part (after the last separator)
+                    const parts = currentValue.split(separator);
+                    parts[parts.length - 1] = ' ' + suggestion.name;
+                    input.value = parts.join(separator);
+                } else {
+                    input.value = suggestion.name;
+                }
+                
                 this.hideSuggestions(fieldId);
                 
-                // Show match indicator when user selects a suggestion
-                this.updateMatchIndicator(fieldId, true);
+                // For multi-value fields, only show match indicator if PRIMARY matches
+                if (isMultiValueField && input.value.includes(separator)) {
+                    const primaryValue = input.value.split(separator)[0].trim();
+                    const primaryMatch = suggestions.some(s => s.name.toLowerCase() === primaryValue.toLowerCase());
+                    this.updateMatchIndicator(fieldId, primaryMatch);
+                } else {
+                    // Show match indicator when user selects a suggestion
+                    this.updateMatchIndicator(fieldId, true);
+                }
                 
                 // Clear suggestions for subsequent fields as the context has changed
                 this.clearSubsequentFields(fieldId);
