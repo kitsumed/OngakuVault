@@ -149,8 +149,8 @@ class DirectoryAutocomplete {
                     const checkImg = document.createElement('img');
                     checkImg.src = '/media/pictures/icons/white-check.svg';
                     checkImg.alt = 'Match';
-                    checkImg.style.width = '20px';
-                    checkImg.style.height = '20px';
+                    checkImg.style.width = '2em';
+                    checkImg.style.height = '2em';
                     checkImg.style.filter = 'brightness(0) saturate(100%) invert(77%) sepia(61%) saturate(425%) hue-rotate(95deg) brightness(88%) contrast(87%)'; // Makes white SVG appear as green (#48c78e)
                     matchIndicator.appendChild(checkImg);
                     
@@ -339,6 +339,7 @@ class DirectoryAutocomplete {
                 console.debug(`No suggestions found, marking prefix "${filter}" as failed for context : ${contextKey}`);
                 this.failedQueries.set(contextKey, filter);
                 this.hideSuggestions(fieldId);
+                this.updateMatchIndicator(fieldId, false);
                 return;
             }
 
@@ -414,28 +415,21 @@ class DirectoryAutocomplete {
     updateMatchIndicator(fieldId, showMatch) {
         const input = document.getElementById(fieldId);
         const matchIndicator = document.getElementById(`${fieldId}-match-indicator`);
-        const control = input ? input.parentNode : null;
-        
-        if (!input || !matchIndicator || !control) {
-            return;
-        }
+        const inputControlElement = input.parentElement
 
         if (showMatch) {
-            // Add has-icons-right class to the control div for proper Bulma icon positioning
-            control.classList.add('has-icons-right');
-            
-            // Only animate if the indicator was previously hidden
-            const wasHidden = matchIndicator.style.display === 'none';
-            matchIndicator.style.display = '';
-            
-            if (wasHidden && typeof animateCSS === 'function') {
-                // Use the animateCSS helper from utils.js
+            // Only if it was previsouly hidden
+            if (matchIndicator.style.display === 'none') {
+                // Add has-icons-right class to the input (control) div for proper Bulma icon positioning
+                inputControlElement.classList.add('has-icons-right');
+                // Make visible and animate
+                matchIndicator.style.display = '';
                 animateCSS(matchIndicator, 'bounceIn');
             }
         } else {
             // Hide the match indicator
             matchIndicator.style.display = 'none';
-            control.classList.remove('has-icons-right');
+            inputControlElement.classList.remove('has-icons-right');
         }
     }
 
