@@ -9,14 +9,9 @@ Ongakuvault may include the following third-patry binary:
 - [yt-dlp version of FFmpeg & FFprobe](https://github.com/yt-dlp/FFmpeg-Builds/releases/latest)
 - [Deno](https://github.com/denoland/deno/releases)
 
-> [!NOTE]  
-> The build workflow for the yt-dlp version of FFmpeg and FFprobe does not include pre-built binaries for `linux arm32` (also referred to as `ARM`). However,
-> you can either build it yourself or use pre-built binaries from other sources, such as the [official FFmpeg website](https://ffmpeg.org/download.html).
-> Please note that some fixes and workarounds specific to the yt-dlp version of FFmpeg may not be included in these alternative builds.
-
 > [!TIP]
-> You can find the PowerShell script used during the build workflow to download the external binaries [here](https://github.com/kitsumed/OngakuVault/blob/main/.github/workflows/scripts/download_external_binaries.ps1).
-> You can run it locally on your machine by using the argument `-LocalBuild`.
+> You can find the PowerShell script used during the build & release workflow to download the external binaries [here](https://github.com/kitsumed/OngakuVault/blob/main/.github/workflows/scripts/download_external_binaries.ps1).
+> You can run it locally on your machine by using the argument `-LocalBuild`. This will detect your system architecture and download the latest third-party binaries available.
 
 ## Replacing a binary
 ### General
