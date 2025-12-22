@@ -5,7 +5,7 @@ This page will explain the use cases of Ongakuvault, what it is, and what it isn
 If you want to install it, [go here](/installation).
 ## What is Ongakuvault?
 
-Ongakuvault is an ASP.NET application running on .NET Core 8, which enables it to run seamlessly on both Windows and Linux. It allows you to download audio files, preserve their metadata, and modify selected fields for better control over your audio archive.
+Ongakuvault is an ASP.NET application running on .NET Core 10, which enables it to run seamlessly on both Windows and Linux. It allows you to download audio files, preserve their metadata, and modify selected fields for better control over your audio archive.
 
 ## Showcase
 > [!NOTE]

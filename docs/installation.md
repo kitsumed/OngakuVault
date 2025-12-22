@@ -30,8 +30,8 @@ Windows users can start OngakuVault by running the `Ongakuvault.exe` binary. Lin
 > Ongakuvault builds do not include the .NET Core Runtime in their binary to minimize file size. This means you'll need to install it on your system if you haven't done so already.
 
 #### Installing the .NET Core Runtime  
-1. Visit the [Microsoft .NET Core 8 download page](https://dotnet.microsoft.com/download/dotnet/8.0).  
-2. Choose the latest 8.x.x version available.  
+1. Visit the [Microsoft .NET Core 10 download page](https://dotnet.microsoft.com/download/dotnet/10.0).  
+2. Choose the latest 10.x.x version available.  
 3. Find the section to download the **ASP.NET Core Runtime**.  
 4. For Windows users, download the installer matching your system architecture. For Linux users, follow the package manager instructions provided by Microsoft.
 
