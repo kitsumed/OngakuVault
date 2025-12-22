@@ -56,12 +56,18 @@ namespace OngakuVault.Controllers
 				while (webSocketConnection.State == WebSocketState.Open)
 				{
 					WebSocketReceiveResult websocketResult = await webSocketConnection.ReceiveAsync(buffer, CancellationToken.None);
-					// Check if websocket connection is closing
-					if (websocketResult.CloseStatus.HasValue)
+                    // Check if the client-side websocket connection requested closing (and )
+                    if (websocketResult.CloseStatus.HasValue)
 					{
-						// Send a close handshake to the client to handle closure
-						await webSocketConnection.CloseAsync(websocketResult.CloseStatus.Value, websocketResult.CloseStatusDescription, CancellationToken.None);
-						break;
+                        // do nothing if it's already closed as it would cause errors
+                        // Example : Can be already closed during server shutdown, as the main websocket service dispose of every active connection
+                        if (webSocketConnection.State != WebSocketState.Closed) 
+						{
+                            // Send a close confirm handshake to the client to handle closure
+                            await webSocketConnection.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, websocketResult.CloseStatusDescription, CancellationToken.None);
+                        }
+                        // Connection has a close status, no more data to receive, we exit the loop.
+                        break;
 					}
 
 					// We don't do anything with the client received data (websocketResult)

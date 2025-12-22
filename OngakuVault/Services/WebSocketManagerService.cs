@@ -59,6 +59,15 @@ namespace OngakuVault.Services
 			Converters = { new JsonStringEnumConverter() },
 		};
 
+		private readonly ILogger<WebSocketManagerService> _logger;
+
+		public WebSocketManagerService(IHostApplicationLifetime applicationLifetime, ILogger<WebSocketManagerService> logger)
+		{
+			_logger = logger;
+            // Register the CloseAllConnections method to be called when the application is stopping, so we don't prevent closure of the app
+            applicationLifetime.ApplicationStopping.Register(CloseAllConnections);
+		}
+
 		public bool TryAddClient(WebSocket webSocket, out Guid clientId)
 		{
 			clientId = Guid.NewGuid();
@@ -95,6 +104,51 @@ namespace OngakuVault.Services
 				}
 			});
 			await Task.WhenAll(allWebSocketTaks);
+		}
+
+		/// <summary>
+		/// Closes all active WebSocket connections managed by the server.
+		/// </summary>
+		/// <remarks>This method attempts to gracefully close each WebSocket connection, notifying clients that the
+		/// server is shutting down. Any exceptions encountered while closing individual connections are logged, and all
+		/// clients are removed from the connection list regardless of close outcome. The method blocks until all close
+		/// operations have completed or a timeout occurs.</remarks>
+		private void CloseAllConnections()
+		{
+			_logger.LogInformation("Application is stopping. Closing all WebSocket connections... 10 seconds timeout.");
+
+			List<Task> closeTasks = new List<Task>();
+
+			foreach (KeyValuePair<Guid, WebSocket> client in ClientsConnection)
+			{
+				Task closeTask = Task.Run(async () =>
+				{
+					try
+					{
+						WebSocket webSocket = client.Value;
+						if (webSocket.State == WebSocketState.Open)
+						{
+							await webSocket.CloseAsync(
+								WebSocketCloseStatus.EndpointUnavailable,
+								"Server is turning into a teapot. Shutting down...",
+								CancellationToken.None);
+						}
+					}
+					catch (Exception ex)
+					{
+						_logger.LogWarning(ex, "Error closing WebSocket connection for client {ClientId}", client.Key);
+					}
+					finally
+					{
+						TryRemoveClient(client.Key);
+					}
+				});
+
+				closeTasks.Add(closeTask);
+			}
+
+			Task.WaitAll(closeTasks.ToArray(), TimeSpan.FromSeconds(10));
+			_logger.LogInformation("All WebSocket connections closed.");
 		}
 	}
 
