@@ -1,5 +1,5 @@
 # What is OngakuVault?
-OngakuVault is an ASP.NET API running on .NET Core 8, designed to work on both Windows and Linux. It allows users to download audio files, retain their metadata, and make modifications to selected fields for better management
+OngakuVault is an ASP.NET API running on .NET Core 10, designed to work on both Windows and Linux. It allows users to download audio files, retain their metadata, and make modifications to selected fields for better management
 of your audio archive. The application also includes an optional web interface (enabled by default), meaning no installation is required for end-users! Additionally, Docker images are available for easy deployment.
 [**Check out OngakuVault documentation**](https://kitsumed.github.io/OngakuVault/).
 
