@@ -1,8 +1,9 @@
 # This Dockerfile was made to be used by Github Actions.
-# .NET 8.0 ASP.NET images github: https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md & https://github.com/dotnet/dotnet-docker/tree/main/src/aspnet/8.0
-# FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled
+# .NET 10.0 ASP.NET images github: https://github.com/dotnet/dotnet-docker/blob/main/documentation/image-variants.md & https://github.com/dotnet/dotnet-docker/tree/main/src/aspnet/10.0. Microsoft Registry : https://mcr.microsoft.com/en-us/artifact/mar/dotnet/aspnet/tags
+# ERROR WITH : FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled
 # We can't use a chiseled image due to yt-dlp usage of /bin/sh on linux (shell), and alpine versions (smaller size) can't be used due to external package dependencies
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy
+# NOTICE: We use Ubuntu base image, Jammy, Noble, etc. The name is based off the latest LTS version of Ubuntu at the time of release
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble
 WORKDIR /app
 
 # Define a build argument for the target platform-specific architecture (format: <os>/<architecture>/<variant> in build CLI) only take architecture value
