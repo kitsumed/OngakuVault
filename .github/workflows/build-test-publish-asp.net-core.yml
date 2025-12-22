@@ -12,7 +12,7 @@ env:
   # DOTNET Configs
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_NOLOGO: true
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x' # You can get dotnet versions by running "dotnet --list-sdks"
 
 jobs:
   # Linux based builds
@@ -28,10 +28,10 @@ jobs:
     steps:
         # Copy the repo code from the tag that triggered this action.
       - name: Checkout tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -69,7 +69,7 @@ jobs:
           pwsh -File $ScriptPath -Platform "${{ matrix.platform }}"
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           # Change the Name to the custom build name
           name: ${{ env.BUILD_NAME }}-build
@@ -92,10 +92,10 @@ jobs:
         
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -123,7 +123,7 @@ jobs:
           pwsh -File $ScriptPath -Platform "${{ matrix.platform }}"
 
       - name: Upload ${{ matrix.platform }}-build as a artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.platform }}-build
           path: ./build/${{ matrix.platform }}
@@ -141,9 +141,9 @@ jobs:
       contents: write # This grant the write permission to the job since gh-release need the permission to edit & upload files to releases
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           # Destination path. CD is $GITHUB_WORKSPACE
           path: "./build-artifacts/"
@@ -177,7 +177,7 @@ jobs:
       # Upload zip to the github release
       - name: Publish build to github release
       # Use a pinned hash as a prevention to repojacking, verify changelogs & latest before updating for security
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 #v2.3.3 pinned hash
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe #v2.4.2 pinned hash (NOTE : v2.5.0 has multiple major issues reports, lets delay the update for now)
         with:
           prerelease: false
           files: | # Publish all zip and tar builds archives to github release
@@ -199,9 +199,9 @@ jobs:
       DOCKER_PLATFORMS: "linux/amd64,linux/arm64,linux/arm/v7" # Builds to release to Github Packages. Separated by commas
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           # Destination path. CD is $GITHUB_WORKSPACE
           path: "./build-artifacts/"
