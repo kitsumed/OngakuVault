@@ -84,46 +84,5 @@ namespace OngakuVault.Helpers
 
 			return value.Trim();
 		}
-
-		/// <summary>
-		/// Extracts the primary (first) value from a string that may contain multiple values
-		/// separated by ATL.Settings.DisplayValueSeparator.
-		/// This overload returns null if the input is null or empty.
-		/// </summary>
-		/// <param name="value">The value string, which may contain multiple values</param>
-		/// <returns>The primary (first) value, or null if the input is null or empty</returns>
-		public static string? GetPrimaryValueOrNull(string? value)
-		{
-			if (string.IsNullOrEmpty(value))
-			{
-				return null;
-			}
-
-			// Split by the ATL DisplayValueSeparator and return the first value (trimmed)
-			char separator = ATL.Settings.DisplayValueSeparator;
-			int separatorIndex = value.IndexOf(separator);
-			
-			if (separatorIndex >= 0)
-			{
-				return value.Substring(0, separatorIndex).Trim();
-			}
-
-			return value.Trim();
-		}
-
-		/// <summary>
-		/// Checks if a string contains multiple values separated by ATL.Settings.DisplayValueSeparator.
-		/// </summary>
-		/// <param name="value">The value string to check</param>
-		/// <returns>True if the string contains multiple values, false otherwise</returns>
-		public static bool HasMultipleValues(string? value)
-		{
-			if (string.IsNullOrEmpty(value))
-			{
-				return false;
-			}
-
-			return value.Contains(ATL.Settings.DisplayValueSeparator);
-		}
 	}
 }
